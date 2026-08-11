@@ -4,8 +4,8 @@ Everything an operator, contributor, or curious reader needs, sorted
 by the question they are asking. The product itself lives in
 [`../payload/`](../payload/) and is delivered by
 [`../scripts/install.sh`](../scripts/install.sh); start at the
-top-level [`README.md`](../README.md) if you have never seen Ubuntu
-Zombie before.
+top-level [`README.md`](../README.md) if you have never seen Ubuntu AI System
+Administrator before.
 
 ## "I want to use it"
 

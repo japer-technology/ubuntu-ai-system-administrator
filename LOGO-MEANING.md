@@ -1,10 +1,10 @@
-# The Meaning of the Ubuntu Zombie Logo
+# The Meaning of the Ubuntu AI System Administrator Logo
 
-![Ubuntu Zombie Logo](LOGO.png)
+![Ubuntu AI System Administrator Logo](LOGO.png)
 
 One head. Two natures. A single purple light that answers to you.
 
-The Ubuntu Zombie logo is a face split cleanly down the middle. On
+The Ubuntu AI System Administrator logo is a face split cleanly down the middle. On
 the left, a smooth white robot wearing black over-ear headphones
 with a boom microphone. On the right, a weathered, cracked human
 skull. The two halves share the same eye line, the same jaw, and
@@ -22,7 +22,7 @@ Read the logo left to right and you have read the whole trust model.
 
 *The seam is the story.*
 
-A machine running Ubuntu Zombie is still an ordinary Ubuntu Desktop
+A machine running Ubuntu AI System Administrator is still an ordinary Ubuntu Desktop
 PC for the human sitting in front of it — that is the organic,
 human side. And it is simultaneously the home of a root-capable AI
 Systems Administrator living inside it — the manufactured, machine
@@ -96,7 +96,7 @@ most important element in the logo.
 The headphones sit only on the robot side, and they are wired. That
 is the network posture from `README.md` and `SECURITY.md` made
 visible: the administrator listens on loopback-only local chat, never
-on the open internet. Ubuntu Zombie does not provision remote access.
+on the open internet. Ubuntu AI System Administrator does not provision remote access.
 The ears are cupped and cabled, not broadcasting in every direction.
 
 ## What the logo is *not* saying

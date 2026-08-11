@@ -1,7 +1,7 @@
 # GitHub Actions workflows
 
 This directory contains the GitHub Actions workflows that protect the
-Ubuntu Zombie source tree, exercise installer behavior, publish security
+Ubuntu AI System Administrator source tree, exercise installer behavior, publish security
 signals, and produce signed release artifacts. The workflows are designed
 around the repository's trust model: run fast checks on every pull request,
 keep privileged installer paths covered by scheduled integration checks,
@@ -51,7 +51,7 @@ same categories of checks contributors are expected to run locally:
 - `bash tests/smoke.sh standards` for repository policy and standards
   checks.
 - `python3 -m pytest tests/python -q` for policy and audit regression tests.
-- An Ubuntu Zombie source-package build.
+- An Ubuntu AI System Administrator source-package build.
 - A final `git grep` scan for long `sk-`, `sk-ant-`, and
   `tskey-auth-` token-shaped strings.
 
@@ -95,7 +95,7 @@ repository's MIT licensing posture. Allowed licenses currently include
 0BSD, Apache-2.0, BSD-2-Clause, BSD-3-Clause, CC0-1.0, ISC, MIT, MPL-2.0,
 Python-2.0, Unlicense, and Zlib.
 
-Although Ubuntu Zombie has few build-time dependencies, this workflow is
+Although Ubuntu AI System Administrator has few build-time dependencies, this workflow is
 useful because payload manifests such as `package.json`,
 `requirements*.txt`, or `pyproject.toml` could be added in the future. On
 failure, the action is configured to comment a summary on the pull request.

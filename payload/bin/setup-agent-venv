@@ -2,7 +2,7 @@
 #
 # setup-agent-venv
 # ----------------
-# Provision the unprivileged Python virtualenv for the Ubuntu Zombie
+# Provision the unprivileged Python virtualenv for Ubuntu AI System Administrator
 # agent account (default `~/agent-env`).
 #
 # Run as the AGENT_USER (not root):

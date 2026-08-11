@@ -3,7 +3,7 @@
 #
 # lib.sh
 # ------
-# Shared user-experience helpers for the Ubuntu Zombie shell scripts.
+# Shared user-experience helpers for the Ubuntu AI System Administrator shell scripts.
 #
 # This file is *sourced*, never executed directly. It centralises the
 # colour/TTY logic, status vocabulary, retry/backoff, timing, spinner,
@@ -157,20 +157,20 @@ _brand_panel_row() {
 }
 
 # brand_wordmark
-#   Compact "UBUNTU ZOMBIE" sign, shared by startup screens.
+#   Compact "UBUNTU AI SYSTEM ADMINISTRATOR" sign, shared by startup screens.
 brand_wordmark() {
   (( ZOMBIE_QUIET )) && return 0
   printf '%s' "${C_BRAND}"
   printf '%s\n' \
 '╭──────────────────────────────────╮' \
-'│  UBUNTU ZOMBIE                   │' \
-'│  AI SYSTEMS ADMINISTRATOR        │' \
+'│  UBUNTU AI SYSTEM                │' \
+'│  ADMINISTRATOR                   │' \
 '╰──────────────────────────────────╯'
   printf '%s\n' "${C_RESET}"
 }
 
 # brand_splash "subtitle" "version"
-#   The full-dress startup splash: a compact "UBUNTU ZOMBIE" sign in
+#   The full-dress startup splash: a compact "UBUNTU AI SYSTEM ADMINISTRATOR"
 #   the Zombie Orchid palette, framed by a rounded panel that states who the
 #   account is, the version, and how to reach it. Used to open the installer
 #   the way a polished agent CLI greets you. Honours ZOMBIE_QUIET and the

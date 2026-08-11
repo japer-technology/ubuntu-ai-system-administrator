@@ -39,7 +39,7 @@ body:
   - type: input
     id: version
     attributes:
-      label: Ubuntu Zombie version
+      label: Ubuntu AI System Administrator version
       description: Output of `./scripts/install.sh --version` or contents of the `VERSION` file.
       placeholder: "2026.06.02.03.59.05"
     validations:

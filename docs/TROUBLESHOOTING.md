@@ -21,8 +21,8 @@ sudo journalctl -u ubuntu-zombie-chat.service -n 100 --no-pager
 ```
 
 The chat service intentionally binds to `127.0.0.1` only. Open it from
-the Ubuntu Zombie machine at `http://127.0.0.1:7878/`, or use your own
-remote-access mechanism outside Ubuntu Zombie.
+the Ubuntu AI System Administrator machine at `http://127.0.0.1:7878/`, or
+use your own remote-access mechanism outside Ubuntu AI System Administrator.
 
 ## Provider errors
 

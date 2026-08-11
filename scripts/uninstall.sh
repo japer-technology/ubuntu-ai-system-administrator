@@ -2,7 +2,7 @@
 #
 # uninstall.sh
 # ------------
-# Reverse the Ubuntu Zombie installer.
+# Reverse the Ubuntu AI System Administrator installer.
 #
 # Removes the chat service, sudoers drop-in, generated helpers, policy,
 # logrotate rule, and (with
@@ -75,7 +75,7 @@ usage() {
   cat <<'EOF'
 uninstall.sh
 ------------
-Reverse the Ubuntu Zombie installer.
+Reverse the Ubuntu AI System Administrator installer.
 
 Removes the chat service, sudoers drop-in, generated helpers, policy,
 logrotate rule, and (with

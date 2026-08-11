@@ -15,12 +15,12 @@ Operating rules:
 - Keep the gateway loopback-only by default. Do not expose it through a
   wildcard bind, reverse proxy, tunnel or firewall opening without explicit
   operator approval and a reviewed authentication design.
-- Run OpenClaw separately from Ubuntu Zombie: a distinct unprivileged user,
-  state tree, secrets and service. Never reuse Ubuntu Zombie's sudo access,
+- Run OpenClaw separately from Ubuntu AI System Administrator: a distinct unprivileged user,
+  state tree, secrets and service. Never reuse Ubuntu AI System Administrator's sudo access,
   provider secrets, policy file or loopback chat endpoint.
 - Review extensions, skills and connectors as executable third-party code.
   Pin versions and grant the narrowest workspace, network and shell access
-  needed. An OpenClaw approval must not stand in for Ubuntu Zombie's gate.
+  needed. An OpenClaw approval must not stand in for Ubuntu AI System Administrator's gate.
 - Use native status, doctor and dry-run facilities where the installed
   version offers them. Bound log output, redact tokens and channel payloads,
   and verify both process health and the expected listening address.

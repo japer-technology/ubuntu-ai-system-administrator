@@ -1,6 +1,6 @@
 # Security
 
-Ubuntu Zombie installs a privileged AI Systems Administrator on a
+Ubuntu AI System Administrator installs a privileged AI Systems Administrator on a
 normal Ubuntu PC. This is a meaningful security posture and you should
 read it before running the installer.
 
@@ -128,7 +128,7 @@ removing the `agent` user and archiving state.
 Please report security issues privately to the maintainers of this
 repository via a GitHub Security Advisory:
 
-<https://github.com/japer-technology/ubuntu-zombie/security/advisories/new>
+<https://github.com/japer-technology/ubuntu-ai-system-administrator/security/advisories/new>
 
 Do not file public issues for vulnerabilities. A 90-day coordinated
 disclosure window is the default.

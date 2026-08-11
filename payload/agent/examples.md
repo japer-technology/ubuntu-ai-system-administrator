@@ -1,6 +1,6 @@
-# Example requests for Ubuntu Zombie
+# Example requests for Ubuntu AI System Administrator
 
-Use these prompts as starting points. Ubuntu Zombie is best when you ask
+Use these prompts as starting points. Ubuntu AI System Administrator is best when you ask
 for an outcome, let it inspect first, and approve any change only after it
 explains the plan. Read-only requests can run immediately; package,
 service, configuration, and destructive changes should trigger the local
@@ -65,7 +65,7 @@ policy gate and appear in the audit log.
 - Roll back the last change you made if the verification step failed.
 - Re-run the verification command and explain every remaining warning.
 
-## Operate Ubuntu Zombie itself
+## Operate Ubuntu AI System Administrator itself
 
 - Show my current provider, model, and whether the active key is present
   without revealing the key.
@@ -118,4 +118,3 @@ policy gate and appear in the audit log.
   they are necessary."
 - "Quote commands and file paths, but never reveal secrets."
 - "If you are uncertain, stop and ask me instead of guessing."
-

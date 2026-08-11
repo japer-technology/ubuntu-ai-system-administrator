@@ -1,6 +1,6 @@
 # Release process
 
-How to cut a new release of Ubuntu Zombie. For maintainers only.
+How to cut a new release of Ubuntu AI System Administrator. For maintainers only.
 
 ## Cadence
 
@@ -98,7 +98,7 @@ therefore sort chronologically and are never reused.
      the verification command above.
 
 9. **Announce** in the
-   [Discussions › Announcements](https://github.com/japer-technology/ubuntu-zombie/discussions/categories/announcements)
+   [Discussions › Announcements](https://github.com/japer-technology/ubuntu-ai-system-administrator/discussions/categories/announcements)
    category. Link the release page.
 
 ## Hotfix releases

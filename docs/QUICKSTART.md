@@ -1,6 +1,6 @@
 # Quickstart
 
-Ubuntu Zombie installs a local AI Systems Administrator account and a
+Ubuntu AI System Administrator installs a local AI Systems Administrator account and a
 password-protected chat service bound to `127.0.0.1`. It does not install
 or configure SSH, Tailscale, VNC, Docker, graphical autologin, or GUI
 browser automation.
@@ -27,7 +27,7 @@ From the repository root:
 sudo ./scripts/install.sh install
 ```
 
-This command installs Ubuntu Zombie. The installer grammar is
+This command installs Ubuntu AI System Administrator. The installer grammar is
 `scripts/install.sh [verb] [flags]`.
 
 Interactive installs open a parameter review before changing the host.
@@ -71,7 +71,7 @@ sudo systemctl restart ubuntu-zombie-chat.service
 
 ## Open chat
 
-On the Ubuntu Zombie desktop, open:
+On the Ubuntu AI System Administrator desktop, open:
 
 ```text
 http://127.0.0.1:7878/
@@ -84,7 +84,7 @@ or run:
 ```
 
 The service is intentionally loopback-only. If you need remote access,
-bring your own remote-access mechanism outside Ubuntu Zombie.
+bring your own remote-access mechanism outside Ubuntu AI System Administrator.
 
 ## Verify, doctor, repair
 
@@ -114,6 +114,6 @@ Diagnostics are redacted before being bundled.
 sudo ./scripts/install.sh uninstall
 ```
 
-The uninstaller removes Ubuntu Zombie services, sudoers entries,
+The uninstaller removes Ubuntu AI System Administrator services, sudoers entries,
 payload files, policy, logrotate rules, and optionally the agent account
 and archives. Shared packages such as Node and Python are left alone.

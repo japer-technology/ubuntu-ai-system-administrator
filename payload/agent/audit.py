@@ -1,4 +1,4 @@
-"""Audit logging for Ubuntu Zombie.
+"""Audit logging for Ubuntu AI System Administrator.
 
 Every prompt, proposed action, approval decision, command, exit code,
 and verification result is appended as one JSON object per line to

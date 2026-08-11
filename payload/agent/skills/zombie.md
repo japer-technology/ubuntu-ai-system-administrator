@@ -1,7 +1,7 @@
 <!-- triggers: zombie, ubuntu-zombie, ai-zombie, doctor, repair, audit, policy, ttl, installer -->
-# Skill: Ubuntu Zombie's own layout and controls
+# Skill: Ubuntu AI System Administrator's own layout and controls
 
-This skill is loaded when the operator asks about Ubuntu Zombie
+This skill is loaded when the operator asks about Ubuntu AI System Administrator
 itself — its files, its policy, its audit trail or its lifecycle.
 
 Operating rules:

@@ -48,6 +48,6 @@ Operating rules:
 - Bound what you read. `web.fetch` and `curl` truncate; a truncated
   document is not valid JSON, so parse failures on a large response
   usually mean "raise the limit deliberately", not "the API is broken".
-- Ubuntu Zombie's own state and configuration files are not general
+- Ubuntu AI System Administrator's own state and configuration files are not general
   scratch space. Do not hand-edit the runtime `settings.json` the
   installer renders — `repair` regenerates it and your edit is lost.

@@ -25,8 +25,8 @@ esac
 
 PORT="${ZOMBIE_CHAT_PORT:-7878}"
 cat <<EOF
-Ubuntu Zombie
--------------
+Ubuntu AI System Administrator
+------------------------------
 
 Local URL:
   http://127.0.0.1:${PORT}/

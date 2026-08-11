@@ -7,14 +7,14 @@ Zombie.
 Operating rules:
 
 - Distinguish the embedded runtime from a user's standalone `pi`
-  installation. Ubuntu Zombie pins `@earendil-works/pi-coding-agent`, renders
+  installation. Ubuntu AI System Administrator pins `@earendil-works/pi-coding-agent`, renders
   settings under `/opt/ai-zombie/pi/`, and starts it through
   `/opt/ai-zombie/agent/pi-mono-bridge.mjs`.
 - The Python chat service owns provider/model selection and starts the Node
   bridge over line-delimited JSON. The bridge emits model, tool, progress and
   final events; it is not a separate network service and should not gain a
   listening socket.
-- Ubuntu Zombie disables pi's built-in tools. Every effective tool call must
+- Ubuntu AI System Administrator disables pi's built-in tools. Every effective tool call must
   return through the Python closed registry, policy classification, approval
   queue and audit log. Never enable built-in shell or filesystem tools to
   work around a denial.
@@ -24,7 +24,7 @@ Operating rules:
 - Per-turn logs live under `/opt/ai-zombie/state/logs/`; session/checkpoint
   state lives under `/opt/ai-zombie/state/pi-mono-sessions/`. Redact prompts,
   tool arguments and provider errors before sharing diagnostics.
-- Provider credentials come from Ubuntu Zombie's root-owned secrets flow.
+- Provider credentials come from Ubuntu AI System Administrator's root-owned secrets flow.
   Do not add keys to pi settings, a user's native pi configuration, command
   arguments or bridge logs.
 - Do not update the global package, edit generated settings, or replace the

@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
-# Verify a downloaded Ubuntu Zombie release directory.
+# Verify a downloaded Ubuntu AI System Administrator release directory.
 set -Eeuo pipefail
 
-REPO="${ZOMBIE_RELEASE_REPO:-japer-technology/ubuntu-zombie}"
+REPO="${ZOMBIE_RELEASE_REPO:-japer-technology/ubuntu-ai-system-administrator}"
 CERT_IDENTITY_REGEXP="${ZOMBIE_RELEASE_CERT_IDENTITY_REGEXP:-https://github.com/${REPO}/.+}"
 CERT_OIDC_ISSUER="${ZOMBIE_RELEASE_CERT_OIDC_ISSUER:-https://token.actions.githubusercontent.com}"
 
@@ -10,7 +10,7 @@ usage() {
   cat <<EOF
 Usage: verify-release [release-directory]
 
-Verifies a downloaded Ubuntu Zombie release directory by checking SHA256SUMS,
+Verifies a downloaded Ubuntu AI System Administrator release directory by checking SHA256SUMS,
 cosign signatures, and the local SLSA provenance attestation bundle.
 
 Environment:

@@ -1,5 +1,5 @@
 [Unit]
-Description=Periodic Ubuntu Zombie health check
+Description=Periodic Ubuntu AI System Administrator health check
 
 [Service]
 Type=oneshot

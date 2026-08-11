@@ -1,6 +1,6 @@
 # Contributing
 
-Thanks for taking the time to look at Ubuntu Zombie.
+Thanks for taking the time to look at Ubuntu AI System Administrator.
 
 ## Ground rules
 
@@ -17,8 +17,8 @@ Thanks for taking the time to look at Ubuntu Zombie.
 ## Local development
 
 ```bash
-git clone https://github.com/japer-technology/ubuntu-zombie.git
-cd ubuntu-zombie
+git clone https://github.com/japer-technology/ubuntu-ai-system-administrator.git
+cd ubuntu-ai-system-administrator
 make lint     # ShellCheck + bash -n + python compile
 make test     # smoke tests (no root required)
 ```
@@ -96,9 +96,9 @@ CI runs the same script on every push and pull request, plus
 
 ## Installer scope
 
-`scripts/install.sh` has one subject: Ubuntu Zombie. Its public lifecycle is
+`scripts/install.sh` has one subject: Ubuntu AI System Administrator. Its public lifecycle is
 `install`, `verify`, `doctor`, `repair`, and `uninstall`. Infrastructure or
-applications that are not part of the Ubuntu Zombie runtime are out of scope
+applications that are not part of the Ubuntu AI System Administrator runtime are out of scope
 for this repository and must not be added as positional install selections or
 environment-controlled side installs.
 

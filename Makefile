@@ -1,4 +1,4 @@
-# Makefile for Ubuntu Zombie.
+# Makefile for Ubuntu AI System Administrator.
 
 SHELL := bash
 .SHELLFLAGS := -eu -o pipefail -c
@@ -10,7 +10,7 @@ VERSION := $(shell cat VERSION)
 help:
 	@echo "Targets:"
 	@echo "  lint           ShellCheck, syntax, and Python compile"
-	@echo "  test           Ubuntu Zombie non-root test suite"
+	@echo "  test           Ubuntu AI System Administrator non-root test suite"
 	@echo "  verify-bridge-pins  checksum pinned Node bridge inputs"
 	@echo "  install-local  sudo ./scripts/install.sh install (RUN ON A VM)"
 	@echo "  verify         sudo ./scripts/install.sh verify"

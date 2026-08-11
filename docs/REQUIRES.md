@@ -1,6 +1,6 @@
 # Requirements
 
-Ubuntu Zombie targets Ubuntu Desktop LTS and installs one local access
+Ubuntu AI System Administrator targets Ubuntu Desktop LTS and installs one local access
 surface: the password-protected chat UI bound to `127.0.0.1`.
 
 ## Host

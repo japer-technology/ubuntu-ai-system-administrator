@@ -11,11 +11,11 @@ tool call is dispatched through this module:
   Rejections are recorded as ``tool_call_rejected_schema`` audit events
   by the server before any side effects.
 * :func:`dispatch` runs the registered shim. Shims wrap existing
-  Ubuntu Zombie helpers (``runner.run``, ``Path.read_text`` etc.) so
+  Ubuntu AI System Administrator helpers (``runner.run``, ``Path.read_text`` etc.) so
   the rest of the codebase keeps its existing invariants.
 
 The shapes intentionally avoid pulling in jsonschema or pydantic;
-operators install Ubuntu Zombie on stock Ubuntu and the agent venv
+operators install Ubuntu AI System Administrator on stock Ubuntu and the agent venv
 should not gain third-party deps just to gate a dozen calls.
 """
 from __future__ import annotations

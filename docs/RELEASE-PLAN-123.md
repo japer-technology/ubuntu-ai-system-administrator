@@ -1,11 +1,8 @@
 # Release Plan 123 — the next 3 best steps
 
-Derived from [`docs/research/RELEASE-FUTURE.md`](docs/research/RELEASE-FUTURE.md).
-
-The research doc's strategic call is to make Ubuntu Zombie a
-**trustworthy, upgradeable, provenance-verifiable release system**
-rather than chasing more packaging formats. Its roadmap opens with
-**Phase 1 — Harden current release**.
+This plan focuses on making Ubuntu Zombie a **trustworthy, upgradeable,
+provenance-verifiable release system** rather than adding more packaging
+formats.
 
 The release already ships a tarball, `.deb`, `SHA256SUMS`, an SPDX
 SBOM, and keyless cosign signatures, and the workflow already refuses
@@ -33,10 +30,9 @@ flowchart TD
 
 ## Step 1 — Add build provenance attestation (SLSA)
 
-**Why:** Section 4 of the research. Checksums and signatures prove an
-artifact was *signed*, not that it was *built from this commit, by this
-workflow, from this tag*. SLSA provenance closes that gap and is the
-single biggest jump in supply-chain posture.
+**Why:** Checksums and signatures prove an artifact was *signed*, not that it
+was *built from this commit, by this workflow, from this tag*. SLSA provenance
+closes that gap and is the single biggest jump in supply-chain posture.
 
 **Outcome:**
 - Every release artifact gains a provenance attestation
@@ -44,8 +40,8 @@ single biggest jump in supply-chain posture.
   release workflow.
 - Provenance is generated in the release workflow alongside the existing
   SBOM and cosign signing, and uploaded to the GitHub Release.
-- The release bundle matches the "minimum best-in-class" list in the
-  research doc.
+- The release bundle includes the source, checksums, signatures, SBOM, and
+  provenance needed for independent verification.
 
 **Done when:** a consumer can independently verify the provenance of any
 published `.deb`/tarball back to its tag and workflow run.
@@ -68,9 +64,8 @@ sequenceDiagram
 
 ## Step 2 — Ship a release verification command
 
-**Why:** Phase 1 and Section 4 both call for a "release verification
-command". Provenance and signatures are only class-leading if a consumer
-can verify them in one step, including offline/air-gapped.
+**Why:** Provenance and signatures are useful only if a consumer can verify
+them in one step, including offline or air-gapped.
 
 **Outcome:**
 - A first-class verification entry point (`payload/bin/verify-release` in
@@ -98,9 +93,8 @@ flowchart TD
 
 ## Step 3 — Checksum-pin the Node bridge inputs
 
-**Why:** Section 6 flags `pi-ai.version` and `pi-mono.version` as the
-remaining supply-chain gap. Release builds must not fetch mutable bridge
-assets without enforcement.
+**Why:** Mutable Node bridge inputs are a supply-chain gap. Release builds must
+not fetch them without checksum enforcement.
 
 **Outcome:**
 - Each bridge dependency is pinned with name, version, source URL,

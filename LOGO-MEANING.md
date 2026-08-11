@@ -78,9 +78,9 @@ robot, a bright focused point in the skull's socket. This is the
 most important element in the logo.
 
 - **One light, one will.** The same operator owns both halves. The
-  SSH private key, the LLM API key, the Tailscale account, the
-  policy file, and the kill switch all belong to the human in front
-  of the machine. The AI has no independent eye of its own.
+  provider credentials, policy file, and kill switch all belong to
+  the human in front of the machine. The AI has no independent eye
+  of its own.
 - **The light is on because you switched it on.** Run
   `sudo ./scripts/install.sh uninstall` and the glow goes out on
   both sides at once. Nothing in this logo shines without consent.
@@ -95,10 +95,9 @@ most important element in the logo.
 
 The headphones sit only on the robot side, and they are wired. That
 is the network posture from `README.md` and `SECURITY.md` made
-visible: the administrator listens on a private channel — local
-chat, or SSH tunneled over a private Tailscale tailnet — never on
-the open internet. No public inbound exposure. The ears are cupped
-and cabled, not broadcasting in every direction.
+visible: the administrator listens on loopback-only local chat, never
+on the open internet. Ubuntu Zombie does not provision remote access.
+The ears are cupped and cabled, not broadcasting in every direction.
 
 ## What the logo is *not* saying
 

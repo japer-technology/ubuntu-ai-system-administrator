@@ -137,15 +137,13 @@ local server through this `lmstudio` provider; `pi --provider openai`
 would ignore the base URL and hit `api.openai.com` instead, so a
 dedicated local provider is required. Most local servers ignore the API
 key; set `ZOMBIE_LOCAL_LLM_API_KEY` (or edit the files afterwards) if
-yours requires a real one. After installation, `/locals` rescans ports
-`1234`, `8080`, `11434`, and `51234` across the local `/24` and on
-`127.0.0.1`, then lists the discovered API URLs and marks the active URL
-when found. The private managed llama.cpp port `58080` is also checked on
-loopback. `/local <url>` activates a listed API, retaining the current
-model when that server advertises it, and updates the running provider,
-model, and `~/.pi/agent/models.json`. `/models` lists the catalogue exposed
-by the active provider, including live LM Studio models; `/model <id>`
-switches models.
+yours requires a real one. After installation, `/locals` rescans common
+OpenAI-compatible ports across the local `/24` and on `127.0.0.1`, then lists
+the discovered API URLs and marks the active URL when found. `/local <url>`
+activates a listed API, retaining the current model when that server advertises
+it, and updates the running provider, model, and `~/.pi/agent/models.json`.
+`/models` lists the catalogue exposed by the active provider, including live
+LM Studio models; `/model <id>` switches models.
 
 The chat command finder shows every command when the composer contains only
 `/`, then narrows the list as you type. `/help <command>` gives detailed
@@ -523,15 +521,11 @@ The installer also drops `verify` under the same directory.
 
 When `scripts/install.sh install` runs on an interactive terminal (i.e.
 not `--yes` and not `ZOMBIE_NONINTERACTIVE=1`), it opens an editable
-**parameter review** before touching the host. The review is scoped to
-the selected components. Zombie runs show agent, chat, TTL, provider, and
-local-LLM settings; Forgejo-only runs show Forgejo, PostgreSQL, runner,
-transcript, and receipt settings. Llama-only runs display the
-product-generated plan; configure it with the `LLAMA_*` inputs below.
-Enter a number to edit a field (with validation and re-prompting on bad
-input), toggle the boolean options, and repeat until you are satisfied;
-then accept to begin the install. Cancelling at the review (`q`) exits
-without changing anything.
+**parameter review** before touching the host. The review shows the Ubuntu
+Zombie agent, chat, TTL, provider, local-LLM, transcript, and receipt settings.
+Enter a number to edit a field (with validation and re-prompting on bad input)
+and repeat until you are satisfied; then accept to begin the install.
+Cancelling at the review (`q`) exits without changing anything.
 
 The review uses the **Zombie Orchid** highlight (`#AC43D9`) with
 compatible accent colours when colour is enabled. Colour follows the same
@@ -541,231 +535,13 @@ output, so `--no-color` produces a plain, screen-reader-friendly table.
 Automated runs (`--yes`, `ZOMBIE_NONINTERACTIVE=1`, or non-TTY stdin) skip
 the review entirely and use the supplied environment unchanged.
 
-## Optional components ("Ubuntu Zombie + Options")
-
-Beyond the baseline, the installer supports **opt-in components**. The
-canonical command grammar is `scripts/install.sh <verb> [component ...]
-[flags]`; public component targets are `zombie`, `forgejo`,
-`forgejo-runner`, and `llama`. Existing `ZOMBIE_INSTALL_<COMPONENT>` flags
-remain supported for automation and
-are additive with explicit targets. Every flag defaults to `0`, so a
-default install is unchanged. Enabled components appear in the
-interactive review (item `9) Options` opens a nested menu), the dry-run
-plan, the pre-flight banner, and the install receipt; they are checked
-by `verify`/`doctor`, repaired by `repair`, and reversed by
-`uninstall.sh`. The design surface for future components lives under
-[`options/`](../options/README.md).
-
-`install forgejo` installs Forgejo and PostgreSQL without creating the
-zombie account or deploying the agent runtime. Explicit targets and
-legacy environment selectors are additive and execute in registry order,
-so `install forgejo zombie` and `install zombie forgejo` converge the
-same components. `ZOMBIE_INSTALL_FORGEJO=1 install` remains equivalent
-to the combined path.
-
-`install forgejo-runner` installs the co-located Actions runner and
-automatically selects its required `forgejo` dependency. It does not select
-the zombie component. The legacy `ZOMBIE_INSTALL_FORGEJO_RUNNER=1` selector
-remains additive and resolves to the same component pair.
-
-`install llama` delegates to an independently versioned product without
-selecting `zombie`. `ZOMBIE_INSTALL_LLAMA=1` remains an additive compatibility
-selector for automation.
-
-### Independent Llama product (`install llama` compatibility target)
-
-Llama owns its lifecycle under `products/llama/`; the root target only maps
-compatibility inputs and delegates. The product installs pinned CPU build
-`llama.cpp` b10054 and a checksum-verified SmolLM2 360M Instruct Q4_K_M model.
-It runs as the dedicated `llama-cpp` system account and exposes an
-OpenAI-compatible API only at `http://127.0.0.1:8080/v1`. Every local user can
-reach the endpoint, but it is not reachable from the LAN.
-
-| Variable | Default | Effect |
-| -------- | ------- | ------ |
-| `ZOMBIE_INSTALL_LLAMA` | `0` | Add the independent `llama` component to selected install targets. |
-| `LLAMA_PORT` | `8080` | Fixed loopback port; other values are rejected. |
-| `LLAMA_MODEL_ID` | `smollm2-360m-instruct-q4_k_m` | Approved default model; other IDs are rejected in this release. |
-| `LLAMA_CONTEXT_SIZE` | `2048` | Context size from 512 through the approved model maximum of 2048 tokens. |
-| `LLAMA_CPU_THREADS` | detected logical CPUs | CPU worker count from 1 through 1024. |
-| `LLAMA_BOOT` | `enabled` | `enabled` starts now and at boot; `disabled` installs the service stopped. |
-
-The runtime lives under `/opt/llama.cpp`, configuration under
-`/etc/llama.cpp`, models and state under `/var/lib/llama.cpp`, and logs
-under `/var/log/llama.cpp`. Downloads are pinned by immutable release or model
-revision and SHA-256. Existing legacy state is adopted only when both old
-markers, identity, configuration, exact unit, runtime tree, and model checksum
-validate. Any ambiguous resource stops the product before mutation.
-
-`llama-manager` supports `status`, `start`, `stop`, `restart`, `enable`,
-`disable`, `test`, `models`, and `hardware`; mutating commands require
-root. `llama-manage` owns `status`, `verify`, `doctor`, `repair`, `backup`,
-`update`, `rollback`, `suspend`, `resume`, and `uninstall`. Root compatibility
-targets for verify, doctor, repair, and uninstall delegate to it.
-
-The safe uninstall default removes runtime and configuration while retaining
-models and state. Complete deletion is available only through
-`llama-manage uninstall --purge --confirmation 'DELETE LLAMA STATE' --yes`;
-`--yes` by itself is not destructive confirmation. Full product configuration
-and request-file rules are in
-[`products/llama/docs/CONFIGURATION.md`](../products/llama/docs/CONFIGURATION.md).
-
-### Forgejo server (`ZOMBIE_INSTALL_FORGEJO=1`)
-
-A self-hosted [Forgejo](https://forgejo.org/) git forge backed by
-PostgreSQL, with LAN discovery and HTTPS provided by Avahi and Caddy.
-An optional co-located Forgejo Actions runner uses a restricted Docker
-executor with host networking. The server's independent lifecycle and direct
-inputs are documented in
-[`products/forgejo/`](../products/forgejo/README.md).
-
-Forgejo itself binds only to `127.0.0.1`. Caddy is the LAN-facing entry
-point on HTTPS port `443`, uses its internal certificate authority, and
-proxies to Forgejo's loopback port. Avahi advertises the machine hostname
-through mDNS, so the default URL is
-`https://<lowercase-machine-hostname>.local/`.
-The product installs Caddy from the supported Ubuntu package sources and
-writes this hostname route as a marked block in
-`/etc/caddy/Caddyfile` while preserving unrelated Caddy sites. Re-running
-`repair forgejo` replaces that managed block and migrates the older
-`/etc/caddy/conf.d/forgejo.caddy` fragment if present.
-
-| Variable                        | Default                                  | Effect |
-| ------------------------------- | ---------------------------------------- | ------ |
-| `ZOMBIE_INSTALL_FORGEJO`        | `0`                                      | Set to `1` to install Forgejo + PostgreSQL. |
-| `ZOMBIE_INSTALL_FORGEJO_RUNNER` | `0`                                      | Add the co-located Actions runner and its required Forgejo server component. |
-| `FORGEJO_HTTP_PORT`             | `3000`                                   | Forgejo loopback web/API port behind Caddy. |
-| `FORGEJO_ADMIN_USER`            | `forgejo-admin`                          | Initial admin account name. |
-| `FORGEJO_ADMIN_EMAIL`           | `forgejo-admin@localhost.localdomain`    | Initial admin email. |
-| `FORGEJO_ADMIN_PASSWORD`        | *(empty — generated)*                    | Compatibility input for the initial admin credential; converted to a root-private file reference. |
-| `FORGEJO_DB_NAME`               | `forgejo`                                | PostgreSQL database name. |
-| `FORGEJO_DB_USER`               | `forgejo`                                | PostgreSQL role name. |
-| `FORGEJO_DB_PASSWORD`           | *(empty — generated)*                    | Compatibility input for the PostgreSQL credential; converted to a root-private file reference. |
-| `FORGEJO_VERSION`               | *(empty — latest release)*               | Pin a Forgejo release (e.g. `11.0.3`); the resolved value is recorded in the receipt. |
-| `FORGEJO_RUNNER_VERSION`        | *(empty — latest release)*               | Pin a forgejo-runner release. |
-| `FORGEJO_RUNNER_LABELS`         | `ubuntu-latest:docker://node:20-bookworm`| Runner labels; the default maps `ubuntu-latest` jobs to a Docker container. |
-| `FORGEJO_CONFIRM_UPDATE`        | *(empty)*                                | Legacy compatibility approval used by the root parameter review. |
-| `FORGEJO_CONFIRM_DATABASE_REUSE`| *(empty)*                                | Legacy compatibility approval; ambiguous database state still fails closed. |
-
-Every one of these decision parameters can also be set interactively:
-the review's `9) Options` sub-menu lets you toggle the server and
-runner and edit the port, the admin account (username, email,
-password), the PostgreSQL database (name, role/username, password),
-and the version pins and runner labels before anything is installed.
-
-Secrets (`SECRET_KEY`, `INTERNAL_TOKEN`, `JWT_SECRET`,
-`LFS_JWT_SECRET`) are generated at install time and stored only in
-`/etc/forgejo/app.ini` (mode `640`, owner `root:git`); re-runs reuse
-them rather than rotating them. Compatibility callers can set
-`FORGEJO_ADMIN_PASSWORD` / `FORGEJO_DB_PASSWORD`; the shim converts those
-values to private temporary references before invoking the product. No
-credential value enters root or product receipts. A generated initial
-administrator credential is also available once in
-`/etc/forgejo/bootstrap-admin-password` (root-only, mode `600`). A generated admin
-password must be changed on first sign-in; an operator-chosen one is
-kept as-is. The database credential and application recovery secrets remain
-only in `app.ini`. Direct product use accepts
-`FORGEJO_ADMIN_PASSWORD_FILE` and `FORGEJO_DB_PASSWORD_FILE`, not raw values.
-
-The configuration directory is mode `750` and the running Forgejo service
-cannot rewrite it. During an install or upgrade, the installer stops Forgejo,
-temporarily grants the `git` account write access for the one-shot database
-migration, and restores the directory/file to `750`/`640` even if migration
-fails. Startup is considered successful only after `/api/healthz` responds.
-An existing component installation is adopted only when its root-owned
-manifest, account, unit, loopback settings, and complete recovery secrets
-validate exactly. The product requires the exact `ADOPT FORGEJO` confirmation;
-the compatibility command supplies it only to that validator. Existing
-database state with a missing, empty, mismatched, or incomplete `app.ini`
-fails before credential or secret rotation. Update creates a protected backup
-and never silently drops repository data. Server mutations stop an active
-runner first and restart it only after Forgejo passes its health gates.
-
-### Trust the Forgejo local certificate authority
-
-Caddy creates and renews the site certificate automatically. A client
-must trust Caddy's root certificate once before browsers and Git accept
-the HTTPS URL without a warning. The installer exports the public root
-certificate to:
-
-```text
-/etc/forgejo/caddy-local-ca.crt
-```
-
-Copy that file to each client over an authenticated channel (local console,
-SSH, or managed device deployment), then import it into that client's
-trusted root certificate store. Do not trust a copy downloaded through an
-unverified browser warning: anyone able to replace that download could
-substitute their own root CA. After import, open the URL shown by the
-installer or run `sudo ./scripts/install.sh verify forgejo`.
-
-The root certificate is intentionally public; Caddy's private CA key stays
-under `/var/lib/caddy` and is not exported. The product also installs that
-public root into the host trust bundle for same-host runner jobs. Removing
-Forgejo deletes the exported and host-trust copies plus managed Caddy/Avahi
-configuration, but leaves the shared `caddy`, `avahi-daemon`, and
-`libnss-mdns` packages installed.
-Remove the trusted root from clients when the Forgejo host is retired.
-
-Caveats:
-
-- `.local` discovery is link-local and requires mDNS support on the client.
-  It does not replace a firewall. Caddy accepts HTTPS on host network
-  interfaces so DHCP address changes keep working; restrict TCP `443` at
-  the host or network firewall if the machine also has an untrusted
-  interface. Forgejo's backend port remains loopback-only. Registration
-  is disabled by default
-  (`DISABLE_REGISTRATION = true`); the admin creates accounts.
-- Co-locating the runner with the forge is contrary to upstream
-  guidance. The managed runner allows one job at a time, disables privileged
-  containers and arbitrary host-volume mounts, and does not expose the Docker
-  socket inside jobs. It also disables the built-in Actions cache proxy,
-  which otherwise listens on every host interface. Job containers still use
-  host networking so they can reach loopback-only Caddy; an explicit host
-  entry resolves the `.local` URL without mDNS in the image, and a read-only
-  host CA bundle plus Git, OpenSSL, Python, and Node trust variables validates
-  Caddy TLS. Host networking also exposes other host loopback services. The
-  runner process itself has Docker-daemon access, which is root-equivalent.
-  Enable it only for repositories and maintainers trusted to control this
-  machine.
-- Binaries are downloaded from Forgejo's release host and verified against
-  published SHA-256 checksums; pin `FORGEJO_VERSION` where
-  reproducibility matters.
-- Direct `forgejo-manage uninstall --yes` retains repositories, database, and
-  recovery secrets. Purge requires `DELETE FORGEJO STATE`. The compatibility
-  uninstaller removes the dependent runner first and maps its historical
-  `--yes` behavior to confirmed purge.
-
-## Component manifest and selective lifecycle
-
-Installed components are recorded under
-`/var/lib/ubuntu-zombie/components/` by default. Set
-`ZOMBIE_COMPONENT_MANIFEST_DIR` to override that directory for tests or
-other hermetic workflows.
-
-The manifest is used by `verify`, `doctor`, and `repair` to discover
-installed components when you do not pass explicit targets. Selective
-`uninstall` uses component targets to decide which component to remove:
-`uninstall zombie` removes only the zombie account/runtime,
-`uninstall forgejo-runner` removes only the runner, `uninstall forgejo`
-removes Forgejo and its co-located runner, `uninstall llama` removes only
-the standalone local model service, and bare `uninstall` removes all managed
-components.
-
-`--archive` and `--keep-agent` are lifecycle flags for zombie removal
-only; `uninstall forgejo --archive` and
-`uninstall forgejo --keep-agent` are rejected with exit code `2`.
-
 ## Install receipt
 
 Every install writes a human-readable **receipt** recording all parameters
-when the run starts and the outcome (result, duration, service status,
-applied/satisfied step counts, next step) when it finishes. A failed run
-appends a `FAILED` record with the line and exit code. The file is
-root-only (mode `600`). Operator-supplied password values and provider
-keys are never written; passwords the installer generates itself (for
-optional components) are recorded in the finish record so the operator
-can retrieve them.
+when the run starts and the outcome (result, duration, service status, and next
+step) when it finishes. A failed run appends a `FAILED` record with the line and
+exit code. The file is root-only (mode `600`). Operator-supplied password
+values and provider keys are never written.
 
 | Variable             | Default                                        | Effect                                             |
 | -------------------- | ---------------------------------------------- | -------------------------------------------------- |
@@ -777,31 +553,27 @@ can retrieve them.
 `scripts/install.sh` is idempotent and uses this canonical form:
 
 ```text
-scripts/install.sh <verb> [component ...] [flags]
+scripts/install.sh [verb] [flags]
 ```
 
 All verbs honour the same relevant `ZOMBIE_*` environment variables
-documented above. Valid component targets are `zombie`, `forgejo`,
-`forgejo-runner`, and `llama`.
+documented above.
 
 | Verb        | Effect                                                                |
 | ----------- | --------------------------------------------------------------------- |
-| `install`   | Full install (default target: `zombie`). Safe to re-run.              |
+| `install`   | Install Ubuntu Zombie. Safe to re-run.                               |
 | `verify`    | Read-only state check. Does not change state.                         |
 | `doctor`    | Explain failures and likely fixes.                                    |
 | `repair`    | Apply known-safe fixes (re-assert permissions, re-render `pi/` tree). |
-| `uninstall` | Reverse the install (delegates to `scripts/uninstall.sh`). A component target removes only that component; no target removes all managed components. |
+| `uninstall` | Remove Ubuntu Zombie (delegates to `scripts/uninstall.sh`).            |
 
 Examples:
 
 ```bash
-sudo ./scripts/install.sh install zombie
-sudo ./scripts/install.sh install forgejo
-sudo ./scripts/install.sh install forgejo-runner
-sudo ./scripts/install.sh install zombie forgejo
-sudo ZOMBIE_INSTALL_FORGEJO=1 ./scripts/install.sh install
-sudo ./scripts/install.sh verify zombie
-sudo ./scripts/install.sh uninstall forgejo --dry-run
+sudo ./scripts/install.sh install
+sudo ./scripts/install.sh verify
+sudo ./scripts/install.sh doctor --json
+sudo ./scripts/install.sh uninstall --dry-run
 ```
 
 After editing `policy.yaml` or any template under
@@ -810,9 +582,9 @@ repair` to re-render the `pi/` tree and restart the chat service.
 
 ## Command-line flags
 
-`scripts/install.sh` accepts these flags in addition to the verb and
-component targets above. They can be combined (e.g. `install zombie
---yes --strict`) and may appear before or after the verb/targets:
+`scripts/install.sh` accepts these flags in addition to the verb. They can be
+combined (e.g. `install --yes --strict`) and may appear before or after the
+verb:
 
 | Flag                 | Effect                                                                       |
 | -------------------- | ---------------------------------------------------------------------------- |
@@ -849,7 +621,7 @@ Skill files are short markdown briefs the agent loads via `skill.list`
 
 | Path                         | Purpose                                                         |
 | ---------------------------- | --------------------------------------------------------------- |
-| `/opt/ai-zombie/skills/`     | Root-owned built-ins, including Ubuntu, file/programming, AI-agent, Hermes, OpenClaw and pi-mono operations. |
+| `/opt/ai-zombie/skills/`     | Root-owned Ubuntu system-administration and Ubuntu Zombie built-ins. |
 | `/etc/ubuntu-zombie/skills.d/` | Operator-extensible. Same mode/owner contract as `policy.yaml`. |
 
 Drop additional `*.md` files into `/etc/ubuntu-zombie/skills.d/` to

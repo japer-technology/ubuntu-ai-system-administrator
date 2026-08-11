@@ -2,8 +2,7 @@
 # Skill: git working copies
 
 This skill is loaded when the operator mentions git, a working copy, or
-an operation on their history. Hosting a forge on this machine is the
-`forgejo` skill; language toolchains are the `dev` skill.
+an operation on their history. Language toolchains are the `dev` skill.
 
 Operating rules:
 

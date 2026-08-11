@@ -71,13 +71,10 @@ require a confirmation phrase. See `ARCHITECTURE.md` for the classes.
 ## Network exposure
 
 - Chat (default port 7878): bound to `127.0.0.1` only.
-- Optional standalone llama.cpp (port 8080): bound to `127.0.0.1` only
-  and intentionally available to every local user.
 
 The default install does not provision SSH, Tailscale, VNC, a
 configured firewall, or any other inbound network surface. The default
-listener is the loopback-only chat service; the opt-in standalone llama
-component adds only a loopback listener. To reach the chat remotely,
+listener is the loopback-only chat service. To reach the chat remotely,
 forward the loopback port
 over a transport you control (for example an SSH tunnel you set up
 yourself).

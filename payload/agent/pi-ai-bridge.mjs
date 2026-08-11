@@ -388,8 +388,8 @@ async function main() {
   const pi = await loadPiAi();
 
   // pi-ai's getModel() reads only the static *built-in* catalogue; a
-  // local, OpenAI-compatible provider (lmstudio — the shipped llama.cpp
-  // default) and any model the catalogue has not caught up with resolve
+  // local, OpenAI-compatible provider (lmstudio) and any model the
+  // catalogue has not caught up with resolve
   // to undefined rather than throwing. Passing that undefined handle to
   // complete() used to crash with the cryptic "Cannot read properties
   // of undefined (reading 'api')", so treat both outcomes the same and

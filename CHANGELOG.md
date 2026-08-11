@@ -8,122 +8,14 @@ with its UTC release time as `yyyy.mm.dd.hh.nn.ss`.
 
 ## [Unreleased]
 
-### Independent Forgejo product
+### Removed
 
-- **Complete server extraction:** added `products/forgejo/` with an independent
-  descriptor, version, lifecycle, package, signed-release workflow, guarded
-  disposable-VM harness, audit/receipt boundary, tests, and operator
-  documentation.
-- **Preserved infrastructure boundary:** retained PostgreSQL, the `git`
-  identity, loopback port 3000, Caddy internal-CA HTTPS, Avahi discovery,
-  host certificate trust, protected recovery secrets, service hardening, and
-  ownership-safe adoption.
-- **Delegating compatibility targets:** root install, verify, doctor, repair,
-  and uninstall targets delegate Forgejo server work to the product. The
-  not-yet-extracted runner remains a dependent compatibility component.
-- **Correct same-host runner path:** job containers retain host networking and
-  restricted Docker settings while gaining deterministic `.local` resolution,
-  a read-only host CA bundle, and Git, OpenSSL, Python, and Node trust
-  variables. Server mutations stop and restore an active runner only across
-  health-gated operations, and server removal refuses an installed runner.
-
-### Independent Beep product
-
-- **Complete standalone implementation:** added `products/beep/` as an
-  independently installed, root-capable functional duplicate of Ubuntu Zombie
-  with Beep-owned identity, credentials, lifecycle, policy, approval, audit,
-  chat, history, provider, tool, and family-manager boundaries.
-- **Terminal and recoverable lifecycle:** added strict fail-closed TTL state,
-  approved terminal kill, collision and integrity checks, idempotent
-  convergence, automatic recovery-snapshot rollback, protected backup and
-  restore, and ownership-safe retention and purge.
-- **Hardened local runtime:** constrained loopback HTTP Host and mutation
-  origin, bounded and strictly validated JSON, isolated sessions,
-  confirmation-bound deletion, authenticated export, destructive handling for
-  malformed policy, and correlated manager/target failure evidence.
-- **Independent assurance and release:** added unit, integration, parity,
-  family, and guarded disposable-VM suites; complete product-owned
-  documentation; package and provenance records; and a pinned, signed Beep
-  release workflow. Production family admission, recorded supported-VM and
-  co-installation runs, external security review, and published-release
-  verification remain explicit open gates.
-
-### Independent Llama product
-
-- **Complete product extraction:** added `products/llama/` with an independent
-  descriptor, version, lifecycle, package, signed-release workflow, guarded
-  disposable-VM harness, tests, catalogues, audit/receipt boundary, and
-  operator documentation.
-- **Delegating compatibility targets:** `install`, `verify`, `doctor`,
-  `repair`, and `uninstall llama` now invoke the product-owned lifecycle.
-  Duplicate root Llama runtime, model catalogue, service, manager, installation,
-  and removal implementations were removed while preserving existing paths,
-  identity, API, and automation inputs.
-- **Safe migration and removal:** exact supported legacy installations can be
-  adopted or removed only after their markers, identity, configuration, unit,
-  runtime, and model checksum validate. Safe removal retains model state;
-  complete deletion requires the product's explicit destructive confirmation.
-
-### Documentation
-
-- **Complementary AI-agent product definitions:** added ten template-complete,
-  documentation-only proposals for code review, household finance, asset
-  maintenance, meeting records, adult language practice, photo cataloguing,
-  imported-mail drafting, project planning, cognitive accessibility, and
-  read-only host telemetry. Each definition fixes an independent namespace,
-  least-authority boundary, data and network contract, Ubuntu Zombie lifecycle
-  interface, validation plan, threat model, and honest release gate. The
-  proposal index does not claim implementation or family admission.
-- **Product-defined family authority:** removed the family-wide rule that
-  reserved general root authority to Ubuntu Zombie. Future
-  systems-administrator products may retain full root capability when their
-  definitions justify it and preserve policy, approval, audit, revocation, and
-  root-equivalent risk disclosure. Existing Imaginary Friend, Curriculum
-  Flame, and ERIC authority boundaries are unchanged.
-- **ERIC identity and cognition record:** renamed ERIC to Evolving Record of
-  Identity and Cognition and clarified that its primary purpose is to preserve
-  an attributable, verifiable history of who a person is, what they know, and
-  how they think, rather than merely generating a simulation.
-- **Implementation-ready in-repository AI-agent family:** made
-  `docs/ai-agent/` authoritative for implementing Imaginary Friend,
-  Curriculum Flame, ERIC, and Ubuntu Zombie family management in this
-  repository. The new contract fixes product source roots, schemas,
-  ownership markers, lifecycle requests/results, receipts, audit
-  correlation, secret handling, release identities, CI expectations, and
-  dependency order. Each product definition now fixes its first-release
-  scope, inputs, identities, services, storage, safety boundaries, and
-  deferred features; linked vision and option documents no longer require
-  external product repositories or conflicting platform layouts.
-- **Complete AI-agent catalogue and God-level management contract:** added
-  `docs/ai-agent/` with an Ubuntu-Zombie-first catalogue, complete product
-  definitions for Ubuntu Zombie, Imaginary Friend, Curriculum Flame, and
-  ERIC, shared installation/update/co-installation contracts, and a
-  hand-authored agent template. Ubuntu Zombie is now explicitly the
-  root-level family manager: it may orchestrate product-owned lifecycle
-  operations under operator approval and dual audit without sharing target
-  credentials, data, runtimes, or lifecycle implementations. The existing
-  family plan, vision, options index, and documentation indexes now link to
-  the extracted definitions. Documentation only; the dedicated family
-  inventory and management experience are not yet implemented.
-- **ERIC personal continuity agent:** expanded
-  `docs/options/ghosts-in-the-machine-plan.md` with ERIC (Evolving
-  Record of Identity and Cognition), a lifelong AI apprentice for
-  one consenting person. The plan separates source evidence from
-  inference, requires provenance on every response, preserves beliefs and
-  decisions over time, splits the Twin, Evidence Vault, Executor,
-  Guardians, and Constitution, and defines consent, posthumous,
-  co-installation, validation, legal, grief, and misrepresentation
-  boundaries. Documentation only; no behaviour changes.
-- **Independent AI-agent family plan:** revised
-  `docs/options/ghosts-in-the-machine-plan.md` to record the decision that
-  Ubuntu Zombie is the first of a wider family and its designated manager.
-  Family members are separate products with product-owned installers, updates,
-  runtimes, policies, passwords and other credentials, state, audit trails,
-  tests, documentation, releases, and purpose-defined authority. The plan
-  replaces the shared ghost registry and capability-tier proposal with a
-  copy-separate-improve process, independent update requirements,
-  co-installation boundaries, and cross-product credential-isolation tests.
-  Documentation only; no behaviour changes.
+- **Alternate products and installer modes:** Ubuntu Zombie is now the only
+  installable product in this repository. The component-target grammar,
+  Forgejo and standalone llama.cpp lifecycles, Forgejo runner payload, family
+  contracts, product release workflows, compatibility environment flags, and
+  their tests and documentation have been removed. Lifecycle commands now
+  operate on Ubuntu Zombie only.
 
 ### Installer setting preservation
 
@@ -135,40 +27,6 @@ with its UTC release time as `yyyy.mm.dd.hh.nn.ss`.
   including extensions and dead tombstones, instead of being reset to the
   install default. Browser-local branding, prompt, and width preferences and
   SQLite-backed reactivation settings remain untouched.
-
-### Forgejo runner component target
-
-- **Direct runner installation:** `install forgejo-runner` now selects the
-  required Forgejo server dependency and installs the existing restricted,
-  checksum-verified Actions runner without selecting the zombie account or
-  runtime. The target has dedicated dry-run, receipt, manifest, verification,
-  doctor, repair, uninstall, and shell-completion support.
-- **Legacy automation preserved:** `ZOMBIE_INSTALL_FORGEJO_RUNNER=1` remains
-  additive and resolves through the same component lifecycle.
-
-### Forgejo runner convergence
-
-- **Safe same-host runner defaults:** co-located runners now load a managed,
-  root-owned configuration with one-job capacity, host networking for the
-  loopback Forgejo callback path, privileged containers and arbitrary volumes
-  disabled, no Docker socket mounted into jobs, and the all-interface cache
-  proxy disabled. The systemd unit requires both Docker and Forgejo and
-  explicitly loads that configuration.
-- **Runner readiness verification:** installation now rejects empty
-  registrations and fails unless the current service invocation declares to
-  Forgejo. Verify and doctor also check registration, protected config,
-  exact effective service arguments, unit and boot state, Docker
-  service/group access, and the current declaration. Re-runs preserve runner
-  intent from the component manifest or installed artifacts.
-- **Fail-closed lifecycle repair:** all Forgejo lifecycle helpers are defined
-  before early subcommand dispatch, protected files are reported as
-  uninspectable rather than missing for non-root diagnostics, and install and
-  repair refuse to reconstruct Forgejo when `app.ini` is missing, empty, or
-  lacks the preserved database password or security secrets.
-- **Systemd override convergence:** the exact obsolete runner
-  `override.conf` from the documented repair is removed automatically;
-  other drop-ins are preserved and reported instead of silently overriding
-  the managed unit.
 
 ### Installer dependencies
 
@@ -254,7 +112,7 @@ with its UTC release time as `yyyy.mm.dd.hh.nn.ss`.
 
 ### Built-in skills
 
-- **Fourth wave — five more briefs, catalogue at 43:** the catalogue
+- **Fourth wave — five more briefs, catalogue at 42:** the catalogue
   now also covers `services` (unit dependency analysis, startup
   ordering, health trends from the journal, and coordinated
   bottom-up restarts and reconfigurations), `packages` (cross-format
@@ -282,17 +140,16 @@ with its UTC release time as `yyyy.mm.dd.hh.nn.ss`.
   `dev` and `files` briefs now add repository-aware programming workflows,
   metadata-preserving atomic file changes and safer bulk operations. Smoke
   tests verify discovery, unique triggers, representative selection and
-  package/deployment coverage for all 38 built-ins.
-- **Third wave — eleven more briefs:** the catalogue now also covers
-  `css`, `database`, `dev`, `forgejo`, `git`, `html`, `json`, `llm`,
+  package/deployment coverage for all 37 built-ins.
+- **Third wave — ten more briefs:** the catalogue now also covers
+  `css`, `database`, `dev`, `git`, `html`, `json`, `llm`,
   `secrets`, `sql` and `virtualization`. These close the gaps an
   Ubuntu Desktop operator hits next — working copies and history
   rewrites, language toolchains that must not be installed into the
   system interpreter, hypervisors and guest disks, database servers
   and the SQL run against them, JSON/HTML/CSS handling with escaping
   and injection called out, credential handling that confirms presence
-  instead of value, and the product's own optional components (the
-  Forgejo forge and the local llama.cpp/provider setup). Existing
+  instead of value, and local language-model/provider setup. Existing
   briefs gained cross-references so a prompt lands on the narrowest
   one.
 - **Second wave — ten more briefs:** on top of the ten below, the
@@ -469,8 +326,7 @@ with its UTC release time as `yyyy.mm.dd.hh.nn.ss`.
   arguments, policy metadata, outcome, timing, and output size; API requests
   and turn phases are also recorded without exposing hidden model reasoning.
 - **Broader local API discovery:** `/locals` now scans ports `1234`, `8080`,
-  `11434`, and `51234` across the local IPv4 `/24` and on loopback, while
-  retaining private managed llama.cpp discovery on loopback port `58080`.
+  `11434`, and `51234` across the local IPv4 `/24` and on loopback.
 - **Consistent transcript layout:** user questions now use the same transcript
   width and offset as assistant responses.
 - **Visible conversation output:** the chat transcript now remains visible when
@@ -514,20 +370,8 @@ with its UTC release time as `yyyy.mm.dd.hh.nn.ss`.
 
 ### Documentation
 
-- **Vertical mermaid diagrams everywhere:** every diagram in the docs is
-  now a vertical (top-to-bottom) Mermaid diagram. ASCII-art flows in
-  `docs/FORGEJO.md`, `docs/ARCHITECTURE.md`,
-  `docs/research/REQUIREMENTS.md`, and `docs/analysis/improvements-4.md`
-  were converted to `flowchart TD`, and existing horizontal
-  (`flowchart LR`) diagrams in `docs/RELEASE-PLAN-123.md`,
-  `docs/research/ARCHITECTURE-IDEA.md`, and `payload/README.md` were
-  reoriented to `flowchart TD`.
-- **Forgejo install guide:** new `docs/FORGEJO.md` documents the
-  `install.sh` Forgejo component end to end — the loopback backend +
-  Caddy/Avahi LAN HTTPS architecture, every install phase, password
-  and secret handling, update/re-run safety gates, files installed,
-  lifecycle subcommands, exit codes, and troubleshooting.
-  `docs/CONFIGURATION.md` links to it from the Forgejo section.
+- **Vertical Mermaid diagrams:** diagrams in the current documentation use
+  top-to-bottom layouts consistently.
 
 ### Installer and upgrades
 
@@ -538,88 +382,12 @@ with its UTC release time as `yyyy.mm.dd.hh.nn.ss`.
   cause of the literal `v{{VERSION}}` footer and the blank transcript reported
   after upgrades; the newly deployed `server.py` and UI now run together.
 
-- **Independent PC-wide llama:** `install llama` now installs a pinned,
-  checksum-verified CPU llama.cpp runtime and small default model on
-  `127.0.0.1:8080`, with an isolated account, paths, systemd unit,
-  `llama-manager`, full component lifecycle, and conflict-safe uninstall.
-  It does not install or modify the Zombie component.
-- **Managed llama discovery:** chat `/locals` now checks loopback ports
-  `8080` and `58080` in addition to the configured LAN scan port.
-
 ### Dependency updates
 
 - **Current pi agent stack:** updated `@earendil-works/pi-ai` and
   `@earendil-works/pi-coding-agent` from 0.75.5 to 0.80.10 with refreshed
   tarball checksums, and migrated the provider bridge to pi-ai's compatibility
   entrypoint and assistant-message return shape.
-
-### Analysis notes
-
-- **Phase 1 Option A deep analysis:** new
-  `docs/analysis/improvements-8-plan-phase-1-option-a.md` analyses
-  the best implementation of Phase 1 Option A of the improvements-8
-  plan against the pinned pi 0.80.10 upstream contract: `--mode rpc`
-  plus a shipped fail-closed mediation extension (gate-in-place),
-  an operator-controlled router on/off mode with audited toggling,
-  honest per-call telemetry in the chat UX (`/verbose`), a
-  server-assembled full-dump `/export` (events, audit slice, bridge
-  logs, policy digest), and a docs-truthful-at-every-commit delivery
-  sequence. Design analysis only; no behaviour change. The analysis
-  index in `docs/analysis/README.md` now lists the document.
-- **Mediation diagrams:** new `docs/analysis/mediation-diagrams/`
-  folder with vertical Mermaid diagrams — `current-state.md` shows how
-  the system works today (installed shape, chat turn transport, the
-  shipped unmediated tool path, and the stub-only mediated path), and
-  `mediation.md` shows the restored mediation designs from the
-  improvements-8 plan (mediated tool-call lifecycle, Option A
-  `--mode rpc`, Option B custom tools, tripwire). Design analysis
-  only; no behaviour change. The analysis index in
-  `docs/analysis/README.md` now lists the folder.
-- **Improvements-8 remediation plan:** new
-  `docs/analysis/improvements-8-plan.md` turns every finding of the
-  external adversarial review (`docs/analysis/improvements-8.md`,
-  F1–F12) into a phased implementation plan with work items,
-  acceptance criteria, and sequencing — restoring bridge tool
-  mediation first, then production-path testing, auth/TTL hardening,
-  turn ceilings and durable approvals, structural and supply-chain
-  hardening, and documentation/reference integrity. Design analysis
-  only; no behaviour change. The analysis index in
-  `docs/analysis/README.md` now lists the plan.
-- **Windows 11 port plan:** new
-  `docs/analysis/improvements-7-windows11-plan.md` analyses what a
-  Windows 11 version of Ubuntu Zombie would require — a PowerShell
-  sibling installer, Windows-native equivalents for the privileged
-  surfaces (hidden local Administrator account, Windows Service,
-  Scheduled Task, ACLs, winget), a Windows fail-closed policy rule
-  set, a portable-core/per-OS-adapter split of the agent tools, a
-  phased implementation plan, and open questions for maintainers.
-  Design analysis only; no behaviour change.
-
-### Policy design notes
-
-- **Owner-centric superuser policy draft:** new `docs/policy-new-v2.yaml`
-  revises `docs/policy-new.yaml` around the `docs/VISION.md` promise —
-  this machine only (fleet/remote tools like `ansible`, `terraform`,
-  `kubectl`, `ssh` become destructive), the owner's revocation levers
-  (`/opt/ai-zombie`, sudoers, agent units, audit/journal vacuuming)
-  cannot be touched without the confirmation phrase, `/home` mutations
-  need approval, exposure-expanding services (sshd, VNC, Tailscale,
-  `ufw allow`) are destructive, and per-turn budgets are resized for a
-  single desktop (24 tool calls / 8 elevated / 900 s idle).
-
-### Promotion kit
-
-- **Promotion copy refresh:** `promotion/**` now matches the shipped
-  product — the password-protected loopback chat is described as the
-  only network surface (no SSH/VNC/Tailscale claims), local LLM
-  support (LM Studio / Ollama / `llama.cpp`) is presented as shipped,
-  and the chat password, Time to Live, and `/ttl --die` kill switch
-  are covered across messaging, social, community, blog, press,
-  email, video, and landing-page drafts.
-- **Approved claims matrix:** new `promotion/messaging/KEY-FEATURES.md`
-  lists every claim the kit may make with its repository source, plus
-  claims that must not be made and feature-drip topics; the kit README
-  and launch checklist now reference it.
 
 ### Chat provider discovery
 
@@ -638,125 +406,7 @@ with its UTC release time as `yyyy.mm.dd.hh.nn.ss`.
   connectivity probe and completion calls for local LLM deployments;
   in-band provider errors are surfaced instead of reported as success.
 
-### Phase 4 — Registry generalisation
-
-- **Deep Caddy diagnostics:** Forgejo verify and doctor now check the Caddy
-  binary and unit, boot enablement, the exact managed host/port/internal-TLS
-  route, configuration validity, legacy fragment cleanup, and whether the
-  exported client CA matches Caddy's active local CA root.
-- **Forgejo first-install convergence:** fresh Caddy installs discard only
-  the packaged port-80 welcome site, Forgejo must recover from its public-URL
-  restart before Caddy activates the proxy, and verification accepts the
-  health endpoint's successful HTTP status instead of requiring a nonexistent
-  `"healthy"` response field.
-- **Accurate installer status:** local `lmstudio` credentials now satisfy
-  install, doctor, and deployed health checks; prompted Forgejo passwords are
-  described as operator-set and not recorded; and discovered model rows no
-  longer contain a wide blank label column.
-- **Forgejo Caddy installation:** Forgejo installs now configure Caddy's
-  official signed stable APT repository before installing the package, so
-  hosts no longer require manual Caddy repository setup.
-- **Chat command status UX:** live `bash`/shell tool progress now
-  labels non-zero command statuses as completed with a non-zero
-  status instead of a failed tool execution, matching Linux exit-code
-  semantics for probes such as `dpkg -s`, including pi's nested shell
-  result metadata.
-- **Forgejo Caddy repair:** the machine's `.local` Forgejo route is now
-  rendered directly in `/etc/caddy/Caddyfile`, preserving unrelated sites
-  while replacing the managed route on repair and migrating legacy route
-  fragments.
-- **Forgejo LAN HTTPS:** Forgejo now binds only to loopback and is exposed
-  at the machine's `.local` name through Avahi discovery and Caddy HTTPS
-  using Caddy's internal CA. Install, verify, doctor, repair, receipts,
-  summaries, uninstall, and client CA trust documentation cover the full
-  lifecycle.
-- **Forgejo update safety:** re-runs now detect existing Forgejo and matching
-  PostgreSQL state before mutation, require separate exact, capitalized `YES`
-  approvals (including explicit environment acknowledgements for unattended
-  updates), and state that repositories and database data are preserved.
-- **Uninstall hardening:** `uninstall forgejo --yes` now reliably removes the
-  Forgejo PostgreSQL database and role when PostgreSQL is present, even after
-  Forgejo files are cleaned up, so test hosts can be reset to a clean slate.
-- **Verify fallback:** partial legacy zombie installs now report component-aware
-  verify failures (including JSON output) instead of aborting when the deployed
-  verifier script is missing.
-- **Verify and doctor reliability:** lifecycle checks no longer delegate to a
-  stale deployed verifier or source shell-sensitive password hashes, preventing
-  unbound-variable aborts while preserving text and JSON diagnostics.
-- **Validated component registry:** shared selection, validation, review,
-  dry-run, receipt, phase counting, install, manifest, final-summary, and
-  uninstall paths dispatch trusted component hooks from one ordered
-  registry. Missing hooks and invalid dependencies fail before mutation.
-- **Registry hardening:** dependencies must be registered before their
-  dependants (making dependency cycles unrepresentable), duplicate hook
-  fields are rejected instead of silently overwritten, and installing a
-  component automatically selects its registered dependencies in registry
-  order.
-- **Extension contract:** a hermetic sample component proves registration
-  and dispatch require no parser changes, and contributor documentation
-  now defines one lifecycle contract for future packaging targets.
-- **Target-scoped review:** `install zombie` no longer asks about optional
-  components; only explicitly selected component pages are shown.
-
-### Phase 3 — Standalone Forgejo
-
-- **Forgejo runner release source:** runner installs now resolve latest
-  releases from Forgejo's current metadata host and download binaries from
-  Forgejo's canonical release host, with legacy Codeberg fallbacks for pinned
-  releases.
-- **Forgejo URL canonicalization:** generated Forgejo `DOMAIN` and
-  `ROOT_URL` values now lowercase the host name so mixed-case Ubuntu
-  hostnames do not trigger Forgejo's canonical URL warning in browsers.
-- **Runner Docker compatibility:** Forgejo runner installation now reuses an
-  existing Docker Engine instead of forcing Ubuntu's `docker.io` package, and
-  fails without changing packages when an orphaned `containerd.io` installation
-  would conflict.
-- **Standalone Forgejo install:** `install forgejo` now installs
-  PostgreSQL, Forgejo, and the optional runner without creating the zombie
-  account or deploying its Node/Python runtime, policy, audit, chat, or
-  desktop settings.
-- **Component hooks:** zombie and Forgejo mutations are isolated behind
-  target-aware install hooks, execute in registry order, and write each
-  manifest only after that component's install and health path completes.
-- **Target-aware experience:** preflight capacity guidance, interactive
-  review, dry-run plans, receipts, progress totals, and final summaries
-  now include only selected component state. Generated Forgejo passwords
-  are disclosed only in the root-only receipt.
-- **Compatibility:** no-target `install` remains zombie-only, and
-  `ZOMBIE_INSTALL_FORGEJO=1 install` remains equivalent to
-  `install zombie forgejo`.
-
-### Phase 2 — Component manifest and selective lifecycle
-
-- **Selective uninstall**: `uninstall zombie` and `uninstall forgejo` now work as
-  targeted component removals. No-target `uninstall` retains the previous
-  all-managed-artefacts behaviour.
-- **Component manifest**: `/var/lib/ubuntu-zombie/components/` records installed
-  components. Manifest entries are written only after a successful install and
-  health check, and removed only after successful uninstall. Each component's
-  entry is retained independently when that component's cleanup fails.
-- **Flag isolation**: `--archive` and `--keep-agent` are now rejected (exit 2)
-  when the `zombie` component is not being removed.
-- **Manifest directory**: Independent of `/opt/ai-zombie` so zombie removal does
-  not lose Forgejo's manifest entry.
-- **Safe parsing**: Manifest files are parsed as fixed key/value data and never
-  sourced. Malformed or unknown entries produce a warning and are skipped.
-
 ### Added
-- **Component-aware installer grammar (Phase 1).** `scripts/install.sh`
-  now accepts `scripts/install.sh <verb> [component ...] [flags]` with
-  public `zombie` and `forgejo` targets, while preserving the default
-  no-target zombie install and existing `ZOMBIE_INSTALL_FORGEJO`
-  automation path. Standalone `install forgejo` remains gated until the
-  Phase 3 component extraction work lands. Bash and Zsh completions
-  include the component targets.
-- **`docs/analysis/improvements-3.md` design analysis.** A written
-  recommendation for evolving the installer CLI to component-oriented
-  syntax (`install.sh <verb> [component ...]`): keep the five lifecycle
-  verbs, add component targets (`zombie`, `forgejo`), support
-  standalone Forgejo without the zombie via a shared core layer, a
-  component registry, an on-host component manifest, and symmetric
-  per-component uninstall. Analysis only — no behaviour change.
 - **Live slash-command completion in chat.** Typing `/` now opens an
   accessible, keyboard-navigable command picker that narrows as you type;
   use arrow keys and Tab or Enter to complete a valid command.
@@ -778,13 +428,6 @@ with its UTC release time as `yyyy.mm.dd.hh.nn.ss`.
   bridge-executed tools report more than a bare "done".
 
 ### Fixed
-- **Forgejo installation and upgrades are resilient to config migrations.**
-  Forgejo could not migrate its database when it needed to persist a missing,
-  malformed, or newly introduced generated setting in the root-owned
-  `app.ini`. The installer now validates and preserves JWT secrets, stops an
-  existing daemon before migration, permits config writes only for that
-  one-shot command, restores restrictive permissions on success or failure,
-  creates the admin before startup, and waits for `/api/healthz`.
 - **Chat and installer presentation is tighter and clearer.** `/help` is
   now a compact category index, the oversized wordmark is a stable
   responsive sign, installer deployment work is split into focused phases,
@@ -933,89 +576,12 @@ with its UTC release time as `yyyy.mm.dd.hh.nn.ss`.
   `SECURITY.md`. Documentation only; no behaviour changes.
 
 ### Added
-- **New research note
-  `docs/research/OPEN-WEBUI-LESSONS-PLAN-PHASE-A.md`.** A detailed,
-  step-by-step implementation plan for Phase A (liveness plumbing)
-  of `docs/research/OPEN-WEBUI-LESSONS-PLAN.md`: SSE streaming of
-  tool activity and best-effort token deltas (two-step turn
-  protocol, `GET /api/stream/{turn_id}`, bridge `progress`/`token`
-  events, client `EventSource` with a poll-once fallback) and a
-  client-side one-deep queue so operator input submitted during a
-  busy turn is never silently dropped. Includes ground-truth
-  analysis of the current turn transport, an event vocabulary,
-  sequencing with per-step gates, tests, docs obligations, and
-  risks. Linked from `docs/research/README.md`. Documentation only;
-  no behaviour changes.
-- **New research note `docs/research/OPEN-WEBUI-LESSONS-PLAN.md`.**
-  A phased implementation plan that turns the distilled ten-item
-  shortlist in `docs/research/OPEN-WEBUI-LESSONS.md` into concrete
-  work items grounded in the current codebase — five phases
-  (liveness plumbing, input/output ergonomics, continuity, memory
-  and hygiene, proactivity and installer work), each naming touch
-  points, design, policy/audit obligations, tests, docs, and an
-  acceptance check, plus cross-cutting guardrails and open
-  questions to settle before work starts. Linked from
-  `docs/research/README.md`. Documentation only; no behaviour
-  changes.
-- **New research note `docs/research/OPEN-WEBUI-LESSONS.md`.**
-  A companion to `OPEN-WEBUI-POSSIBILITIES.md` that distils the
-  study into lessons for Zombie's local chat — the operator's only
-  interface — grouped into perceived liveness (SSE streaming,
-  rendering), context ergonomics (`#` injection, curated skills,
-  auto-compaction), continuity (machine memory, FTS + tags,
-  audit-grounded export), proactivity (scheduled read-only
-  check-ups, `/` presets, fixed filters), and what the chat must
-  refuse to become, with a distilled ten-item shortlist. Linked
-  from `docs/research/README.md`. Documentation only; no behaviour
-  changes.
-- **New research note `docs/research/OPEN-WEBUI-POSSIBILITIES.md`.**
-  A deep study of the Open WebUI chat platform
-  (`open-webui/open-webui` 0.10.2): architecture, license history
-  (BSD-3 plus branding clause), full feature inventory, the
-  Pipelines/Functions extension systems, and security posture — each
-  capability read through the Ubuntu Zombie trust model with a
-  borrow / translate / integrate / defer / refuse verdict, plus a
-  ranked shortlist of chat upgrades implementable without new
-  runtime dependencies. Linked from `docs/research/README.md`.
-  Documentation only; no behaviour changes.
-- **New `multipliers/` analysis library.** A documentation-only
-  design surface (like `options/`) analysing how to multiply the
-  existing Ubuntu installation mechanism across Windows and macOS
-  with cleaner native delivery artifacts (`.deb` + apt repository,
-  signed/notarised `.pkg` + Homebrew, signed EXE/MSI + winget). It
-  inventories the portable agent core versus the platform shell,
-  defines the platform-shell contract, records prior art from the
-  `lmstudio-vampire` packaging tree and the `forgejo-society`
-  installation library, and lays out a phased roadmap with risks
-  and explicit non-goals. No runtime behaviour changes.
 - **The installer now bootstraps its own prerequisites.** A fresh
   Ubuntu image ships without `curl` (and a minimal image can lack
   `python3`), which made the local LM Studio / LLM network scan and
   the preflight connectivity check skip or fail. `install.sh` now
   installs whichever of `curl`/`python3` is missing via `apt-get`
   right after the root check, before any step that needs them.
-- **The Forgejo Options menu now covers every decision parameter.**
-  New menu items let the operator interactively edit the PostgreSQL
-  database name, role (username), and password (item 5) and the
-  Forgejo/runner release pins plus runner labels (item 6), matching
-  the existing prompts for the port and admin account. The database
-  password prompt follows the shared contract: blank auto-generates a
-  password and records it in the root-only receipt.
-  `FORGEJO_RUNNER_LABELS` is now validated (conservative character
-  set) before it is interpolated into the runner registration
-  command.
-- **Optional-component passwords are now options.**
-  `FORGEJO_ADMIN_PASSWORD` and `FORGEJO_DB_PASSWORD` environment
-  variables let the operator choose the Forgejo admin and PostgreSQL
-  role passwords (8–256 printable characters, validated before any
-  host change). When left unset the installer generates them randomly,
-  as before, and now records the generated values in the root-only
-  install receipt (mode `600`) so they can be retrieved later;
-  operator-supplied passwords are never recorded. The interactive
-  Options review can also set the admin password, and an
-  operator-chosen admin password is not forced to change on first
-  sign-in. Same contract intended for the parameters of every future
-  optional component.
 - **`uninstall.sh` now speaks the same UX flag vocabulary as
   `install.sh`.** New `-q`/`--quiet` (warnings and errors only),
   `--no-color`/`--no-colour` (disable ANSI; `NO_COLOR` and
@@ -1047,27 +613,8 @@ with its UTC release time as `yyyy.mm.dd.hh.nn.ss`.
 - **README landing pages for every top-level folder.** New
   `docs/README.md` (documentation index by reader intent),
   `scripts/README.md` (delivery-script guide with VM warning),
-  `tests/README.md` (test groups and how to run them), and
-  `docs/analysis/README.md` (what the analysis notes are), so every
-  directory in the repository now explains itself.
-- **Optional components mechanism ("Ubuntu Zombie + Options") and the
-  first component: a self-hosted Forgejo git forge.** Opt-in
-  `ZOMBIE_INSTALL_<COMPONENT>` flags (all default `0`) now plug into a
-  shared contract: validated settings, a nested `9) Options` sub-menu in
-  the interactive parameter review, dry-run and pre-flight stanzas that
-  leave the default output unchanged, receipt records, an honest
-  `[n/total]` phase counter, `verify`/`doctor`/`repair` checks, policy
-  classes, and `uninstall.sh` reversal. `ZOMBIE_INSTALL_FORGEJO=1`
-  installs Forgejo backed by PostgreSQL — checksum-verified binary from
-  codeberg.org (pin with `FORGEJO_VERSION`), generated secrets stored
-  only in `/etc/forgejo/app.ini` (`root:git`, `640`), an auto-generated
-  admin account printed once, a hardened `forgejo.service`, and normal
-  network access on all interfaces (`FORGEJO_HTTP_PORT`, default
-  `3000`). `ZOMBIE_INSTALL_FORGEJO_RUNNER=1` adds a co-located Forgejo
-  Actions runner using the standard Docker executor (labels default to
-  `ubuntu-latest:docker://node:20-bookworm`), with a visible warning
-  that co-location is contrary to upstream guidance. Documented in
-  `docs/CONFIGURATION.md`, `docs/ARCHITECTURE.md`, and `README.md`.
+  and `tests/README.md` (test groups and how to run them), so every
+  current top-level directory in the repository explains itself.
 - **Chat-UI password gate and Time-to-Live (TTL) kill switch.** The chat
   service is reachable by every local user on `http://127.0.0.1:7878`, so
   it is now protected by a shared password (the installer asks for it;
@@ -1096,8 +643,8 @@ with its UTC release time as `yyyy.mm.dd.hh.nn.ss`.
 - The installer now shows the Ubuntu Zombie logo as soon as install mode
   starts, the uninstaller shows the same logo, the default TTL is 7 days,
   and the default chat password is `braaaains`.
-- **Zombie Zero default footprint.** Removed the installer/runtime
-  surfaces identified in `docs/analysis/ubuntu-zombie-zero.md`: SSH
+- **Zombie Zero default footprint.** Removed the legacy installer/runtime
+  surfaces for SSH
   server setup, Tailscale, fail2ban/UFW wiring, VNC/x11vnc, graphical
   autologin, Docker, GUI/browser automation, and their built-in skills.
   The product now installs a loopback-only chat surface plus the local
@@ -1288,10 +835,6 @@ with its UTC release time as `yyyy.mm.dd.hh.nn.ss`.
     security disclosure routing.
   - [`RELEASE.md`](RELEASE.md) — release cut process for
     maintainers.
-  - Research notes under `docs/ALTERNATIVE-*.md`,
-    `docs/ALTERNATIVES*.md`, and `docs/SIMILAR.md` moved to
-    `docs/research/` with a stub README so the user-facing TOC is
-    shorter.
   - README gains CI, CodeQL, Scorecard, Latest-release, and
     Ubuntu-LTS badges and a `.deb` install snippet.
   - TROUBLESHOOTING gains a table mapping symptoms to

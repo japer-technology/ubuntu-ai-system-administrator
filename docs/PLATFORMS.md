@@ -13,7 +13,7 @@ other doc that mentions versions or architectures should link here.
 | Ubuntu Desktop 22.04 LTS | `arm64`    | Best-effort   | Same caveats as 24.04 arm64.                                 |
 | Ubuntu Server (any)    | any          | **Unsupported** | The installer targets Ubuntu Desktop LTS and is not tested on Server. |
 | Other Ubuntu flavours (Kubuntu, Xubuntu, …) | any | Best-effort | Report flavour-specific issues with full diagnostics. |
-| Debian, Mint, PopOS, other Debian derivatives | any | **Unsupported** | The installer reads `/etc/os-release` and refuses to proceed unless `ID=ubuntu`. |
+| Debian, Mint, PopOS, other Debian derivatives | any | **Unsupported** | The installer reads `/etc/os-release`, warns when `ID` is not `ubuntu`, and continues only at the operator's risk. |
 | Non-LTS Ubuntu (24.10, 25.04, …) | any | **Unsupported** | The installer warns and continues, but you are on your own. We test only LTS. |
 | WSL, containers without systemd | any | **Unsupported** | The chat service is a `systemd` unit. Without systemd, nothing runs. CI's integration job uses containers solely for the `--dry-run` path. |
 
@@ -46,8 +46,8 @@ CHANGELOG.md for the gory detail). Do not override.
 
 A platform listed as **Supported** has the following guarantees:
 
-1. CI exercises lint, smoke, dry-run, and (nightly) container install
-   on that platform.
+1. CI exercises lint, smoke, and the non-mutating installer dry-run path on
+   that platform.
 2. Issues filed against that platform are triaged.
 3. Release artifacts are tested against that platform before tagging.
 

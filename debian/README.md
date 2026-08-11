@@ -8,8 +8,10 @@ installer, payload, and documentation to `/usr/share/ubuntu-zombie/`
 and exposes a thin wrapper at `/usr/sbin/ubuntu-zombie` that
 delegates to `scripts/install.sh`. It deliberately does **not** run
 the full installer at `apt install` time, because the installer
-modifies sshd, the firewall, the display manager, and (optionally)
-enrols Tailscale — all of which need an attended operator decision.
+creates a root-capable service account, writes sudoers and systemd
+configuration, installs runtime dependencies, and creates state under
+`/opt/ai-zombie` and `/etc/ubuntu-zombie`. Those changes require an
+explicit operator decision.
 
 After installing the package:
 

@@ -7,8 +7,8 @@ project ships a *privileged, root-capable AI Systems Administrator* onto
 people's Ubuntu desktops. For software like this, supply-chain trust is
 not cosmetic — the artifacts an operator downloads and runs are the
 attack surface. A high Scorecard is therefore directly aligned with the
-project's promise that "the operator owns the machine, the SSH key, the
-API key, and the kill switch."
+project's promise that "the operator owns the machine, the provider
+credentials, and the kill switch."
 
 The Scorecard aggregate is a *weighted* average of ~18 checks, each
 scored 0–10. A score of 6 almost always means a small number of
@@ -186,9 +186,6 @@ Suggestions:
 
 ## Lower-priority / likely-already-fine
 
-- **Binary-Artifacts** — only `LOGO.png` is committed; image assets are
-  not penalised the way executable binaries (`.jar`, `.exe`, `.so`) are.
-  Avoid committing any built/executable artifact and this stays high.
 - **Contributors** — rewards contributors across multiple organisations;
   effectively out of the maintainer's direct control on a small project.
   Not worth engineering for.

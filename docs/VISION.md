@@ -1,11 +1,5 @@
 # Vision
 
-<p align="center">
-  <picture>
-    <img src="https://raw.githubusercontent.com/japer-technology/ubuntu-zombie/main/LOGO.png" alt="Ubuntu Zombie" width="420">
-  </picture>
-</p>
-
 ## The one-sentence vision
 
 > **Ubuntu Zombie turns a supported Ubuntu Desktop LTS machine into a
@@ -15,43 +9,9 @@
 > plain language, under explicit human approval, with every action
 > written to an auditable log.**
 
-That sentence is the entire Ubuntu Zombie MVP. It is deliberately narrow,
-and the root product remains organised to make it true, observable, and
-reversible. Independently packaged family products may also be developed in
-this repository under the contract below; they do not expand the authority
-or default installation of Ubuntu Zombie.
-
-## The first member of a family
-
-Ubuntu Zombie is also the first of an independent
-[AI-agent family](ai-agent/). Imaginary Friend, Curriculum Flame, ERIC,
-and future products copy its proven installation, policy, audit, lifecycle,
-update, and release lessons while declaring the authority their own purpose
-requires. A systems-administrator variant may retain full root authority when
-that authority is explicit, justified, policy-gated, approved, audited, and
-tested; the existing named products retain their narrower definitions.
-They remain separate products with separate credentials, data, installers,
-updaters, policies, audits, and releases. Their source is co-located below
-dedicated `products/<product-id>/` roots so one repository can test every
-namespace and co-installation boundary without creating a shared runtime.
-
-Ubuntu Zombie is the currently implemented generally root-capable member and
-the designated machine-level family manager — the **God role**. That
-designation does not reserve root authority to Ubuntu Zombie: another product
-may define an equally root-capable role, and co-installed root-capable products
-must be treated as mutually trusted at the operating-system boundary. With
-explicit operator approval Ubuntu Zombie is intended to discover, install,
-verify, diagnose, repair, update, suspend, and remove managed agents by invoking
-each product's own verified lifecycle interface. It does not share their
-runtime or turn them into installer components.
-
-The existing root-capable tools can operate product-owned commands, but the
-dedicated catalogue, secret-free inventory, and family management experience
-are specified, not implemented MVP features. The target interfaces and work
-order are fixed by the
-[AI-agent implementation contract](ai-agent/implementation.md). Ubuntu
-Zombie remains under human control; “God” describes host authority, not
-autonomous ownership, consent, identity, guardianship, or legal authority.
+That sentence is the entire Ubuntu Zombie product. Its scope is deliberately
+narrow: every shipped file exists to make that promise true, observable, and
+reversible.
 
 ## Why this exists
 
@@ -88,13 +48,12 @@ the machine the whole time.
 - **Autonomous ownership of the machine.** The operator is the
   principal. The agent is a tool with hands, not a tenant.
 - **Multi-tenant or fleet management.** One machine, one operator,
-  one trust boundary. Multi-machine fleet orchestration is out of scope;
-  same-host managed-agent support is a post-MVP family direction.
+  one trust boundary. Multi-machine fleet orchestration is out of scope.
 - **Replacement of the human users on the desktop.** Existing logins,
   files, and workflows are left alone. Ubuntu Zombie installs
   *beside* the user, not *over* them.
 - **A locked appliance or a hosted service.** This is a transparent
-  bash installer on a normal Ubuntu LTS system. Every component can
+  bash installer on a normal Ubuntu LTS system. Every installed file can
   be inspected, modified, or removed.
 
 ## Trust model summary
@@ -112,12 +71,8 @@ Zombie exposes only a loopback chat service by default.
   provider sees, and the disclosure policy.
 - [`ARCHITECTURE.md`](ARCHITECTURE.md) — components, action classes,
   and the approval pipeline.
-- [`ai-agent/`](ai-agent/) — Ubuntu Zombie's family-manager role, the
-  managed product definitions, and the new-agent template.
-- [`ROADMAP.md`](ROADMAP.md) — what is intentionally post-MVP and
-  what we have committed *not* to ship until the MVP is solid.
+- [`CONFIGURATION.md`](CONFIGURATION.md) — provider, policy, chat, and
+  lifecycle settings.
 
-If an Ubuntu Zombie feature request expands beyond the one-sentence promise
-above, it belongs in `ROADMAP.md` first. Family-product work instead follows
-the fixed source, authority, sequencing, and release gates in
-[`ai-agent/`](ai-agent/).
+If a feature request expands beyond the one-sentence promise above, it is out
+of scope for this repository until the vision is deliberately revised.

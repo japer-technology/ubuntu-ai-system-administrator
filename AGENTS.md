@@ -8,7 +8,7 @@ the bits an autonomous agent is most likely to get wrong.
 ## What this repository is
 
 Ubuntu Zombie is a Bash + Python installer that adds a private,
-root-capable AI Systems Administrator account (`agent`) to an Ubuntu
+root-capable AI Systems Administrator account (`zombie` by default) to an Ubuntu
 Desktop LTS machine. The whole product ships as shell scripts and a
 small Python service. There is no compiled artifact and no package
 manager registry — a "release" is a tarball produced by `make package`.
@@ -36,7 +36,7 @@ payload/                  # files copied to /opt/ai-zombie/ on the target
   systemd/                # unit files
   logrotate/              # rotation rules
 tests/smoke.sh            # non-root checks: syntax, python compile, subcommands, noninteractive, standards
-docs/                     # user docs + docs/design-notes/ background essays
+docs/                     # user and contributor documentation
 .github/workflows/ci.yml  # CI: lint, smoke tests, package, secret scan
 Makefile, VERSION
 ```
@@ -137,5 +137,4 @@ invariants the runtime relies on:
 ## Things to leave alone unless explicitly asked
 
 - `LICENSE`, `CODE_OF_CONDUCT.md`, `SECURITY.md` disclosure section.
-- `docs/design-notes/` — historical context; treat as read-only.
 - `.github/CODEOWNERS` and workflow permissions.

@@ -1,0 +1,2 @@
+#!/usr/bin/env bash
+exec "/c/Users/The Federation/AppData/Local/OpenAI/Codex/bin/5b9024f90663758b/node.exe" "$@"

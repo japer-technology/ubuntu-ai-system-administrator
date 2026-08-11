@@ -64,8 +64,7 @@ what ends up on a target machine:
 - `bash -n` on the installer and every shipped shell helper;
 - `python3 -m py_compile` on every shipped Python file;
 - a check that the installer recognises every documented subcommand;
-- a check that `ZOMBIE_NONINTERACTIVE=1` without required env exits
-  with code `64`.
+- checks for the non-interactive dry-run and lifecycle guard paths.
 
 CI runs the same script on every push and pull request, plus
 `shellcheck` on every shell file.
@@ -95,35 +94,13 @@ CI runs the same script on every push and pull request, plus
 2. Add a handler in `payload/agent/policy.py`.
 3. Document the class in `docs/ARCHITECTURE.md`.
 
-## Adding an installer component
+## Installer scope
 
-All packaging targets use the registry helpers in
-`scripts/component-registry.sh`. Registry entries contain data and trusted
-function names, never executable command strings. Every registered hook is
-validated with Bash function lookup before dispatch.
-
-1. Define the component configuration and validators.
-2. Implement isolated install, verify, doctor, repair, and uninstall
-   lifecycle hooks.
-3. Register its metadata, hooks, and explicit dependencies in registry
-   order. Dependencies must already be registered — registration order is
-   dispatch order, which keeps cycles unrepresentable — and installing a
-   component automatically selects its registered dependencies. Do not
-   add parser or dispatcher conditionals.
-4. Add manifest version data and component-owned receipt fields. Write the
-   manifest only after the install and health hook succeeds.
-5. Add target-scoped interactive review and dry-run rendering. An
-   unselected component must never prompt or render.
-6. Add policy and audit handling only when the agent can drive a new
-   privileged action.
-7. Add uninstall reversal plus static and hermetic tests for isolation,
-   dependency validation, ordering, and sample dispatch.
-8. Update operator and architecture documentation, `CHANGELOG.md`, and
-   `VERSION`.
-
-Environment selectors such as `ZOMBIE_INSTALL_FORGEJO` are compatibility
-inputs that add a registry target; they are not an alternative execution
-path.
+`scripts/install.sh` has one subject: Ubuntu Zombie. Its public lifecycle is
+`install`, `verify`, `doctor`, `repair`, and `uninstall`. Infrastructure or
+applications that are not part of the Ubuntu Zombie runtime are out of scope
+for this repository and must not be added as positional install selections or
+environment-controlled side installs.
 
 ## Filing an issue
 

@@ -4,18 +4,13 @@ SHELL := bash
 .SHELLFLAGS := -eu -o pipefail -c
 
 VERSION := $(shell cat VERSION)
-PYTHON ?= python3
-FRIEND_ROOT := products/imaginary-friend
-FORGEJO_ROOT := products/forgejo
-LLAMA_ROOT := products/llama
-BEEP_ROOT := products/beep
 
 .PHONY: help lint test verify-bridge-pins install-local verify package deb clean
 
 help:
 	@echo "Targets:"
-	@echo "  lint           root and product ShellCheck, syntax, and compile"
-	@echo "  test           root and product non-root test suites"
+	@echo "  lint           ShellCheck, syntax, and Python compile"
+	@echo "  test           Ubuntu Zombie non-root test suite"
 	@echo "  verify-bridge-pins  checksum pinned Node bridge inputs"
 	@echo "  install-local  sudo ./scripts/install.sh install (RUN ON A VM)"
 	@echo "  verify         sudo ./scripts/install.sh verify"
@@ -34,17 +29,9 @@ lint:
 	done
 	bash tests/smoke.sh syntax
 	bash tests/smoke.sh python
-	$(MAKE) -C $(FRIEND_ROOT) lint PYTHON="$(PYTHON)"
-	$(MAKE) -C $(FORGEJO_ROOT) lint PYTHON="$(PYTHON)"
-	$(MAKE) -C $(LLAMA_ROOT) lint PYTHON="$(PYTHON)"
-	$(MAKE) -C $(BEEP_ROOT) lint PYTHON="$(PYTHON)"
 
 test:
 	bash tests/smoke.sh all
-	$(MAKE) -C $(FRIEND_ROOT) test PYTHON="$(PYTHON)"
-	$(MAKE) -C $(FORGEJO_ROOT) test PYTHON="$(PYTHON)"
-	$(MAKE) -C $(LLAMA_ROOT) test PYTHON="$(PYTHON)"
-	$(MAKE) -C $(BEEP_ROOT) test PYTHON="$(PYTHON)"
 
 verify-bridge-pins:
 	bash scripts/verify-bridge-pins.sh
@@ -60,10 +47,8 @@ verify:
 package:
 	@mkdir -p dist
 	@tar --exclude-vcs --exclude='dist' --exclude='__pycache__' \
-	     --exclude='products/forgejo/dist' \
-	     --exclude='products/llama/dist' \
 	     -czf dist/ubuntu-zombie-$(VERSION).tar.gz \
-	     scripts payload tests products/forgejo products/llama family/schemas \
+	     scripts payload tests \
 	     Makefile VERSION \
 	     README.md CHANGELOG.md CONTRIBUTING.md CODE_OF_CONDUCT.md \
 	     LICENSE .editorconfig \
@@ -77,7 +62,3 @@ deb:
 clean:
 	rm -rf dist
 	find . -type d -name __pycache__ -prune -exec rm -rf {} +
-	$(MAKE) -C $(FRIEND_ROOT) clean
-	$(MAKE) -C $(FORGEJO_ROOT) clean
-	$(MAKE) -C $(LLAMA_ROOT) clean
-	$(MAKE) -C $(BEEP_ROOT) clean

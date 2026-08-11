@@ -17,13 +17,6 @@ The installer is intended to be idempotent. Re-running it re-renders
 runtime configuration, redeploys built-in skills, and restarts the chat
 service without changing provider secrets.
 
-Forgejo updates report existing service and PostgreSQL state before touching
-it. Approving each exact, capitalized `YES` prompt updates Forgejo in place
-without dropping repositories or database data. Unattended updates must set
-`FORGEJO_CONFIRM_UPDATE=YES` and
-`FORGEJO_CONFIRM_DATABASE_REUSE=YES`; `--yes` alone cannot bypass these
-data-safety gates.
-
 ## Downgrades
 
 Downgrades are not supported. Restore from your backup or uninstall and

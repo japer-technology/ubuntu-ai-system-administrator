@@ -151,7 +151,6 @@ _MAX_MODELS_RESPONSE_SIZE = 1024 * 1024
 _DEFAULT_HTTP_PORT = 80
 _DEFAULT_HTTPS_PORT = 443
 _LOCAL_API_LAN_PORTS = (1234, 8080, 11434, 51234)
-_MANAGED_LLAMA_LOOPBACK_PORTS = (58080,)
 # Seconds to wait for a TCP handshake during local API discovery, and
 # how many probes to run at once. Together these bound a full /24 sweep
 # to a few seconds so ``/locals`` does not stall the chat.
@@ -667,8 +666,7 @@ def scan_lmstudio(
     """Scan for local OpenAI-compatible servers.
 
     Conventional local API ports and the configured port are scanned across
-    the local /24 and on loopback. The Zombie-private llama.cpp port remains
-    loopback-only.
+    the local /24 and on loopback.
     """
     try:
         scan_port = int(port if port is not None
@@ -689,10 +687,7 @@ def scan_lmstudio(
     # dict preserves insertion order, so this removes duplicates without
     # changing the configured-port-first probe order.
     lan_ports = list(dict.fromkeys((scan_port, *_LOCAL_API_LAN_PORTS)))
-    loopback_ports = list(dict.fromkeys(
-        (*lan_ports, *_MANAGED_LLAMA_LOOPBACK_PORTS)
-    ))
-    probes = [("127.0.0.1", candidate) for candidate in loopback_ports]
+    probes = [("127.0.0.1", candidate) for candidate in lan_ports]
     probes.extend(
         (str(address), candidate)
         for address in subnet if str(address) != "127.0.0.1"

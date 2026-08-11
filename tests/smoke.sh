@@ -275,7 +275,7 @@ skills = skill_loader.load_skills([Path("payload/agent/skills")])
 names = {s.name for s in skills}
 assert names == {
     "ai-agents", "apt", "backup", "certificates", "containers", "css",
-    "database", "desktop", "dev", "disk", "files", "forgejo", "git",
+    "database", "desktop", "dev", "disk", "files", "git",
     "hardware", "hermes-agent", "html", "journal", "json", "kernel", "llm",
     "locale", "network", "obsidian", "openclaw-agent", "packages",
     "performance", "pi-mono-agent", "process", "reactivation", "scheduling",
@@ -2475,8 +2475,7 @@ run_subcommands() {
   echo "[smoke] subcommand parsing"
   ./scripts/install.sh --help    >/dev/null
   ./scripts/install.sh --version >/dev/null
-  # Each non-mutating subcommand should at least parse and not bail with code 2
-  # (bad usage).
+  # Each non-mutating subcommand should parse without a positional target.
   local out rc sub target
   for sub in verify doctor; do
     set +e
@@ -2488,218 +2487,34 @@ run_subcommands() {
       echo "${out}"
       exit 1
     fi
-    for target in zombie forgejo forgejo-runner llama; do
-      set +e
-      out="$(./scripts/install.sh "${sub}" "${target}" 2>&1)"
-      rc=$?
-      set -e
-      if [[ $rc -eq 2 ]]; then
-        echo "FAIL: '${sub} ${target}' returned bad-usage (exit 2). Output:"
-        echo "${out}"
-        exit 1
-      fi
-    done
   done
-  # 'doctor' must run as a non-root user without erroring on argument parsing.
   ./scripts/install.sh doctor >/dev/null || true
 
-  # Component-aware install grammar: targets, flags before/between/after,
-  # default selection, explicit forgejo-only planning, env-additive selection,
-  # and -- target validation are all safe under --dry-run.
-  local default_out zombie_out forgejo_out runner_out llama_out combined_out
-  local forgejo_zombie_order_out env_flag_out
+  # Ubuntu Zombie is the only install plan. Legacy product-selection
+  # environment variables must be inert.
+  local default_out legacy_env_out
   default_out="$(ZOMBIE_COLOR=never ./scripts/install.sh install --dry-run)"
-  zombie_out="$(ZOMBIE_COLOR=never ./scripts/install.sh --dry-run install zombie)"
-  [[ "${default_out}" == "${zombie_out}" ]] \
-    || { echo "FAIL: explicit zombie dry-run must match default install" >&2; exit 1; }
-  local zombie_review
-  zombie_review="$(sed -n '/^print_parameter_table() {$/,/^}$/p' scripts/install.sh)"
-  ! grep -Eq 'Options|review_options' <<<"${zombie_review}" \
-    || { echo "FAIL: zombie parameter review must not ask about options" >&2; exit 1; }
+  legacy_env_out="$(ZOMBIE_COLOR=never ZOMBIE_INSTALL_FORGEJO=1 \
+    ZOMBIE_INSTALL_FORGEJO_RUNNER=1 ZOMBIE_INSTALL_LLAMA=1 \
+    ./scripts/install.sh install --dry-run)"
+  [[ "${default_out}" == "${legacy_env_out}" ]] \
+    || { echo "FAIL: legacy product-selection variables changed the Zombie plan" >&2; exit 1; }
+  if grep -Eqi 'forgejo|forgejo-runner|standalone llama' <<<"${default_out}"; then
+    echo "FAIL: Zombie dry-run advertises a removed install mode" >&2
+    exit 1
+  fi
+  expect_exit_code 2 ./scripts/install.sh install --json --dry-run
 
-  forgejo_out="$(ZOMBIE_COLOR=never ./scripts/install.sh --dry-run install -- forgejo)"
-  grep -q "Components:     forgejo" <<<"${forgejo_out}" \
-    || { echo "FAIL: forgejo-only dry-run did not select only forgejo" >&2; exit 1; }
-  ! grep -q "Agent user:" <<<"${forgejo_out}" \
-    || { echo "FAIL: forgejo-only dry-run should not render zombie settings" >&2; exit 1; }
-  grep -q "PostgreSQL" <<<"${forgejo_out}" \
-    || { echo "FAIL: forgejo-only dry-run must include PostgreSQL" >&2; exit 1; }
-  grep -q "Transcript:" <<<"${forgejo_out}" \
-    || { echo "FAIL: forgejo-only dry-run must include the transcript" >&2; exit 1; }
-  grep -q "Receipt:" <<<"${forgejo_out}" \
-    || { echo "FAIL: forgejo-only dry-run must include the receipt" >&2; exit 1; }
-  ! grep -Eq "chat|Time to Live|local LLM|/opt/ai-zombie" <<<"${forgejo_out}" \
-    || { echo "FAIL: forgejo-only dry-run leaked zombie resources" >&2; exit 1; }
-
-  llama_out="$(ZOMBIE_COLOR=never ./scripts/install.sh --dry-run install llama)"
-  grep -q "Components:     llama" <<<"${llama_out}" \
-    || { echo "FAIL: llama-only dry-run did not select only llama" >&2; exit 1; }
-  grep -q "127.0.0.1:8080" <<<"${llama_out}" \
-    || { echo "FAIL: llama-only dry-run must expose loopback port 8080" >&2; exit 1; }
-  grep -q "Zombie impact:  none" <<<"${llama_out}" \
-    || { echo "FAIL: llama-only dry-run must state component isolation" >&2; exit 1; }
-  ! grep -Eq "Agent user:|PostgreSQL|/opt/ai-zombie" <<<"${llama_out}" \
-    || { echo "FAIL: llama-only dry-run leaked another component's resources" >&2; exit 1; }
-
-  forgejo_out="$(ZOMBIE_COLOR=never ZOMBIE_INSTALL_FORGEJO_RUNNER=1 \
-    ./scripts/install.sh --dry-run install forgejo)"
-  grep -q "docker.io" <<<"${forgejo_out}" \
-    || { echo "FAIL: forgejo-only runner dry-run must include Docker" >&2; exit 1; }
-
-  runner_out="$(ZOMBIE_COLOR=never \
-    ./scripts/install.sh --dry-run install forgejo-runner)"
-  grep -q "Components:     forgejo forgejo-runner" <<<"${runner_out}" \
-    || { echo "FAIL: forgejo-runner must resolve its Forgejo dependency" >&2; exit 1; }
-  grep -q "Forgejo runner component" <<<"${runner_out}" \
-    && grep -q "docker.io" <<<"${runner_out}" \
-    || { echo "FAIL: forgejo-runner dry-run must include runner resources" >&2; exit 1; }
-  ! grep -Eq "Agent user:|Time to Live|/opt/ai-zombie" <<<"${runner_out}" \
-    || { echo "FAIL: forgejo-runner dry-run leaked zombie resources" >&2; exit 1; }
-
-  combined_out="$(ZOMBIE_COLOR=never ZOMBIE_INSTALL_FORGEJO=1 \
-    ./scripts/install.sh --dry-run install zombie)"
-  grep -q "Components:     zombie forgejo" <<<"${combined_out}" \
-    && grep -q "Forgejo product lifecycle plan" <<<"${combined_out}" \
-    || { echo "FAIL: legacy Forgejo env flag was not additive" >&2; exit 1; }
-
-  forgejo_zombie_order_out="$(ZOMBIE_COLOR=never ./scripts/install.sh --dry-run \
-    install forgejo zombie)"
-  env_flag_out="$(ZOMBIE_COLOR=never ZOMBIE_INSTALL_FORGEJO=1 \
-    ./scripts/install.sh --dry-run install)"
-  [[ "${combined_out}" == "${forgejo_zombie_order_out}" \
-    && "${combined_out}" == "${env_flag_out}" ]] \
-    || { echo "FAIL: combined targets and legacy flag must resolve identically" >&2; exit 1; }
-
-  # Forgejo-only selection must not validate zombie-only settings.
-  expect_exit_code 0 env ZOMBIE_USER=INVALID ZOMBIE_CHAT_PORT=not-a-port \
-    ZOMBIE_TTL_DAYS=invalid ZOMBIE_NONINTERACTIVE=1 \
-    ./scripts/install.sh install forgejo --dry-run
-  expect_exit_code 0 env ZOMBIE_RECEIPT=0 ZOMBIE_NONINTERACTIVE=1 \
-    ./scripts/install.sh install forgejo --yes --dry-run
-
-  # The extracted Forgejo hook is a compatibility delegate, not a second
-  # server lifecycle, and must not depend on zombie runtime state.
-  local forgejo_hook
-  forgejo_hook="$(sed -n \
-    '/^component_install_forgejo() {/,/^}/p' \
-    scripts/install.sh)"
-  [[ -n "${forgejo_hook}" ]] \
-    || { echo "FAIL: could not locate the Forgejo compatibility hook" >&2; exit 1; }
-  grep -q 'forgejo_product_manage' <<<"${forgejo_hook}" \
-    && grep -q 'ADOPT FORGEJO' <<<"${forgejo_hook}" \
-    || { echo "FAIL: Forgejo compatibility hook does not delegate safely" >&2; exit 1; }
-  ! grep -Eq 'AGENT_USER|AGENT_HOME|CHAT_PORT|TTL_DAYS|LOCAL_LLM|ZOMBIE_ETC|/opt/ai-zombie' \
-    <<<"${forgejo_hook}" \
-    || { echo "FAIL: Forgejo delegate references zombie-owned state" >&2; exit 1; }
-  [[ -f products/forgejo/payload/agent/forgejo/management.py \
-      && ! -e payload/systemd/forgejo.service ]] \
-    || { echo "FAIL: Forgejo server lifecycle was not moved to the product" >&2; exit 1; }
-  grep -q 'def _wait_healthy' \
-    products/forgejo/payload/agent/forgejo/management.py \
-    || { echo "FAIL: Forgejo product must own its health gate" >&2; exit 1; }
-  grep -q 'install=component_install_forgejo' scripts/install.sh \
-    && grep -q 'manifest=component_manifest_forgejo' scripts/install.sh \
-    || { echo "FAIL: Forgejo install and manifest hooks must be registered" >&2; exit 1; }
-  grep -q 'component_dispatch_hook "${component}" install' scripts/install.sh \
-    || { echo "FAIL: selected components must use generic install dispatch" >&2; exit 1; }
-
-  # Single valid component targets are exercised above and by dry-run checks;
-  # the loop below verifies all public duplicate/invalid target failures.
+  # Lifecycle grammar is a verb plus flags only. Every former component
+  # target, including the old explicit Zombie alias, must fail as bad usage.
   for sub in install verify doctor repair uninstall; do
-    expect_exit_code 2 ./scripts/install.sh "${sub}" nope
-    expect_exit_code 2 ./scripts/install.sh "${sub}" zombie zombie
-    expect_exit_code 2 ./scripts/install.sh "${sub}" forgejo forgejo
-    expect_exit_code 2 ./scripts/install.sh "${sub}" llama llama
-    expect_exit_code 2 ./scripts/install.sh "${sub}" "${sub}"
+    for target in nope zombie forgejo forgejo-runner llama "${sub}"; do
+      expect_exit_code 2 ./scripts/install.sh "${sub}" "${target}"
+    done
   done
-  # After --, every token is a component target; flag-looking tokens are
-  # rejected as unknown components instead of being parsed as flags.
-  expect_exit_code 2 ./scripts/install.sh install -- forgejo --dry-run
-  expect_exit_code 2 ./scripts/install.sh install forgejo --archive
-  expect_exit_code 2 ./scripts/install.sh uninstall forgejo --archive --dry-run
-  expect_exit_code 0 ./scripts/install.sh uninstall forgejo --dry-run
-  expect_exit_code 0 ./scripts/install.sh uninstall llama --dry-run
-  expect_exit_code 0 ./scripts/install.sh uninstall zombie --archive --keep-agent --dry-run
-}
-
-run_component_registry() {
-  echo "[smoke] component registry validation + sample dispatch"
-  bash <<'BASH'
-set -Eeuo pipefail
-die() { printf '%s\n' "$1" >&2; exit "${2:-1}"; }
-# shellcheck source=scripts/component-registry.sh
-. scripts/component-registry.sh
-trace=""
-alpha_install() { trace="${trace}alpha "; }
-sample_install() { trace="${trace}sample "; }
-register_component alpha "" install=alpha_install
-register_component sample "alpha" install=sample_install
-validate_component_registry "install"
-for component in "${PUBLIC_COMPONENTS[@]}"; do
-  component_dispatch_hook "${component}" install
-done
-[[ "${trace}" == "alpha sample " ]]
-# Dependency resolution: selecting a dependant pulls in its dependency,
-# duplicates collapse, and output follows registry order regardless of the
-# order targets were requested.
-resolved="$(resolve_component_targets sample | tr '\n' ' ')"
-[[ "${resolved}" == "alpha sample " ]]
-resolved="$(resolve_component_targets sample alpha sample | tr '\n' ' ')"
-[[ "${resolved}" == "alpha sample " ]]
-resolved="$(resolve_component_targets alpha | tr '\n' ' ')"
-[[ "${resolved}" == "alpha " ]]
-BASH
-
-  expect_exit_code 2 bash -c '
-    set -Eeuo pipefail
-    die() { exit "${2:-1}"; }
-    . scripts/component-registry.sh
-    register_component broken "" install=missing_hook
-    validate_component_registry "install"
-  '
-  expect_exit_code 2 bash -c '
-    set -Eeuo pipefail
-    die() { exit "${2:-1}"; }
-    . scripts/component-registry.sh
-    ok() { :; }
-    register_component broken absent install=ok
-    validate_component_registry "install"
-  '
-  # Dependencies must be registered before their dependants, so forward
-  # references (and therefore dependency cycles) fail at registration time.
-  expect_exit_code 2 bash -c '
-    set -Eeuo pipefail
-    die() { exit "${2:-1}"; }
-    . scripts/component-registry.sh
-    ok() { :; }
-    register_component first second install=ok
-    register_component second first install=ok
-  '
-  # Self-dependencies fail at registration time.
-  expect_exit_code 2 bash -c '
-    set -Eeuo pipefail
-    die() { exit "${2:-1}"; }
-    . scripts/component-registry.sh
-    ok() { :; }
-    register_component selfish selfish install=ok
-  '
-  # Duplicate hook fields in one registration are rejected, not overwritten.
-  expect_exit_code 2 bash -c '
-    set -Eeuo pipefail
-    die() { exit "${2:-1}"; }
-    . scripts/component-registry.sh
-    ok() { :; }
-    register_component doubled "" install=ok install=ok
-  '
-  # Resolving an unregistered target fails closed.
-  expect_exit_code 2 bash -c '
-    set -Eeuo pipefail
-    die() { exit "${2:-1}"; }
-    . scripts/component-registry.sh
-    ok() { :; }
-    register_component alpha "" install=ok
-    resolve_component_targets alpha ghost
-  '
+  expect_exit_code 2 ./scripts/install.sh install -- forgejo
+  expect_exit_code 0 ./scripts/install.sh uninstall \
+    --archive --keep-agent --dry-run
 }
 
 expect_exit_code() {
@@ -2712,383 +2527,6 @@ expect_exit_code() {
     echo "FAIL: expected exit ${want}, got ${got}: $*" >&2
     exit 1
   fi
-}
-
-run_manifest() {
-  echo "[smoke] component manifest + selective uninstall"
-
-  local scratch_root bogus_zombie_dir verify_zombie_dir out manifest_dir
-  scratch_root="$(pwd)/tests/.smoke-manifest.$$"
-  rm -rf -- "${scratch_root}"
-  mkdir -p "${scratch_root}"
-  trap 'rm -rf -- "'"${scratch_root}"'"' RETURN
-  bogus_zombie_dir="${scratch_root}/missing-zombie-root"
-  verify_zombie_dir="${scratch_root}/verify-zombie-root"
-
-  manifest_dir="${scratch_root}/valid-zombie"
-  mkdir -p "${manifest_dir}"
-  cat > "${manifest_dir}/zombie" <<'EOF_MANIFEST'
-format=1
-component=zombie
-ubuntu_zombie_version=test
-converged_utc=2026-01-01T00:00:00Z
-component_version=
-suboptions=
-EOF_MANIFEST
-  out="$(ZOMBIE_COMPONENT_MANIFEST_DIR="${manifest_dir}" \
-    ZOMBIE_DIR="${bogus_zombie_dir}" ./scripts/install.sh doctor --json)"
-  grep -Eq '"component"[[:space:]]*:[[:space:]]*"zombie"' <<<"${out}" \
-    || { echo "FAIL: doctor --json did not discover zombie manifest" >&2; exit 1; }
-
-  # verify must not delegate to a stale deployed verifier. Older generated
-  # verifiers sourced secrets/env under nounset, so password hashes containing
-  # '$' could abort with an unbound-variable error before checks were reported.
-  mkdir -p "${verify_zombie_dir}/bin" "${verify_zombie_dir}/secrets"
-  cat > "${verify_zombie_dir}/bin/verify" <<'EOF_VERIFY'
-#!/usr/bin/env bash
-echo "STALE VERIFIER RAN" >&2
-exit 99
-EOF_VERIFY
-  chmod +x "${verify_zombie_dir}/bin/verify"
-  printf '%s\n' 'ZOMBIE_ADMIN_PASSWORD_HASH=pbkdf2_sha256$600000$salt$digest' \
-    > "${verify_zombie_dir}/secrets/env"
-  chmod 600 "${verify_zombie_dir}/secrets/env"
-
-  set +e
-  out="$(ZOMBIE_COMPONENT_MANIFEST_DIR="${manifest_dir}" \
-    ZOMBIE_USER="verify-missing" ZOMBIE_DIR="${verify_zombie_dir}" \
-    ./scripts/install.sh verify --json 2>&1)"
-  local verify_rc=$?
-  set -e
-  [[ "${verify_rc}" -eq 1 ]] \
-    || { echo "FAIL: verify should report failed checks (exit 1), got ${verify_rc}" >&2; exit 1; }
-  ! grep -q 'STALE VERIFIER RAN\|unbound variable' <<<"${out}" \
-    || { echo "FAIL: verify delegated to a stale verifier or sourced secrets" >&2; exit 1; }
-  printf '%s' "${out}" | python3 -c 'import sys,json; json.load(sys.stdin)' \
-    || { echo "FAIL: verify did not produce valid JSON with shell-sensitive secrets" >&2; exit 1; }
-
-  out="$(ZOMBIE_COMPONENT_MANIFEST_DIR="${manifest_dir}" \
-    ZOMBIE_USER="verify-missing" ZOMBIE_DIR="${verify_zombie_dir}" \
-    ./scripts/install.sh doctor --json 2>&1)"
-  ! grep -q 'unbound variable' <<<"${out}" \
-    || { echo "FAIL: doctor failed with shell-sensitive secrets" >&2; exit 1; }
-  printf '%s' "${out}" | python3 -c 'import sys,json; json.load(sys.stdin)' \
-    || { echo "FAIL: doctor did not produce valid JSON with shell-sensitive secrets" >&2; exit 1; }
-
-  ! grep -Fq 'source \${ZOMBIE_DIR}/secrets/env' scripts/install.sh \
-    || { echo "FAIL: generated verifier must not source secrets/env" >&2; exit 1; }
-
-  manifest_dir="${scratch_root}/duplicate-key"
-  mkdir -p "${manifest_dir}"
-  cat > "${manifest_dir}/zombie" <<'EOF_BAD_MANIFEST'
-format=1
-format=1
-component=zombie
-ubuntu_zombie_version=test
-converged_utc=2026-01-01T00:00:00Z
-component_version=
-suboptions=
-EOF_BAD_MANIFEST
-  out="$(ZOMBIE_COMPONENT_MANIFEST_DIR="${manifest_dir}" \
-    ZOMBIE_DIR="${bogus_zombie_dir}" ./scripts/install.sh doctor --json 2>/dev/null)"
-  ! grep -Eq '"component"[[:space:]]*:[[:space:]]*"zombie"' <<<"${out}" \
-    || { echo "FAIL: malformed duplicate-key manifest should be ignored" >&2; exit 1; }
-
-  manifest_dir="${scratch_root}/unknown-key"
-  mkdir -p "${manifest_dir}"
-  cat > "${manifest_dir}/zombie" <<'EOF_UNKNOWN_MANIFEST'
-format=1
-component=zombie
-ubuntu_zombie_version=test
-converged_utc=2026-01-01T00:00:00Z
-component_version=
-suboptions=
-unknown_key=value
-EOF_UNKNOWN_MANIFEST
-  out="$(ZOMBIE_COMPONENT_MANIFEST_DIR="${manifest_dir}" \
-    ZOMBIE_DIR="${bogus_zombie_dir}" ./scripts/install.sh doctor --json 2>/dev/null)"
-  ! grep -Eq '"component"[[:space:]]*:[[:space:]]*"zombie"' <<<"${out}" \
-    || { echo "FAIL: manifest with unknown key should be ignored" >&2; exit 1; }
-
-  manifest_dir="${scratch_root}/selective-uninstall"
-  mkdir -p "${manifest_dir}"
-  cat > "${manifest_dir}/forgejo" <<'EOF_MANIFEST'
-format=1
-component=forgejo
-ubuntu_zombie_version=test
-converged_utc=2026-01-01T00:00:00Z
-component_version=
-suboptions=runner
-EOF_MANIFEST
-  cat > "${manifest_dir}/zombie" <<'EOF_MANIFEST'
-format=1
-component=zombie
-ubuntu_zombie_version=test
-converged_utc=2026-01-01T00:00:00Z
-component_version=
-suboptions=
-EOF_MANIFEST
-  cat > "${manifest_dir}/forgejo-runner" <<'EOF_MANIFEST'
-format=1
-component=forgejo-runner
-ubuntu_zombie_version=test
-converged_utc=2026-01-01T00:00:00Z
-component_version=
-suboptions=
-EOF_MANIFEST
-
-  out="$(ZOMBIE_COLOR=never ZOMBIE_COMPONENT_MANIFEST_DIR="${manifest_dir}" \
-    ./scripts/uninstall.sh forgejo-runner --dry-run 2>&1 || true)"
-  grep -q "forgejo-runner.service" <<<"${out}" \
-    || { echo "FAIL: runner-only dry-run should remove the runner service" >&2; exit 1; }
-  grep -q "clear the legacy runner suboption" <<<"${out}" \
-    || { echo "FAIL: runner uninstall should clear legacy Forgejo runner intent" >&2; exit 1; }
-  ! grep -Eq "forgejo.service|/etc/forgejo|dropdb|dropuser" <<<"${out}" \
-    || { echo "FAIL: runner-only dry-run should not remove Forgejo server state" >&2; exit 1; }
-
-  out="$(ZOMBIE_COLOR=never ZOMBIE_COMPONENT_MANIFEST_DIR="${manifest_dir}" \
-    ./scripts/uninstall.sh forgejo --dry-run 2>&1 || true)"
-  grep -q "forgejo" <<<"${out}" \
-    || { echo "FAIL: forgejo-only dry-run should mention forgejo" >&2; exit 1; }
-  ! grep -q "ubuntu-zombie-chat" <<<"${out}" \
-    || { echo "FAIL: forgejo-only dry-run should not include zombie service cleanup" >&2; exit 1; }
-
-  local fake_bin="${scratch_root}/fake-postgres-bin"
-  mkdir -p "${fake_bin}"
-  cat > "${fake_bin}/psql" <<'EOF_FAKE_PSQL'
-#!/usr/bin/env bash
-set -Eeuo pipefail
-echo "fake psql should not execute during dry-run" >&2
-exit 99
-EOF_FAKE_PSQL
-  chmod +x "${fake_bin}/psql"
-  out="$(ZOMBIE_COLOR=never ZOMBIE_COMPONENT_MANIFEST_DIR="${manifest_dir}" \
-    PATH="${fake_bin}:${PATH}" ./scripts/uninstall.sh forgejo --yes --dry-run 2>&1 || true)"
-  ! grep -q "fake psql should not execute" <<<"${out}" \
-    || { echo "FAIL: forgejo dry-run must not execute PostgreSQL commands" >&2; exit 1; }
-  grep -q "Require the co-located runner to be removed first" <<<"${out}" \
-    && grep -q "explicitly purge repositories, secrets, and database" <<<"${out}" \
-    || { echo "FAIL: delegated Forgejo purge plan is incomplete" >&2; exit 1; }
-
-  out="$(ZOMBIE_COLOR=never ./scripts/uninstall.sh zombie --dry-run 2>&1 || true)"
-  grep -q "ubuntu-zombie" <<<"${out}" \
-    || { echo "FAIL: zombie-only dry-run should mention zombie cleanup" >&2; exit 1; }
-  ! grep -q "forgejo.service" <<<"${out}" \
-    || { echo "FAIL: zombie-only dry-run should not include Forgejo cleanup" >&2; exit 1; }
-
-  expect_exit_code 2 ./scripts/uninstall.sh forgejo --archive --dry-run
-  expect_exit_code 2 ./scripts/uninstall.sh forgejo --keep-agent --dry-run
-  expect_exit_code 0 ./scripts/uninstall.sh zombie --archive --keep-agent --dry-run
-
-  out="$(ZOMBIE_COLOR=never ./scripts/uninstall.sh --dry-run 2>&1 || true)"
-  grep -q "forgejo" <<<"${out}" \
-    || { echo "FAIL: no-target dry-run should mention Forgejo selection" >&2; exit 1; }
-  grep -q "ubuntu-zombie" <<<"${out}" \
-    || { echo "FAIL: no-target dry-run should mention zombie cleanup" >&2; exit 1; }
-
-  manifest_dir="${scratch_root}/dry-run-retains-manifest"
-  mkdir -p "${manifest_dir}"
-  cat > "${manifest_dir}/zombie" <<'EOF_MANIFEST'
-format=1
-component=zombie
-ubuntu_zombie_version=test
-converged_utc=2026-01-01T00:00:00Z
-component_version=
-suboptions=
-EOF_MANIFEST
-  ZOMBIE_COMPONENT_MANIFEST_DIR="${manifest_dir}" ./scripts/uninstall.sh zombie --dry-run >/dev/null 2>&1 || true
-  [[ -f "${manifest_dir}/zombie" ]] \
-    || { echo "FAIL: dry-run uninstall must not remove zombie manifest" >&2; exit 1; }
-
-  manifest_dir="${scratch_root}/remaining-component-warning"
-  mkdir -p "${manifest_dir}"
-  cat > "${manifest_dir}/forgejo" <<'EOF_MANIFEST'
-format=1
-component=forgejo
-ubuntu_zombie_version=test
-converged_utc=2026-01-01T00:00:00Z
-component_version=
-suboptions=
-EOF_MANIFEST
-  out="$(ZOMBIE_COMPONENT_MANIFEST_DIR="${manifest_dir}" \
-    ./scripts/uninstall.sh zombie --dry-run 2>&1 || true)"
-  grep -q "forgejo" <<<"${out}" \
-    || { echo "FAIL: targeted zombie dry-run should warn when Forgejo manifest remains" >&2; exit 1; }
-
-  expect_exit_code 2 ./scripts/uninstall.sh '../etc/passwd' --dry-run
-
-  manifest_dir="${scratch_root}/verify-discovers-forgejo"
-  mkdir -p "${manifest_dir}"
-  cat > "${manifest_dir}/forgejo" <<'EOF_MANIFEST'
-format=1
-component=forgejo
-ubuntu_zombie_version=test
-converged_utc=2026-01-01T00:00:00Z
-component_version=
-suboptions=
-EOF_MANIFEST
-  out="$(ZOMBIE_COMPONENT_MANIFEST_DIR="${manifest_dir}" \
-    ZOMBIE_DIR="${bogus_zombie_dir}" ./scripts/install.sh verify --json 2>/dev/null || true)"
-  grep -Eq '"component"[[:space:]]*:[[:space:]]*"forgejo"' <<<"${out}" \
-    || { echo "FAIL: verify --json did not discover forgejo manifest" >&2; exit 1; }
-
-  rm -rf -- "${bogus_zombie_dir}"
-  mkdir -p "${bogus_zombie_dir}"
-  out="$(ZOMBIE_COMPONENT_MANIFEST_DIR="${scratch_root}/no-manifests" \
-    ZOMBIE_USER="verify-missing" ZOMBIE_DIR="${bogus_zombie_dir}" \
-    ./scripts/install.sh verify --json 2>&1 || true)"
-  grep -Eq '"component"[[:space:]]*:[[:space:]]*"zombie"' <<<"${out}" \
-    || { echo "FAIL: verify --json should report partial legacy zombie installs" >&2; exit 1; }
-  grep -Eq '"id"[[:space:]]*:[[:space:]]*"verify_script"' <<<"${out}" \
-    || { echo "FAIL: verify --json should include missing verifier check" >&2; exit 1; }
-  ! grep -q "failed on line" <<<"${out}" \
-    || { echo "FAIL: verify --json should not emit the generic install error trap" >&2; exit 1; }
-  rm -rf -- "${bogus_zombie_dir}"
-
-  # --- Manifest with a missing required key should be rejected ---------
-  manifest_dir="${scratch_root}/missing-key"
-  mkdir -p "${manifest_dir}"
-  cat > "${manifest_dir}/zombie" <<'EOF_MANIFEST'
-format=1
-component=zombie
-ubuntu_zombie_version=test
-component_version=
-suboptions=
-EOF_MANIFEST
-  # converged_utc is absent; the manifest must be treated as malformed.
-  out="$(ZOMBIE_COMPONENT_MANIFEST_DIR="${manifest_dir}" \
-    ZOMBIE_DIR="${bogus_zombie_dir}" ./scripts/install.sh doctor --json 2>/dev/null)"
-  ! grep -Eq '"component"[[:space:]]*:[[:space:]]*"zombie"' <<<"${out}" \
-    || { echo "FAIL: manifest missing converged_utc should be rejected" >&2; exit 1; }
-
-  # --- Manifest with duplicate value for any key should be rejected -----
-  manifest_dir="${scratch_root}/duplicate-any-key"
-  mkdir -p "${manifest_dir}"
-  cat > "${manifest_dir}/zombie" <<'EOF_MANIFEST'
-format=1
-component=zombie
-ubuntu_zombie_version=test
-converged_utc=2026-01-01T00:00:00Z
-converged_utc=2026-02-01T00:00:00Z
-component_version=
-suboptions=
-EOF_MANIFEST
-  out="$(ZOMBIE_COMPONENT_MANIFEST_DIR="${manifest_dir}" \
-    ZOMBIE_DIR="${bogus_zombie_dir}" ./scripts/install.sh doctor --json 2>/dev/null)"
-  ! grep -Eq '"component"[[:space:]]*:[[:space:]]*"zombie"' <<<"${out}" \
-    || { echo "FAIL: manifest with duplicate converged_utc should be rejected" >&2; exit 1; }
-
-  # --- Manifest with mismatched component name should be rejected -------
-  manifest_dir="${scratch_root}/component-mismatch"
-  mkdir -p "${manifest_dir}"
-  # File named 'zombie' but declares component=forgejo
-  cat > "${manifest_dir}/zombie" <<'EOF_MANIFEST'
-format=1
-component=forgejo
-ubuntu_zombie_version=test
-converged_utc=2026-01-01T00:00:00Z
-component_version=
-suboptions=
-EOF_MANIFEST
-  out="$(ZOMBIE_COMPONENT_MANIFEST_DIR="${manifest_dir}" \
-    ZOMBIE_DIR="${bogus_zombie_dir}" ./scripts/install.sh doctor --json 2>/dev/null)"
-  ! grep -Eq '"component"[[:space:]]*:[[:space:]]*"zombie"' <<<"${out}" \
-    || { echo "FAIL: manifest with component/path mismatch should be rejected" >&2; exit 1; }
-
-  # --- Manifest line without '=' separator should be rejected ----------
-  manifest_dir="${scratch_root}/no-equals"
-  mkdir -p "${manifest_dir}"
-  cat > "${manifest_dir}/zombie" <<'EOF_MANIFEST'
-format=1
-component=zombie
-ubuntu_zombie_version=test
-converged_utcNOEQUALS
-component_version=
-suboptions=
-EOF_MANIFEST
-  out="$(ZOMBIE_COMPONENT_MANIFEST_DIR="${manifest_dir}" \
-    ZOMBIE_DIR="${bogus_zombie_dir}" ./scripts/install.sh doctor --json 2>/dev/null)"
-  ! grep -Eq '"component"[[:space:]]*:[[:space:]]*"zombie"' <<<"${out}" \
-    || { echo "FAIL: manifest with line missing '=' should be rejected" >&2; exit 1; }
-
-  # --- Path-traversal in ZOMBIE_COMPONENT_MANIFEST_DIR (install.sh) ----
-  local _rc_inst _rc_uninst
-  set +e
-  ZOMBIE_COMPONENT_MANIFEST_DIR='/var/lib/../etc' \
-    ./scripts/install.sh doctor >/dev/null 2>&1
-  _rc_inst=$?
-  ZOMBIE_COMPONENT_MANIFEST_DIR='/var/lib/../etc' \
-    ./scripts/uninstall.sh --dry-run >/dev/null 2>&1
-  _rc_uninst=$?
-  set -e
-  [[ "${_rc_inst}" -eq 2 ]] \
-    || { echo "FAIL: install.sh should reject ZOMBIE_COMPONENT_MANIFEST_DIR with traversal (exit 2, got ${_rc_inst})" >&2; exit 1; }
-  [[ "${_rc_uninst}" -eq 2 ]] \
-    || { echo "FAIL: uninstall.sh should reject ZOMBIE_COMPONENT_MANIFEST_DIR with traversal (exit 2, got ${_rc_uninst})" >&2; exit 1; }
-
-  # --- verify in mixed mode includes zombie component identity ----------
-  manifest_dir="${scratch_root}/verify-mixed-zombie-forgejo"
-  mkdir -p "${manifest_dir}"
-  cat > "${manifest_dir}/zombie" <<'EOF_MANIFEST'
-format=1
-component=zombie
-ubuntu_zombie_version=test
-converged_utc=2026-01-01T00:00:00Z
-component_version=
-suboptions=
-EOF_MANIFEST
-  cat > "${manifest_dir}/forgejo" <<'EOF_MANIFEST'
-format=1
-component=forgejo
-ubuntu_zombie_version=test
-converged_utc=2026-01-01T00:00:00Z
-component_version=
-suboptions=
-EOF_MANIFEST
-  out="$(ZOMBIE_COMPONENT_MANIFEST_DIR="${manifest_dir}" \
-    ZOMBIE_DIR="${bogus_zombie_dir}" ./scripts/install.sh verify --json 2>/dev/null || true)"
-  # Mixed verify must report both components in the JSON output.
-  grep -Eq '"component"[[:space:]]*:[[:space:]]*"zombie"' <<<"${out}" \
-    || { echo "FAIL: mixed verify --json must include zombie component checks" >&2; exit 1; }
-  grep -Eq '"component"[[:space:]]*:[[:space:]]*"forgejo"' <<<"${out}" \
-    || { echo "FAIL: mixed verify --json must include forgejo component checks" >&2; exit 1; }
-  # Mixed zombie checks should include more than just the verifier script:
-  # at minimum user and install_root checks must be present.
-  grep -Eq '"id"[[:space:]]*:[[:space:]]*"user"' <<<"${out}" \
-    || { echo "FAIL: mixed verify --json must include a 'user' check for zombie" >&2; exit 1; }
-
-  # --- Lifecycle isolation: forgejo-only uninstall leaves zombie manifest
-  manifest_dir="${scratch_root}/lifecycle-isolation"
-  mkdir -p "${manifest_dir}"
-  cat > "${manifest_dir}/zombie" <<'EOF_MANIFEST'
-format=1
-component=zombie
-ubuntu_zombie_version=test
-converged_utc=2026-01-01T00:00:00Z
-component_version=
-suboptions=
-EOF_MANIFEST
-  cat > "${manifest_dir}/forgejo" <<'EOF_MANIFEST'
-format=1
-component=forgejo
-ubuntu_zombie_version=test
-converged_utc=2026-01-01T00:00:00Z
-component_version=
-suboptions=
-EOF_MANIFEST
-  ZOMBIE_COMPONENT_MANIFEST_DIR="${manifest_dir}" \
-    ./scripts/uninstall.sh forgejo --dry-run >/dev/null 2>&1 || true
-  [[ -f "${manifest_dir}/zombie" ]] \
-    || { echo "FAIL: forgejo-only dry-run must not remove zombie manifest" >&2; exit 1; }
-
-  # --- zombie-only uninstall leaves forgejo manifest --------------------
-  ZOMBIE_COMPONENT_MANIFEST_DIR="${manifest_dir}" \
-    ./scripts/uninstall.sh zombie --dry-run >/dev/null 2>&1 || true
-  [[ -f "${manifest_dir}/forgejo" ]] \
-    || { echo "FAIL: zombie-only dry-run must not remove forgejo manifest" >&2; exit 1; }
-
-  rm -rf -- "${scratch_root}"
-  trap - RETURN
 }
 
 run_bad_usage() {
@@ -3257,55 +2695,6 @@ run_noninteractive() {
     echo "FAIL: connectivity preflight uses the retrying download helper" >&2
     exit 1
   fi
-
-  echo "[smoke] optional components dry-run"
-  # The Forgejo option must parse from env alone (no new required
-  # non-interactive input), never touch the host under --dry-run, and
-  # leave the default dry-run output byte-for-byte unchanged when off.
-  local base_out fj_out
-  base_out="$(ZOMBIE_COLOR=never ./scripts/install.sh install --dry-run)"
-  if grep -q "Optional components enabled" <<<"${base_out}"; then
-    echo "FAIL: default dry-run must not mention optional components" >&2
-    exit 1
-  fi
-  fj_out="$(ZOMBIE_COLOR=never ZOMBIE_NONINTERACTIVE=1 ZOMBIE_INSTALL_FORGEJO=1 \
-    ZOMBIE_INSTALL_FORGEJO_RUNNER=1 ./scripts/install.sh install --dry-run)"
-  grep -q "Components:     zombie forgejo forgejo-runner" <<<"${fj_out}" \
-    && grep -q "Forgejo product lifecycle plan" <<<"${fj_out}" \
-    || { echo "FAIL: Forgejo dry-run stanza missing" >&2; exit 1; }
-  grep -q "forgejo-runner.service" <<<"${fj_out}" \
-    || { echo "FAIL: runner dry-run stanza missing" >&2; exit 1; }
-  grep -q "Caddy HTTPS" <<<"${fj_out}" \
-    || { echo "FAIL: Forgejo dry-run must describe LAN HTTPS" >&2; exit 1; }
-  grep -q "127.0.0.1:3000" <<<"${fj_out}" \
-    || { echo "FAIL: Forgejo dry-run must keep backend on loopback" >&2; exit 1; }
-  local llama_out
-  llama_out="$(ZOMBIE_COLOR=never ZOMBIE_NONINTERACTIVE=1 \
-    ./scripts/install.sh install llama --dry-run)"
-  local llama_release
-  llama_release="$(python3 -c \
-    'import json; print(json.load(open("products/llama/payload/etc/llama-builds.json"))["release"])')"
-  grep -q "llama.cpp ${llama_release}" <<<"${llama_out}" \
-    && grep -q "127.0.0.1:8080" <<<"${llama_out}" \
-    || { echo "FAIL: standalone llama dry-run stanza missing" >&2; exit 1; }
-  # Invalid option values must be rejected before any host change.
-  expect_exit_code 2 env 'ZOMBIE_INSTALL_FORGEJO=2' ./scripts/install.sh doctor
-  expect_exit_code 2 env 'ZOMBIE_INSTALL_FORGEJO=1' 'FORGEJO_HTTP_PORT=70000' ./scripts/install.sh doctor
-  expect_exit_code 2 env 'ZOMBIE_INSTALL_FORGEJO=1' 'FORGEJO_DB_NAME=Bad;Name' ./scripts/install.sh doctor
-  expect_exit_code 2 env 'ZOMBIE_INSTALL_FORGEJO=1' 'FORGEJO_ADMIN_USER=-bad' ./scripts/install.sh doctor
-  expect_exit_code 2 env 'ZOMBIE_INSTALL_FORGEJO=1' 'FORGEJO_ADMIN_USER=a-' ./scripts/install.sh doctor
-  expect_exit_code 2 env 'ZOMBIE_INSTALL_FORGEJO=1' 'FORGEJO_DB_USER=bad_' ./scripts/install.sh doctor
-  expect_exit_code 2 env 'ZOMBIE_INSTALL_FORGEJO=1' 'FORGEJO_ADMIN_PASSWORD=short' ./scripts/install.sh doctor
-  expect_exit_code 2 env 'ZOMBIE_INSTALL_FORGEJO=1' 'FORGEJO_DB_PASSWORD=short' ./scripts/install.sh doctor
-  expect_exit_code 2 env 'ZOMBIE_INSTALL_FORGEJO=1' 'FORGEJO_VERSION=not.a.version!' ./scripts/install.sh doctor
-  expect_exit_code 2 env 'ZOMBIE_INSTALL_FORGEJO=1' 'FORGEJO_RUNNER_LABELS=bad label' ./scripts/install.sh doctor
-  expect_exit_code 2 env 'ZOMBIE_INSTALL_LLAMA=2' ./scripts/install.sh doctor
-  expect_exit_code 0 env 'LLAMA_PORT=8080' 'ZOMBIE_NONINTERACTIVE=1' \
-    ./scripts/install.sh install llama --dry-run
-  expect_exit_code 2 env 'ZOMBIE_INSTALL_LLAMA=1' 'LLAMA_PORT=8081' ./scripts/install.sh doctor
-  expect_exit_code 2 env 'ZOMBIE_INSTALL_LLAMA=1' 'LLAMA_CONTEXT_SIZE=nope' ./scripts/install.sh doctor
-  # The approved default model has a 2048-token catalogue ceiling.
-  expect_exit_code 2 env 'ZOMBIE_INSTALL_LLAMA=1' 'LLAMA_CONTEXT_SIZE=4096' ./scripts/install.sh doctor
 }
 
 run_diagnostics() {
@@ -3395,7 +2784,6 @@ run_standards() {
     docs/PLATFORMS.md
     docs/UPGRADING.md
     docs/FAQ.md
-    docs/research/README.md
     payload/agent/bridge-dependencies.lock
     payload/bin/verify-release
     debian/control.in
@@ -3409,6 +2797,26 @@ run_standards() {
   for f in "${required[@]}"; do
     [[ -s "$f" ]] || { echo "missing required repository file: $f" >&2; exit 1; }
   done
+
+  local removed=(
+    .github/workflows/beep-release.yml
+    .github/workflows/forgejo-release.yml
+    .github/workflows/imaginary-friend-release.yml
+    .github/workflows/llama-release.yml
+    docs/FORGEJO.md
+    payload/agent/skills/forgejo.md
+    payload/etc/forgejo-runner-config.yaml
+    payload/systemd/forgejo-runner.service
+    scripts/component-registry.sh
+    tests/family/conformance.py
+    tests/family/test_contract.py
+  )
+  for f in "${removed[@]}"; do
+    [[ ! -e "$f" ]] \
+      || { echo "removed multi-product asset still exists: $f" >&2; exit 1; }
+  done
+  [[ -z "$(git ls-files -- products family)" ]] \
+    || { echo "removed product-family files are still tracked" >&2; exit 1; }
 
   grep -q 'registry.npmjs.org/@earendil-works%2Fpi-ai/latest' scripts/install.sh \
     || { echo "installer must resolve the latest pi-ai release" >&2; exit 1; }
@@ -3430,7 +2838,7 @@ run_standards() {
   # installer can deploy them to /opt/ai-zombie/skills/.
   local s
   for s in ai-agents apt backup certificates containers css database \
-           desktop dev disk files forgejo git hardware hermes-agent html \
+           desktop dev disk files git hardware hermes-agent html \
            journal json kernel llm locale network obsidian openclaw-agent \
            packages performance pi-mono-agent process reactivation \
            scheduling secrets security services snap sql systemd \
@@ -3445,121 +2853,7 @@ run_standards() {
     || { echo "health systemd template must use __ZOMBIE_DIR__ placeholder" >&2; exit 1; }
   grep -q "ZOMBIE_HEALTH_WARN_ONLY=1" payload/systemd/ubuntu-zombie-health.service \
     || { echo "health timer must not leave a failed unit after reporting unhealthy state" >&2; exit 1; }
-  # The Forgejo server is product-owned while its phase-5 runner remains in
-  # the root suite.
-  [[ -s products/forgejo/payload/systemd/forgejo.service ]] \
-    || { echo "missing product-owned forgejo.service" >&2; exit 1; }
-  [[ ! -e payload/systemd/forgejo.service ]] \
-    || { echo "root payload must not retain forgejo.service" >&2; exit 1; }
-  [[ -s payload/systemd/forgejo-runner.service ]] \
-    || { echo "missing payload/systemd/forgejo-runner.service" >&2; exit 1; }
-  [[ -s payload/etc/forgejo-runner-config.yaml ]] \
-    || { echo "missing payload/etc/forgejo-runner-config.yaml" >&2; exit 1; }
-  grep -q "NoNewPrivileges=true" \
-      products/forgejo/payload/systemd/forgejo.service \
-    || { echo "forgejo.service must stay hardened (NoNewPrivileges)" >&2; exit 1; }
-  grep -Fq \
-      "ExecStart=/usr/local/bin/forgejo-runner -c /var/lib/forgejo-runner/config.yaml daemon" \
-      payload/systemd/forgejo-runner.service \
-    || { echo "forgejo-runner.service must load the managed config" >&2; exit 1; }
-  grep -Eq '^Requires=docker\.service$' \
-      payload/systemd/forgejo-runner.service \
-    && grep -Eq '^Wants=.*forgejo\.service' \
-      payload/systemd/forgejo-runner.service \
-    && ! grep -Eq '^Requires=.*forgejo\.service' \
-      payload/systemd/forgejo-runner.service \
-    || { echo "runner must require Docker but only want Forgejo" >&2; exit 1; }
-  if ! grep -Eq '^  capacity: 1$' payload/etc/forgejo-runner-config.yaml \
-      || ! grep -Eq '^  enabled: false$' payload/etc/forgejo-runner-config.yaml \
-      || ! grep -Eq '^  network: host$' payload/etc/forgejo-runner-config.yaml \
-      || ! grep -Eq '^  privileged: false$' payload/etc/forgejo-runner-config.yaml \
-      || ! grep -Eq '^  valid_volumes: \[\]$' payload/etc/forgejo-runner-config.yaml \
-      || ! grep -Eq '^  docker_host: "-"$' payload/etc/forgejo-runner-config.yaml \
-      || ! grep -Fq '__FORGEJO_HOST__:127.0.0.1' \
-        payload/etc/forgejo-runner-config.yaml \
-      || ! grep -Fq '/etc/ssl/certs/ca-certificates.crt:/etc/ssl/certs/ca-certificates.crt:ro' \
-        payload/etc/forgejo-runner-config.yaml; then
-    echo "managed runner config must enforce the conservative same-host contract" >&2
-    exit 1
-  fi
-  for ca_variable in SSL_CERT_FILE GIT_SSL_CAINFO NODE_EXTRA_CA_CERTS \
-      REQUESTS_CA_BUNDLE; do
-    grep -Fq "${ca_variable}: /etc/ssl/certs/ca-certificates.crt" \
-        payload/etc/forgejo-runner-config.yaml \
-      || { echo "runner jobs must inherit ${ca_variable}" >&2; exit 1; }
-  done
-  local forgejo_exec_checker
-  forgejo_exec_checker="$(install_function forgejo_runner_uses_managed_config)"
-  bash -c "${forgejo_exec_checker}
-    systemctl() {
-      printf '%s\n' '{ path=/usr/local/bin/forgejo-runner ; argv[]=/usr/local/bin/forgejo-runner -c /var/lib/forgejo-runner/config.yaml daemon ; ignore_errors=no ; }'
-    }
-    forgejo_runner_uses_managed_config" \
-    || { echo "exact managed runner command must be accepted" >&2; exit 1; }
-  if bash -c "${forgejo_exec_checker}
-      systemctl() {
-        printf '%s\n' '{ path=/usr/local/bin/wrapper ; argv[]=/usr/local/bin/wrapper /usr/local/bin/forgejo-runner -c /var/lib/forgejo-runner/config.yaml daemon ; ignore_errors=no ; }'
-      }
-      forgejo_runner_uses_managed_config"; then
-    echo "runner command validation must reject wrappers and extra arguments" >&2
-    exit 1
-  fi
-  local forgejo_drop_in_checker forgejo_drop_in_tmp
-  forgejo_drop_in_checker="$(
-    install_function _forgejo_runner_drop_in_is_obsolete
-  )"
-  forgejo_drop_in_tmp="$(mktemp)"
-  cat > "${forgejo_drop_in_tmp}" <<'EOF'
-[Service]
-ExecStart=
-ExecStart=/usr/local/bin/forgejo-runner -c /var/lib/forgejo-runner/config.yaml daemon
-EOF
-  bash -c "${forgejo_drop_in_checker}
-    _forgejo_runner_drop_in_is_obsolete \"\$1\"" _ "${forgejo_drop_in_tmp}" \
-    || { rm -f "${forgejo_drop_in_tmp}"; echo "exact obsolete runner override must be recognized" >&2; exit 1; }
-  printf '%s\n' 'Environment=OPERATOR_OVERRIDE=1' >> "${forgejo_drop_in_tmp}"
-  if bash -c "${forgejo_drop_in_checker}
-      _forgejo_runner_drop_in_is_obsolete \"\$1\"" _ "${forgejo_drop_in_tmp}"; then
-    rm -f "${forgejo_drop_in_tmp}"
-    echo "custom runner drop-ins must never be removed automatically" >&2
-    exit 1
-  fi
-  rm -f "${forgejo_drop_in_tmp}"
-  local lifecycle_helper
-  for lifecycle_helper in forgejo_runner_config_is_managed \
-      forgejo_manifest_has_runner forgejo_runner_is_expected \
-      restore_forgejo_runner_intent \
-      forgejo_runner_drop_in_paths _forgejo_runner_drop_in_is_obsolete \
-      remove_obsolete_forgejo_runner_drop_in \
-      forgejo_runner_declared_successfully; do
-    awk -v signature="${lifecycle_helper}() {" '
-      $0 == signature { helper = NR }
-      /^case "\$\{SUBCOMMAND\}" in$/ { dispatch = NR }
-      END { exit !(helper && dispatch && helper < dispatch) }
-    ' scripts/install.sh \
-      || { echo "lifecycle helper must be defined before dispatch: ${lifecycle_helper}" >&2; exit 1; }
-  done
-  for delegated_hook in component_install_forgejo component_verify_forgejo \
-      component_doctor_forgejo component_repair_forgejo; do
-    grep -q "^${delegated_hook}()" scripts/install.sh \
-      || { echo "missing Forgejo compatibility delegate: ${delegated_hook}" >&2; exit 1; }
-  done
-  grep -q 'forgejo_product_manage' scripts/install.sh \
-    && grep -q 'ADOPT FORGEJO' scripts/install.sh \
-    || { echo "Forgejo compatibility commands must delegate with adoption safety" >&2; exit 1; }
-  ! grep -Eq '^(install_forgejo|verify_forgejo)\(\)|^  (doctor_forgejo|repair_forgejo)\(\)' \
-      scripts/install.sh \
-    || { echo "root installer must not retain the Forgejo server lifecycle" >&2; exit 1; }
-  ! grep -Eq 'dropdb|dropuser|# BEGIN install\.sh Forgejo' scripts/uninstall.sh \
-    || { echo "root uninstaller must not retain Forgejo server removal logic" >&2; exit 1; }
-  grep -q 'Managed by forgejo-manage' \
-      products/forgejo/payload/agent/forgejo/management.py \
-    && grep -q '127.0.0.1' \
-      products/forgejo/payload/agent/forgejo/management.py \
-    && grep -q 'tls internal' \
-      products/forgejo/payload/agent/forgejo/management.py \
-    || { echo "Forgejo product must own its loopback HTTPS boundary" >&2; exit 1; }
-  local provider_helper password_helper provider_test_file
+  local provider_helper provider_test_file
   provider_helper="$(install_function provider_credential_configured)"
   provider_test_file="$(mktemp)"
   printf 'ZOMBIE_PROVIDER=lmstudio\nLMSTUDIO_API_KEY=local\n' > "${provider_test_file}"
@@ -3640,155 +2934,6 @@ EOF
       'import lifecycle; assert lifecycle.status()["configured"]'
   rm -rf "${lifecycle_test_dir}"
 
-  password_helper="$(install_function password_source_label)"
-  bash -c "${password_helper}
-    [[ \"\$(password_source_label operator)\" == 'set by operator; passed through a private file' ]]
-    [[ \"\$(password_source_label '')\" == 'generated by the product; not recorded in this receipt' ]]" \
-    || { echo "Forgejo password source labels must describe receipt handling accurately" >&2; exit 1; }
-  grep -q 'password accepted (not recorded)' scripts/install.sh \
-    || { echo "Prompted Forgejo passwords must not be described as recorded" >&2; exit 1; }
-  grep -q 'forgejo_product_manage' scripts/uninstall.sh \
-    && grep -q 'DELETE FORGEJO STATE' scripts/uninstall.sh \
-    || { echo "Forgejo uninstall must delegate explicit purge safely" >&2; exit 1; }
-  local confirmation_helper confirmation_out forgejo_runner_hook
-  local repair_forgejo_body repair_forgejo_runner_body
-  forgejo_runner_hook="$(install_function install_forgejo_runner)"
-  [[ -n "${forgejo_runner_hook}" ]] \
-    || { echo "could not extract the Forgejo runner install hook" >&2; exit 1; }
-  confirmation_helper="$(install_function require_capitalized_yes)"
-  bash -c "${confirmation_helper}
-    info() { :; }
-    die() { printf '%s\n' \"\$1\" >&2; exit \"\${2:-1}\"; }
-    ZOMBIE_NONINTERACTIVE=1
-    ASSUME_YES=1
-    FORGEJO_CONFIRM_UPDATE=YES
-    require_capitalized_yes FORGEJO_CONFIRM_UPDATE 'confirm update'" \
-    || { echo "exact YES must allow an unattended Forgejo update" >&2; exit 1; }
-  if confirmation_out="$(bash -c "${confirmation_helper}
-    info() { :; }
-    die() { printf '%s\n' \"\$1\" >&2; exit \"\${2:-1}\"; }
-    ZOMBIE_NONINTERACTIVE=1
-    ASSUME_YES=1
-    FORGEJO_CONFIRM_UPDATE=yes
-    require_capitalized_yes FORGEJO_CONFIRM_UPDATE 'confirm update'" 2>&1)"; then
-    echo "lowercase yes must not approve an existing Forgejo update" >&2
-    exit 1
-  fi
-  grep -q 'FORGEJO_CONFIRM_UPDATE=YES' <<<"${confirmation_out}" \
-    || { echo "Forgejo update refusal must explain the exact YES override" >&2; exit 1; }
-  grep -q 'require_capitalized_yes FORGEJO_CONFIRM_UPDATE' scripts/install.sh \
-    || { echo "existing Forgejo installs must require explicit update approval" >&2; exit 1; }
-  grep -q -- '--confirmation "ADOPT FORGEJO"' scripts/install.sh \
-    || { echo "legacy Forgejo adoption must use the product confirmation" >&2; exit 1; }
-  local forgejo_runner_expected_body
-  forgejo_runner_expected_body="$(install_function forgejo_runner_is_expected)"
-  ! grep -Fq -- '-d /var/lib/forgejo-runner' \
-      <<<"${forgejo_runner_expected_body}" \
-    || { echo "an empty runner directory must not imply runner intent" >&2; exit 1; }
-  awk '
-    /^restore_forgejo_runner_intent$/ { restore = NR }
-    /^validate_config$/ { validate = NR }
-    END { exit !(restore && validate && restore < validate) }
-  ' scripts/install.sh \
-    || { echo "Forgejo runner intent must be restored before validation" >&2; exit 1; }
-  grep -Fq '[[ -s /var/lib/forgejo-runner/.runner ]]' \
-      <<<"${forgejo_runner_hook}" \
-    || { echo "Forgejo install must reject empty runner registrations" >&2; exit 1; }
-  grep -Fq 'retry 6 2 -- forgejo_runner_declared_successfully' \
-      <<<"${forgejo_runner_hook}" \
-    || { echo "Forgejo install must wait for the current runner declaration" >&2; exit 1; }
-  grep -Fq 'forgejo-runner-config.yaml' <<<"${forgejo_runner_hook}" \
-    || { echo "Forgejo install must deploy the managed runner config" >&2; exit 1; }
-  grep -Fq 'install -m 640 -o root -g forgejo-runner' scripts/install.sh \
-    || { echo "Forgejo repair must restore root ownership of runner config" >&2; exit 1; }
-  repair_forgejo_body="$(install_function component_repair_forgejo)"
-  grep -Fq 'forgejo_product_manage repair' <<<"${repair_forgejo_body}" \
-    || { echo "Forgejo repair must delegate to the product" >&2; exit 1; }
-  grep -Fq 'ZOMBIE_INSTALL_FORGEJO_RUNNER' <<<"${repair_forgejo_body}" \
-    || { echo "Forgejo repair must honor persisted runner intent" >&2; exit 1; }
-  grep -Fq 'repair_forgejo_runner' <<<"${repair_forgejo_body}" \
-    || { echo "Forgejo repair must dispatch persisted runner repair" >&2; exit 1; }
-  repair_forgejo_runner_body="$(sed -n \
-    '/^  repair_forgejo_runner() {$/,/^  local component/p' scripts/install.sh)"
-  grep -Fq 'systemctl enable forgejo-runner.service' \
-      <<<"${repair_forgejo_runner_body}" \
-    || { echo "Forgejo repair must restore runner boot enablement" >&2; exit 1; }
-  grep -Fq 's|__FORGEJO_HOST__|${runner_host}|g' \
-      <<<"${repair_forgejo_runner_body}" \
-    || { echo "Forgejo repair must render the same-host runner mapping" >&2; exit 1; }
-  local docker_conflict_out forgejo_docker_helper docker_stub
-  forgejo_docker_helper="$(install_function ensure_forgejo_runner_docker_package)"
-  docker_stub="$(mktemp)"
-  chmod +x "${docker_stub}"
-  bash -c "${forgejo_docker_helper}
-    info() { :; }
-    note_satisfied() { :; }
-    apt_install() { return 99; }
-    dpkg-query() { return 1; }
-    ensure_forgejo_runner_docker_package '${docker_stub}'" \
-    || { rm -f "${docker_stub}"; echo "existing Docker must be reused" >&2; exit 1; }
-  rm -f "${docker_stub}"
-  if docker_conflict_out="$(bash -c "${forgejo_docker_helper}
-    apt_install() { return 99; }
-    dpkg-query() { printf 'install ok installed'; }
-    die() { printf '%s\n' \"\$1\" >&2; exit 1; }
-    ensure_forgejo_runner_docker_package /missing/docker" 2>&1)"; then
-    echo "containerd.io conflict must stop Docker package installation" >&2
-    exit 1
-  fi
-  grep -q 'containerd.io is installed' <<<"${docker_conflict_out}" \
-    || { echo "containerd.io conflict needs actionable guidance" >&2; exit 1; }
-  bash -c "${forgejo_docker_helper}
-    apt_install() { [[ \"\$*\" == docker.io ]]; }
-    dpkg-query() { return 1; }
-    ensure_forgejo_runner_docker_package /missing/docker" \
-    || { echo "docker.io must be installed when no Docker engine conflicts" >&2; exit 1; }
-  local forgejo_release_helpers
-  forgejo_release_helpers="$(
-    install_function forgejo_release_api_origins
-    install_function forgejo_release_download_bases
-    install_function forgejo_release_tag_from_json
-    install_function forgejo_latest_release
-    install_function forgejo_fetch_release_asset
-  )"
-  bash -c "${forgejo_release_helpers}
-    warn() { :; }
-    curl() {
-      # forgejo_latest_release appends the metadata URL after all curl flags.
-      local url=\"\${*: -1}\"
-      [[ \"\${url}\" == 'https://data.forgejo.org/api/v1/repos/forgejo/runner/releases/latest' ]] \
-        || return 22
-      printf '%s\n' '{\"name\":\"v12.7.3\"}'
-    }
-    [[ \"\$(forgejo_latest_release forgejo/runner)\" == '12.7.3' ]]" \
-    || { echo "forgejo-runner latest release must use data.forgejo.org first" >&2; exit 1; }
-  bash -c "${forgejo_release_helpers}
-    warn() { :; }
-    curl() {
-      # forgejo_latest_release appends the metadata URL after all curl flags.
-      local url=\"\${*: -1}\"
-      [[ \"\${url}\" == 'https://code.forgejo.org/api/v1/repos/forgejo/runner/releases/latest' ]] \
-        || return 22
-      printf '%s\n' '{\"tag_name\":\"v12.0.1\"}'
-    }
-    [[ \"\$(forgejo_latest_release forgejo/runner)\" == '12.0.1' ]]" \
-    || { echo "forgejo-runner latest release must fall back to code.forgejo.org" >&2; exit 1; }
-  bash -c "${forgejo_release_helpers}
-    warn() { :; }
-    codeberg_fetch_verified() {
-      [[ \"\$1\" == 'https://code.forgejo.org/forgejo/runner/releases/download/v12.7.3/forgejo-runner-12.7.3-linux-amd64' ]]
-    }
-    forgejo_fetch_release_asset forgejo/runner 12.7.3 \
-      forgejo-runner-12.7.3-linux-amd64 /tmp/forgejo-runner-smoke" \
-    || { echo "forgejo-runner downloads must prefer code.forgejo.org" >&2; exit 1; }
-  grep -q 'Forgejo secrets  : not recorded' scripts/install.sh \
-    && ! grep -q 'receipt_password_line' scripts/install.sh \
-    || { echo "root Forgejo receipts must remain secret-free" >&2; exit 1; }
-  grep -q 'forgejo_product_manage' scripts/uninstall.sh \
-    || { echo "uninstall.sh must delegate Forgejo removal" >&2; exit 1; }
-  grep -q "Delegating standalone Llama removal" scripts/uninstall.sh \
-    && grep -q "llama_product_manage" scripts/uninstall.sh \
-    || { echo "uninstall.sh must delegate llama removal" >&2; exit 1; }
   grep -q "_LOCAL_API_LAN_PORTS = (1234, 8080, 11434, 51234)" \
     payload/agent/providers.py \
     || { echo "/locals must probe standard API ports across the LAN" >&2; exit 1; }
@@ -3830,81 +2975,6 @@ EOF
     && grep -q 'plural(bucket.reactivations, "reactivation")' \
       payload/agent/templates/index.html \
     || { echo "verbose mode must count reactivations" >&2; exit 1; }
-  python3 products/llama/payload/bin/llama-manager --help >/dev/null
-  python3 - <<'PY'
-import importlib.machinery
-import importlib.util
-import json
-import os
-import tempfile
-from pathlib import Path
-from types import SimpleNamespace
-
-for name in ("llama-builds.json", "llama-models.json"):
-    data = json.loads((Path("products/llama/payload/etc") / name).read_text())
-    if data.get("schema_version") != 1:
-        raise SystemExit(f"{name} has wrong schema")
-
-loader = importlib.machinery.SourceFileLoader(
-    "llama_manager", "products/llama/payload/bin/llama-manager"
-)
-spec = importlib.util.spec_from_loader(loader.name, loader)
-manager = importlib.util.module_from_spec(spec)
-loader.exec_module(manager)
-with tempfile.TemporaryDirectory() as directory:
-    root = Path(directory)
-    manager.INSTALL_ROOT = root / "opt/llama.cpp"
-    manager.STATE_ROOT = root / "var/lib/llama.cpp"
-    runtime = manager.INSTALL_ROOT / "current"
-    runtime.mkdir(parents=True)
-    executable = runtime / "llama-server"
-    executable.touch()
-    executable.chmod(0o755)
-    model = manager.STATE_ROOT / "models/model.gguf"
-    model.parent.mkdir(parents=True)
-    model.touch()
-    config = root / "config.json"
-    config.write_text(json.dumps({
-        "schema_version": 1,
-        "port": 8080,
-        "model_id": "fixture",
-        "model_path": str(model),
-        "context_size": 2048,
-        "threads": 2,
-        "runtime_release": "fixture",
-        "runtime_dir": str(runtime),
-    }))
-    manager.CONFIG_PATH = config
-    manager.service_property = lambda _name: "inactive"
-    manager.systemctl = lambda *_args, **_kwargs: SimpleNamespace(
-        returncode=0, stdout="enabled\n", stderr=""
-    )
-    status = manager.status_payload()
-    assert status["state"] == "installed-stopped", status
-    captured = {}
-    original_execv = manager.os.execv
-    original_library_path = os.environ.get("LD_LIBRARY_PATH")
-    os.environ.pop("LD_LIBRARY_PATH", None)
-    def fake_execv(path, args):
-        captured["path"] = path
-        captured["args"] = args
-        captured["library_path"] = os.environ.get("LD_LIBRARY_PATH")
-        raise StopIteration
-    manager.os.execv = fake_execv
-    try:
-        manager.serve()
-    except StopIteration:
-        pass
-    finally:
-        manager.os.execv = original_execv
-        if original_library_path is None:
-            os.environ.pop("LD_LIBRARY_PATH", None)
-        else:
-            os.environ["LD_LIBRARY_PATH"] = original_library_path
-    assert captured["path"] == runtime / "llama-server", captured
-    assert captured["args"][-2:] == ["--alias", "fixture"], captured
-    assert captured["library_path"] == str(runtime), captured
-PY
   grep -q 'id="logout"' payload/agent/templates/index.html \
     || { echo "chat UI must expose the logoff button" >&2; exit 1; }
   grep -q 'case "/logout"' payload/agent/templates/index.html \
@@ -4582,12 +3652,12 @@ run_flags() {
   ./scripts/install.sh --help | grep -q "Examples:"
   ./scripts/install.sh --help | grep -q "completion"
 
-  # --help must document the optional-component flags.
-  ./scripts/install.sh --help | grep -q "ZOMBIE_INSTALL_FORGEJO"
-  ./scripts/install.sh --help | grep -q "ZOMBIE_INSTALL_LLAMA"
-  ./scripts/install.sh --help | grep -q "FORGEJO_HTTP_PORT"
-  ./scripts/install.sh --help | grep -q "FORGEJO_ADMIN_PASSWORD"
-  ./scripts/install.sh --help | grep -q "FORGEJO_DB_PASSWORD"
+  # Removed install modes must stay out of the public help surface.
+  if ./scripts/install.sh --help \
+      | grep -Eq 'FORGEJO|ZOMBIE_INSTALL_LLAMA|install (forgejo|llama)'; then
+    echo "FAIL: installer help advertises a removed install mode" >&2
+    exit 1
+  fi
 
   # --no-color must strip ANSI escapes from output.
   set +e
@@ -4665,12 +3735,11 @@ run_flags() {
     || { echo "FAIL: install.bash completion has a syntax error" >&2; exit 1; }
   [[ -r scripts/completions/_install.sh ]] \
     || { echo "FAIL: scripts/completions/_install.sh missing" >&2; exit 1; }
-  for component in zombie forgejo forgejo-runner llama; do
-    grep -q "${component}" scripts/completions/install.bash \
-      || { echo "FAIL: bash completion missing ${component}" >&2; exit 1; }
-    grep -q "${component}" scripts/completions/_install.sh \
-      || { echo "FAIL: zsh completion missing ${component}" >&2; exit 1; }
-  done
+  if grep -Eqi 'forgejo|(^|[[:space:]])llama([[:space:]]|$)' \
+      scripts/completions/install.bash scripts/completions/_install.sh; then
+    echo "FAIL: shell completions advertise a removed install mode" >&2
+    exit 1
+  fi
   grep -q -- "--archive" scripts/completions/install.bash \
     && grep -q -- "--keep-agent" scripts/completions/install.bash \
     || { echo "FAIL: bash completion missing uninstall-only flags" >&2; exit 1; }
@@ -4681,8 +3750,6 @@ case "${cmd}" in
   python)         run_python ;;
   branding) run_branding ;;
   subcommands) run_subcommands ;;
-  registry)       run_component_registry ;;
-  manifest)       run_manifest ;;
   bad-usage)      run_bad_usage ;;
   flags)          run_flags ;;
   noninteractive) run_noninteractive ;;
@@ -4693,8 +3760,6 @@ case "${cmd}" in
     run_python
     run_branding
     run_subcommands
-    run_component_registry
-    run_manifest
     run_bad_usage
     run_flags
     run_noninteractive

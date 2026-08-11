@@ -4,7 +4,7 @@ name: Integration
 # regressions in scripts/install.sh are caught before they reach an
 # operator's machine. Runs nightly and on demand. We deliberately do
 # NOT block CI on this workflow — Docker cannot represent every
-# systemd/Tailscale interaction a real Ubuntu Desktop host can — but a
+# systemd interaction a real Ubuntu Desktop host can — but a
 # red run is a strong signal that something on the install path broke.
 
 on:
@@ -33,17 +33,11 @@ jobs:
       - name: install.sh --dry-run (Ubuntu ${{ matrix.label }})
         env:
           ZOMBIE_NONINTERACTIVE: "1"
-          ZOMBIE_SKIP_TAILSCALE: "1"
-          SSH_PUBLIC_KEY: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIBYxDeIaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa ci@example"
-          VNC_PASSWORD: "ci-dummy-vnc-password"
         run: sudo -E ./scripts/install.sh install --dry-run
 
-  install-in-container:
-    # Best-effort: install in an Ubuntu container with systemd disabled.
-    # Any step that strictly requires systemd or a live display will be
-    # tolerated but logged. The script's idempotency and validation
-    # paths are the primary signal we care about.
-    name: install/verify/uninstall in container (Ubuntu ${{ matrix.label }})
+  smoke-in-container:
+    # Exercise the smoke suite and installer plan in a clean Ubuntu container.
+    name: smoke and dry-run in container (Ubuntu ${{ matrix.label }})
     runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
@@ -76,65 +70,4 @@ jobs:
       - name: install.sh --dry-run (full plan)
         env:
           ZOMBIE_NONINTERACTIVE: "1"
-          ZOMBIE_SKIP_TAILSCALE: "1"
-          SSH_PUBLIC_KEY: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIBYxDeIaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa ci@example"
-          VNC_PASSWORD: "ci-dummy-vnc-password"
         run: ./scripts/install.sh install --dry-run
-
-  imaginary-friend-lifecycle:
-    name: Imaginary Friend lifecycle (Ubuntu ${{ matrix.label }})
-    runs-on: ${{ matrix.runs-on }}
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - runs-on: ubuntu-22.04
-            label: "22.04"
-          - runs-on: ubuntu-24.04
-            label: "24.04"
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
-
-      - name: Exercise standalone Friend lifecycle
-        env:
-          IMAGINARY_FRIEND_DISPOSABLE_VM_TEST: "1"
-          IMAGINARY_FRIEND_TEST_OWNER: runner
-        run: sudo -E products/imaginary-friend/tests/vm/lifecycle.sh
-
-  llama-lifecycle:
-    name: Llama lifecycle (Ubuntu ${{ matrix.label }})
-    runs-on: ${{ matrix.runs-on }}
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - runs-on: ubuntu-22.04
-            label: "22.04"
-          - runs-on: ubuntu-24.04
-            label: "24.04"
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
-
-      - name: Exercise standalone Llama lifecycle
-        env:
-          LLAMA_DISPOSABLE_VM_TEST: "1"
-        run: sudo -E products/llama/tests/vm/lifecycle.sh
-
-  forgejo-lifecycle:
-    name: Forgejo lifecycle (Ubuntu ${{ matrix.label }})
-    runs-on: ${{ matrix.runs-on }}
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - runs-on: ubuntu-22.04
-            label: "22.04"
-          - runs-on: ubuntu-24.04
-            label: "24.04"
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
-
-      - name: Exercise standalone Forgejo lifecycle
-        env:
-          FORGEJO_DISPOSABLE_VM_TEST: "1"
-        run: sudo -E products/forgejo/tests/vm/lifecycle.sh

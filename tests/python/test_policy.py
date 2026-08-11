@@ -64,6 +64,8 @@ def test_tool_registry_is_closed(tools_module) -> None:
         "svc.status", "svc.control",
         "net.status",
         "skill.list", "skill.load",
+        "web.fetch",
+        "timer.reactivation",
     }
     assert set(tools_module.tool_names()) == expected
 

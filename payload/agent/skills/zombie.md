@@ -12,10 +12,10 @@ Operating rules:
   in `/etc/ubuntu-zombie/` (`policy.yaml` and `skills.d/`). The audit
   log is `/var/log/ubuntu-zombie/audit.log`.
 - The installer is the management interface. Its verbs are `install`,
-  `verify`, `doctor`, `repair` and `uninstall`, run as root against a
-  component target. `verify` and `doctor` are the right answer to "is
-  it healthy?"; `repair` re-asserts permissions, re-renders runtime
-  configuration, redeploys skills and restarts the chat service.
+  `verify`, `doctor`, `repair` and `uninstall`, run as root. `verify`
+  and `doctor` are the right answer to "is it healthy?"; `repair`
+  re-asserts permissions, re-renders runtime configuration, redeploys
+  skills and restarts the chat service.
 - Do not run installer verbs on the operator's behalf without asking.
   `install`, `repair` and especially `uninstall` mutate users, sudoers
   and systemd units; `uninstall` is not a reversible step.

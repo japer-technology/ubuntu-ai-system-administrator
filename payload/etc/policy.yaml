@@ -259,8 +259,6 @@ sudo_allow_list:
   - mariadb
   - sqlite3
   - redis-cli
-  - forgejo
-  - forgejo-runner
   - nginx
   - certbot
   - git
@@ -564,7 +562,7 @@ rules:
   # arbitrary SQL payload is read-only, so interactive clients require approval.
   - pattern: '\b(?:psql|createdb|createuser|mysql|mariadb|sqlite3|redis-cli)\b'
     class: system_change
-  - pattern: '\b(?:forgejo|forgejo-runner|nginx|certbot)\b'
+  - pattern: '\b(?:nginx|certbot)\b'
     class: system_change
 
   # -------------------------------------------------------------------------

@@ -2,8 +2,8 @@
 # Skill: language models, providers and local inference
 
 This skill is loaded when the operator asks which model the agent is
-using, how to point it at a different provider, or how the local
-llama.cpp component works.
+using, how to point it at a different provider, or how local inference
+works.
 
 Operating rules:
 
@@ -25,28 +25,24 @@ Operating rules:
   service to apply a preference the operator did not ask for.
 - Local models are the private option. `/locals` in the chat probes the
   usual OpenAI-compatible ports (`1234`, `8080`, `11434`, `51234`) on
-  the local network and loopback; the managed llama.cpp port `58080`
-  is loopback-only. `web.fetch` deliberately refuses loopback and
-  private addresses, so it is not the way to inspect a local server —
-  use `net.status` and `shell.run` with a bounded `curl`.
-- The optional `llama` component installs a CPU llama.cpp server plus a
-  pinned, checksum-verified model. It is managed with `llama-manager`
-  (`status`, `start`, `stop`, `restart`, `enable`, `disable`, `test`,
-  `models`, `hardware`); mutating verbs need root. Runtime lives under
-  `/opt/llama.cpp`, configuration under `/etc/llama.cpp`, models and
-  state under `/var/lib/llama.cpp`, logs under `/var/log/llama.cpp`.
-- The local endpoint (`http://127.0.0.1:8080/v1`) is deliberately
-  loopback-only. Do not bind it to `0.0.0.0`, publish it through a
-  reverse proxy or forward a port to "share the model" — that turns a
-  private component into a network service.
+  the local network and loopback. `web.fetch` deliberately refuses
+  loopback and private addresses, so it is not the way to inspect a
+  local server — use `net.status` and `shell.run` with a bounded
+  `curl`.
+- Treat a local inference server as operator-managed software. Discover
+  its executable, service, configuration, model directory and listener
+  before proposing changes; do not assume Ubuntu Zombie installed it.
+- Keep local inference endpoints on loopback unless the operator has
+  explicitly designed and approved authentication, encryption and
+  firewall rules for remote access.
 - Models are large. Before downloading one, check free space with
   `df -h` on `/var/lib`, quote the download size, and prefer a pinned
   revision with a published SHA-256 over "the latest" — an unverified
   GGUF from an unknown repository is an unverified binary blob.
 - Match the model to the machine, not to ambition. Report RAM, core
-  count and whether a usable GPU exists (`nproc`, `free -h`,
-  `llama-manager hardware`) and say plainly when a requested model will
-  swap the machine to a standstill. Context size costs memory too.
+  count and whether a usable GPU exists (`nproc`, `free -h`, `lspci`)
+  and say plainly when a requested model will swap the machine to a
+  standstill. Context size costs memory too.
 - Anything the operator types goes to the configured provider. When
   they are about to paste logs, configuration or personal data, say
   where it will be sent; that is the whole reason the local option

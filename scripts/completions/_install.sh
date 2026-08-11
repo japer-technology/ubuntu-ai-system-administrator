@@ -8,20 +8,14 @@
 # Static completion: it does not execute install.sh.
 
 _ubuntu_zombie_install() {
-  local -a verbs components common_flags uninstall_flags flags used_components remaining_components
-  local seen_verb component word
+  local -a verbs common_flags uninstall_flags flags
+  local seen_verb word
   verbs=(
-    'install:Install and harden selected components'
-    'verify:Check that selected components are healthy'
-    'doctor:Diagnose host/config problems for selected components'
-    'repair:Re-apply idempotent fixes for selected components'
-    'uninstall:Remove selected component configuration'
-  )
-  components=(
-    'zombie:Ubuntu Zombie account, runtime, chat UI, policy, and services'
-    'forgejo:Forgejo + PostgreSQL option target'
-    'forgejo-runner:Forgejo Actions runner with its Forgejo dependency'
-    'llama:Standalone PC-wide llama.cpp server'
+    'install:Install and harden Ubuntu Zombie'
+    'verify:Check that Ubuntu Zombie is healthy'
+    'doctor:Diagnose Ubuntu Zombie host and configuration problems'
+    'repair:Re-apply idempotent Ubuntu Zombie fixes'
+    'uninstall:Remove Ubuntu Zombie configuration'
   )
   common_flags=(
     '(-h --help)'{-h,--help}'[Show help and exit]'
@@ -42,11 +36,9 @@ _ubuntu_zombie_install() {
   )
 
   seen_verb=''
-  used_components=()
   for word in "${words[@]:1:CURRENT-1}"; do
     case "${word}" in
       install|verify|doctor|repair|uninstall) [[ -z "${seen_verb}" ]] && seen_verb="${word}" ;;
-      zombie|forgejo|forgejo-runner|llama) used_components+=("${word}") ;;
     esac
   done
 
@@ -56,20 +48,12 @@ _ubuntu_zombie_install() {
   if [[ -z "${seen_verb}" ]]; then
     _arguments -C "${common_flags[@]}" '1:verb:->verb' '*:: :->args'
   else
-    remaining_components=()
-    for component in "${components[@]}"; do
-      # (r) returns the matching array value, so a non-empty result means the
-      # component target has already been used and should not be suggested.
-      [[ -n "${used_components[(r)${component%%:*}]}" ]] && continue
-      remaining_components+=("${component}")
-    done
-    _arguments -C "${flags[@]}" '*:component:->component'
+    _arguments -C "${flags[@]}"
   fi
 
   case "${state}" in
-    verb)      _describe -t commands 'verb' verbs ;;
-    component) _describe -t components 'component' remaining_components ;;
-    args)      _arguments "${flags[@]}" ;;
+    verb) _describe -t commands 'verb' verbs ;;
+    args) _arguments "${flags[@]}" ;;
   esac
 }
 

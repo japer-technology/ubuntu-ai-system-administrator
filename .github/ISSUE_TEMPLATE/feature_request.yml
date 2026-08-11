@@ -6,9 +6,9 @@ body:
   - type: markdown
     attributes:
       value: |
-        Before filing, please read [`docs/VISION.md`](../blob/main/docs/VISION.md)
-        and [`docs/ROADMAP.md`](../blob/main/docs/ROADMAP.md). The MVP scope
-        is intentionally narrow; many ideas are post-MVP by design.
+        Before filing, please read [`docs/VISION.md`](../blob/main/docs/VISION.md).
+        The product scope is intentionally narrow; proposals outside it require
+        deliberately revising the vision.
   - type: textarea
     id: problem
     attributes:

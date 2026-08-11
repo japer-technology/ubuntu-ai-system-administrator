@@ -10,8 +10,8 @@ body:
 
         Before filing, please run `sudo /opt/ai-zombie/bin/collect-diagnostics`
         (or `sudo ./scripts/install.sh doctor` on a failed install) and
-        attach the redacted output. **Do not paste API keys, the VNC password,
-        Tailscale auth keys, or the contents of `/opt/ai-zombie/secrets/`.**
+        attach the redacted output. **Do not paste API keys, the chat password,
+        host-identifying secrets, or the contents of `/opt/ai-zombie/secrets/`.**
   - type: input
     id: ubuntu-version
     attributes:
@@ -79,7 +79,7 @@ body:
     attributes:
       label: Confirmations
       options:
-        - label: I have removed API keys, the VNC password, Tailscale auth keys, and any host-identifying secrets from the report.
+        - label: I have removed API keys, the chat password, and any host-identifying secrets from the report.
           required: true
         - label: I have searched existing issues for duplicates.
           required: true

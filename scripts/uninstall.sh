@@ -12,11 +12,7 @@
 # deletion.
 #
 # Usage:
-#   sudo ./uninstall.sh                # interactive (remove all managed components)
-#   sudo ./uninstall.sh zombie         # remove only the zombie component
-#   sudo ./uninstall.sh forgejo        # remove only the Forgejo component
-#   sudo ./uninstall.sh forgejo-runner # remove only the Forgejo runner
-#   sudo ./uninstall.sh llama          # remove only the standalone llama
+#   sudo ./uninstall.sh                # interactive
 #   sudo ./uninstall.sh -n|--dry-run   # preview
 #   sudo ./uninstall.sh --archive      # archive then remove
 #   sudo ./uninstall.sh -y|--yes       # skip confirmations
@@ -57,80 +53,10 @@ DRY_RUN=0
 ARCHIVE=0
 ASSUME_YES=0
 KEEP_AGENT=0
-TARGET_ARGS=()
-readonly COMPONENT_ZOMBIE="zombie"
-readonly COMPONENT_FORGEJO="forgejo"
-readonly COMPONENT_FORGEJO_RUNNER="forgejo-runner"
-readonly COMPONENT_LLAMA="llama"
-COMPONENT_MANIFEST_DIR="${ZOMBIE_COMPONENT_MANIFEST_DIR:-/var/lib/ubuntu-zombie/components}"
-LLAMA_PRODUCT_ROOT="${LLAMA_PRODUCT_ROOT:-${REPO_ROOT}/products/llama}"
-FORGEJO_PRODUCT_ROOT="${FORGEJO_PRODUCT_ROOT:-${REPO_ROOT}/products/forgejo}"
 # Track recoverable failures from the start so early cleanup can continue
 # through later steps while still returning a non-zero final status.
 UNINSTALL_EXIT=0
-# Count of cleanup failures: used for per-component manifest-retention checks
-# so that failures from one component cannot mask failures in a subsequent one.
 UNINSTALL_FAIL_COUNT=0
-
-llama_product_entrypoint() {
-  if [[ -x "${LLAMA_PRODUCT_ROOT}/scripts/manage.sh" ]]; then
-    printf '%s\n' "${LLAMA_PRODUCT_ROOT}/scripts/manage.sh"
-  elif [[ -x /usr/local/sbin/llama-manage ]]; then
-    printf '%s\n' /usr/local/sbin/llama-manage
-  else
-    return 66
-  fi
-}
-
-llama_product_manage() {
-  local entrypoint
-  entrypoint="$(llama_product_entrypoint)" || return $?
-  "${entrypoint}" "$@"
-}
-
-llama_product_lifecycle() {
-  local response
-  response="$(llama_product_manage status --json 2>/dev/null)" || return $?
-  python3 -c \
-    'import json,sys; print(json.load(sys.stdin)["details"]["llama"]["lifecycle"])' \
-    <<<"${response}"
-}
-
-forgejo_product_entrypoint() {
-  if [[ -x "${FORGEJO_PRODUCT_ROOT}/scripts/manage.sh" ]]; then
-    printf '%s\n' "${FORGEJO_PRODUCT_ROOT}/scripts/manage.sh"
-  elif [[ -x /usr/local/sbin/forgejo-manage ]]; then
-    printf '%s\n' /usr/local/sbin/forgejo-manage
-  else
-    return 66
-  fi
-}
-
-forgejo_product_manage() {
-  local entrypoint
-  entrypoint="$(forgejo_product_entrypoint)" || return $?
-  (
-    local variable
-    for variable in "${!FORGEJO_@}"; do
-      case "${variable}" in
-        FORGEJO_ARTIFACT_SHA256|FORGEJO_DISPOSABLE_VM_TEST|FORGEJO_TEST_RELEASE_BASE)
-          ;;
-        *) unset "${variable}" ;;
-      esac
-    done
-    FORGEJO_MIGRATION_MANIFEST="/var/lib/ubuntu-zombie/components/forgejo" \
-      FORGEJO_NONINTERACTIVE="$((ASSUME_YES || DRY_RUN))" \
-      "${entrypoint}" "$@"
-  )
-}
-
-forgejo_product_lifecycle() {
-  local response
-  response="$(forgejo_product_manage status --json 2>/dev/null)" || return $?
-  python3 -c \
-    'import json,sys; print(json.load(sys.stdin)["details"]["forgejo"]["lifecycle"])' \
-    <<<"${response}"
-}
 
 # Shared colours/logging come from lib.sh. Keep the legacy C_YEL alias so the
 # inline printf calls below (e.g. the [dry] glyph) need no churn.
@@ -142,98 +68,6 @@ else
   SCRIPT_VERSION="0000.00.00.00.00.00"
 fi
 
-# shellcheck source=scripts/component-registry.sh
-. "${SCRIPT_DIR}/component-registry.sh"
-component_remove_zombie() { remove_component_zombie; }
-component_remove_forgejo() { remove_component_forgejo; }
-component_remove_forgejo_runner() { remove_component_forgejo_runner; }
-component_remove_llama() { remove_component_llama; }
-register_component "${COMPONENT_ZOMBIE}" "" remove=component_remove_zombie
-register_component "${COMPONENT_FORGEJO}" "" remove=component_remove_forgejo
-register_component "${COMPONENT_FORGEJO_RUNNER}" "${COMPONENT_FORGEJO}" \
-  remove=component_remove_forgejo_runner
-register_component "${COMPONENT_LLAMA}" "" remove=component_remove_llama
-
-component_names() {
-  printf '%s' "${PUBLIC_COMPONENTS[*]}"
-}
-
-is_public_component() {
-  local candidate="$1" component
-  for component in "${PUBLIC_COMPONENTS[@]}"; do
-    [[ "${candidate}" == "${component}" ]] && return 0
-  done
-  return 1
-}
-
-validate_targets() {
-  local target
-  declare -A seen_targets=()
-  for target in "${TARGET_ARGS[@]}"; do
-    if ! is_public_component "${target}"; then
-      die "Unknown component target '${target}'. Valid components: $(component_names)" 2
-    fi
-    if [[ -n "${seen_targets[${target}]+x}" ]]; then
-      die "Duplicate component target '${target}'." 2
-    fi
-    seen_targets["${target}"]=1
-  done
-}
-
-
-is_target_selected() {
-  local candidate="$1" target
-  (( ${#TARGET_ARGS[@]} == 0 )) && return 0
-  for target in "${TARGET_ARGS[@]}"; do
-    [[ "${candidate}" == "${target}" ]] && return 0
-  done
-  return 1
-}
-
-component_manifest_path() {
-  local component="$1"
-  is_public_component "${component}" || die "Unknown or invalid component name: ${component}. Valid components: $(component_names)" 2
-  printf '%s/%s' "${COMPONENT_MANIFEST_DIR}" "${component}"
-}
-
-remove_component_manifest() {
-  local component="$1" path manifest_parent_dir
-  path="$(component_manifest_path "${component}")"
-  manifest_parent_dir="$(dirname "${COMPONENT_MANIFEST_DIR}")"
-  [[ "${DRY_RUN}" == "1" ]] && return 0
-  rm -f -- "${path}"
-  rmdir --ignore-fail-on-non-empty "${COMPONENT_MANIFEST_DIR}" 2>/dev/null || true
-  rmdir --ignore-fail-on-non-empty "${manifest_parent_dir}" 2>/dev/null || true
-}
-
-clear_forgejo_runner_suboption() {
-  local path="${COMPONENT_MANIFEST_DIR}/${COMPONENT_FORGEJO}"
-  local tmp
-  [[ -f "${path}" ]] || return 0
-  grep -Fqx 'suboptions=runner' "${path}" || return 0
-  if (( DRY_RUN )); then
-    run "clear the legacy runner suboption from the Forgejo manifest"
-    return 0
-  fi
-  tmp="$(mktemp "${COMPONENT_MANIFEST_DIR}/.forgejo.XXXXXX")"
-  awk '
-    $0 == "suboptions=runner" { print "suboptions="; next }
-    { print }
-  ' "${path}" > "${tmp}"
-  install -m 644 -o root -g root "${tmp}" "${path}"
-  rm -f "${tmp}"
-}
-
-warn_remaining_components() {
-  local target
-  (( ${#TARGET_ARGS[@]} > 0 )) || return 0
-  for target in "${PUBLIC_COMPONENTS[@]}"; do
-    is_target_selected "${target}" && continue
-    if [[ -e "$(component_manifest_path "${target}")" ]]; then
-      warn "Component '${target}' remains installed; its manifest entry was preserved."
-    fi
-  done
-}
 usage() {
   # Heredoc instead of `sed -n '2,30p' "$0"` so the help output cannot
   # drift into the executable preamble when the header comment grows or
@@ -251,16 +85,8 @@ home directory and /opt/ai-zombie/state/ to /var/backups/ before
 deletion.
 
 Usage:
-  sudo ./uninstall.sh [component ...] # interactive
+  sudo ./uninstall.sh                 # interactive
   sudo ./uninstall.sh -n|--dry-run    # preview
-  sudo ./uninstall.sh forgejo --dry-run
-                                      # remove only the Forgejo component
-  sudo ./uninstall.sh forgejo-runner
-                                      # remove only the Forgejo runner
-  sudo ./uninstall.sh llama
-                                      # remove only standalone llama.cpp
-  sudo ./uninstall.sh zombie
-                                      # remove only the zombie component
   sudo ./uninstall.sh --archive       # archive then remove
   sudo ./uninstall.sh -y|--yes       # skip confirmations
   sudo ./uninstall.sh --keep-agent   # do not remove user
@@ -274,12 +100,6 @@ Environment:
                        alias so older installs can still be reversed.
   ZOMBIE_COLOR=auto|always|never   colour policy (default auto;
                        NO_COLOR is also honoured).
-
-Notes:
-  --archive and --keep-agent are only valid when the `zombie`
-  component is being removed.
-  Llama removal delegates to its product lifecycle and retains models and
-  state. Complete purge requires llama-manage and its exact confirmation.
 
 This script intentionally does NOT remove Node, Python, or other base
 packages — those are normal Ubuntu software
@@ -297,19 +117,13 @@ while [[ $# -gt 0 ]]; do
     --keep-agent) KEEP_AGENT=1; shift ;;
     -q|--quiet)   ZOMBIE_QUIET=1; shift ;;
     --no-color|--no-colour) export ZOMBIE_COLOR=never; lib_setup_colors; C_YEL="${C_YELLOW}"; shift ;;
-    --) shift; TARGET_ARGS+=("$@"); break ;;
+    --) shift
+        (( $# == 0 )) || die "Unexpected argument: $1 (try --help)" 2
+        break ;;
     -*)           die "Unknown argument: $1 (try --help)" 2 ;;
-    *)            TARGET_ARGS+=("$1"); shift ;;
+    *)            die "Unexpected argument: $1 (try --help)" 2 ;;
   esac
 done
-validate_targets
-
-if (( ARCHIVE || KEEP_AGENT )); then
-  if (( ${#TARGET_ARGS[@]} > 0 )) && ! is_target_selected "${COMPONENT_ZOMBIE}"; then
-    (( ARCHIVE ))    && die "--archive is only valid when the zombie component is being removed." 2
-    (( KEEP_AGENT )) && die "--keep-agent is only valid when the zombie component is being removed." 2
-  fi
-fi
 
 # The splash is printed only for a real uninstall run: after argument
 # parsing (so --help/--version/bad-usage stay concise) and honouring
@@ -348,11 +162,6 @@ validate_config() {
   if ! is_safe_absolute_path "${BACKUP_DIR}"; then
     printf '%s[x]%s BACKUP_DIR must be an absolute path using only safe path characters; got %q\n' \
       "${C_RED}" "${C_RESET}" "${BACKUP_DIR}" >&2
-    exit 2
-  fi
-  if ! is_safe_absolute_path "${COMPONENT_MANIFEST_DIR}"; then
-    printf '%s[x]%s ZOMBIE_COMPONENT_MANIFEST_DIR must be an absolute safe path without path traversal; got %q\n' \
-      "${C_RED}" "${C_RESET}" "${COMPONENT_MANIFEST_DIR}" >&2
     exit 2
   fi
 }
@@ -453,108 +262,7 @@ confirm() {
   [[ "${ans}" == "YES" ]]
 }
 
-remove_component_forgejo_runner() {
-  local fail_count_before="${UNINSTALL_FAIL_COUNT}"
-
-  if [[ -f /etc/systemd/system/forgejo-runner.service \
-      || -x /usr/local/bin/forgejo-runner \
-      || -d /var/lib/forgejo-runner \
-      || -f "${COMPONENT_MANIFEST_DIR}/${COMPONENT_FORGEJO_RUNNER}" ]]; then
-    info "Removing Forgejo runner component"
-    run "systemctl disable --now forgejo-runner.service 2>/dev/null || true"
-    run "rm -f /etc/systemd/system/forgejo-runner.service"
-    run_or_warn "systemctl daemon-reload" "systemctl daemon-reload"
-    run "rm -f /usr/local/bin/forgejo-runner"
-    if [[ -d /var/lib/forgejo-runner ]]; then
-      remove_tree_checked \
-        "/var/lib/forgejo-runner" \
-        "/var/lib/forgejo-runner (runner state)"
-    fi
-    if id forgejo-runner >/dev/null 2>&1; then
-      if confirm "Remove the forgejo-runner system user?"; then
-        run_or_warn "Remove user forgejo-runner" \
-          "deluser forgejo-runner >/dev/null 2>&1 || userdel forgejo-runner"
-      fi
-    fi
-    ok "Forgejo runner component removal finished."
-  fi
-
-  if (( UNINSTALL_FAIL_COUNT == fail_count_before )); then
-    clear_forgejo_runner_suboption
-    remove_component_manifest "${COMPONENT_FORGEJO_RUNNER}"
-  else
-    warn "Keeping Forgejo runner manifest because removal finished with errors."
-  fi
-  warn_remaining_components
-}
-
-remove_component_forgejo() {
-  local fail_count_before="${UNINSTALL_FAIL_COUNT}" lifecycle="" manifest
-  local -a product_arguments=(uninstall)
-  manifest="${COMPONENT_MANIFEST_DIR}/${COMPONENT_FORGEJO}"
-  if (( ${#TARGET_ARGS[@]} == 0 )) && [[ ! -e "${manifest}" ]]; then
-    lifecycle="$(forgejo_product_lifecycle 2>/dev/null || true)"
-    [[ "${lifecycle}" == "legacy" || "${lifecycle}" == "active" \
-        || "${lifecycle}" == "suspended" || "${lifecycle}" == "retained" ]] \
-      || return 0
-  fi
-  if [[ -f /etc/systemd/system/forgejo-runner.service \
-      || -x /usr/local/bin/forgejo-runner \
-      || -d /var/lib/forgejo-runner ]]; then
-    remove_component_forgejo_runner
-  fi
-  (( DRY_RUN )) && product_arguments+=(--dry-run)
-  if (( ASSUME_YES )); then
-    product_arguments+=(
-      --yes
-      --purge
-      --confirmation "DELETE FORGEJO STATE"
-      --non-interactive
-    )
-  fi
-  info "Delegating standalone Forgejo removal to its product lifecycle"
-  if ! forgejo_product_manage "${product_arguments[@]}"; then
-    warn "Independent Forgejo product removal failed."
-    UNINSTALL_FAIL_COUNT=$((UNINSTALL_FAIL_COUNT + 1))
-    UNINSTALL_EXIT=1
-  fi
-  if (( UNINSTALL_FAIL_COUNT == fail_count_before )); then
-    remove_component_manifest "${COMPONENT_FORGEJO_RUNNER}"
-    remove_component_manifest "${COMPONENT_FORGEJO}"
-  else
-    warn "Keeping Forgejo manifest because removal finished with errors."
-  fi
-  warn_remaining_components
-}
-
-remove_component_llama() {
-  local fail_count_before="${UNINSTALL_FAIL_COUNT}"
-  local lifecycle="" manifest
-  local -a arguments=(uninstall)
-  manifest="${COMPONENT_MANIFEST_DIR}/${COMPONENT_LLAMA}"
-  if (( ${#TARGET_ARGS[@]} == 0 )) && [[ ! -e "${manifest}" ]]; then
-    lifecycle="$(llama_product_lifecycle 2>/dev/null || true)"
-    [[ "${lifecycle}" == "legacy" ]] || return 0
-  fi
-  (( DRY_RUN )) && arguments+=(--dry-run)
-  (( ASSUME_YES )) && arguments+=(--yes)
-
-  info "Delegating standalone Llama removal to its product lifecycle"
-  if ! llama_product_manage "${arguments[@]}"; then
-    warn "Independent Llama product removal failed."
-    UNINSTALL_FAIL_COUNT=$((UNINSTALL_FAIL_COUNT + 1))
-    UNINSTALL_EXIT=1
-  fi
-  if (( UNINSTALL_FAIL_COUNT == fail_count_before )); then
-    remove_component_manifest "${COMPONENT_LLAMA}"
-  else
-    warn "Keeping llama manifest because removal finished with errors."
-  fi
-  warn_remaining_components
-}
-
-remove_component_zombie() {
-  local fail_count_before="${UNINSTALL_FAIL_COUNT}"
+remove_zombie() {
   local unit f orphan_name STAMP _pkg _shim _path _target _literal rc
 
   # -------------------------------------------------------------------
@@ -754,31 +462,11 @@ remove_component_zombie() {
       warn "Keeping user ${AGENT_USER}. Its home and authorized_keys remain."
     fi
   fi
-
-  if (( UNINSTALL_FAIL_COUNT == fail_count_before )); then
-    remove_component_manifest "${COMPONENT_ZOMBIE}"
-  else
-    warn "Keeping zombie manifest because removal finished with errors."
-  fi
-  warn_remaining_components
 }
 
 (( ZOMBIE_QUIET )) || printf '%s== ubuntu-zombie uninstall ==%s\n\n' "${C_BOLD}" "${C_RESET}"
 [[ "${DRY_RUN}" == "1" ]] && warn "Dry-run mode: nothing will be changed."
-if (( ${#TARGET_ARGS[@]} > 0 )); then
-  info "Selected components: ${TARGET_ARGS[*]}"
-else
-  info "Selected components: ${PUBLIC_COMPONENTS[*]}"
-fi
-
-# Execute component removal in reverse registry order so future dependants are
-# removed before the components they may rely on.
-validate_component_registry "remove"
-for (( component_index = ${#PUBLIC_COMPONENTS[@]} - 1; component_index >= 0; component_index-- )); do
-  component="${PUBLIC_COMPONENTS[component_index]}"
-  is_target_selected "${component}" || continue
-  component_dispatch_hook "${component}" remove
-done
+remove_zombie
 
 echo
 if (( UNINSTALL_EXIT != 0 )); then

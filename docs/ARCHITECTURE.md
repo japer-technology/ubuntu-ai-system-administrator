@@ -24,8 +24,7 @@ flowchart TD
 The default install does **not** provision SSH, Tailscale, VNC, Docker,
 graphical autologin, or GUI automation. The baseline product access
 surface is the chat service on
-`127.0.0.1:${ZOMBIE_CHAT_PORT:-7878}`. The independently managed Llama
-product adds only a loopback listener on port `8080` when selected.
+`127.0.0.1:${ZOMBIE_CHAT_PORT:-7878}`.
 
 ## Runtime components
 
@@ -97,20 +96,17 @@ Action classes are:
 | `network_change` | Firewall or interface mutation. |
 | `destructive` | Irreversible actions; requires the confirmation phrase. |
 
-Built-in skills ship under `/opt/ai-zombie/skills/` and cover `ai-agents`,
-`apt`, `backup`, `certificates`, `containers`, `css`, `database`,
-`desktop`, `dev`, `disk`, `files`, `forgejo`, `git`, `hardware`,
-`hermes-agent`, `html`, `journal`, `json`, `kernel`, `llm`, `locale`,
-`network`, `obsidian`, `openclaw-agent`, `packages`, `performance`,
-`pi-mono-agent`, `process`, `reactivation`, `scheduling`, `secrets`,
-`security`, `services`, `snap`, `sql`, `systemd`, `troubleshoot`,
-`ubuntu`, `users`, `virtualization`, `web`, `zombie` and `zram`.
-Each brief steers the
-model toward the correct typed tool and names the policy class the
-operator is about to be asked to approve; skills never expand the tool
-registry. Trigger words are unique across the built-in catalogue so a
-prompt loads only the briefs that apply. Operators may add local skill
-briefs under `/etc/ubuntu-zombie/skills.d/`.
+Built-in skills ship under `/opt/ai-zombie/skills/` and cover Ubuntu system
+administration, diagnostics, development, data, networking, security, and
+Ubuntu Zombie itself. Each brief steers the model toward the correct typed
+tool and names the policy class the operator is about to be asked to approve;
+skills never expand the tool registry. Trigger words are unique across the
+built-in catalogue so a prompt loads only the briefs that apply. Operators may
+add local skill briefs under `/etc/ubuntu-zombie/skills.d/`.
+
+Chat `/locals` discovery can find existing OpenAI-compatible LLM servers on
+loopback and the local network. Discovery only configures Ubuntu Zombie to use
+a server; the installer does not provision a model server.
 
 ## Agent reactivation
 
@@ -140,105 +136,19 @@ queued timer, requests cancellation of any active continuation, and advances a
 durable reset timestamp so pre-reset outcomes and chain counts do not leak into
 the current UX. Historical timer rows and audit evidence are retained.
 
-## Optional components
-
-The installer uses the component-aware grammar `scripts/install.sh <verb>
-[component ...] [flags]`. Public compatibility targets currently are
-`zombie` (the baseline account, runtime, chat UI, policy, and services),
-`forgejo`, `forgejo-runner`, and `llama`. The runner target depends on
-`forgejo`, so installing it converges the server before registering and
-starting the runner. The legacy `ZOMBIE_INSTALL_*` flags remain supported and
-are additive with explicit targets; all default to `0`.
-
-Forgejo and Llama server operations delegate to independently versioned
-lifecycles under `products/forgejo/` and `products/llama/` (or their installed
-management entry points). The root installer retains target selection,
-compatibility inputs, summary/receipt integration, and component-manifest
-references; it contains no server mutation implementation. Zombie and the
-not-yet-extracted Forgejo Runner retain installer-owned hooks.
-
-The independent **Forgejo server** is a PostgreSQL-backed git forge running as
-the dedicated `git` account under a hardened `forgejo.service`. It owns its
-complete lifecycle, `/opt/forgejo`, `/etc/forgejo`, `/var/lib/forgejo`,
-`/var/log/forgejo`, one exact Caddyfile block, its Avahi advertisement, and
-the exported and host-trusted public CA copies. The Forgejo process is
-loopback-only; Caddy is the **network-listening service** on HTTPS port `443`.
-Secrets remain in `/etc/forgejo/app.ini` (`root:git`, `640`) and do not enter
-common lifecycle responses, receipts, or audit events.
-
-The optional co-located Actions runner remains a separate compatibility
-component (`ZOMBIE_INSTALL_FORGEJO_RUNNER`) with its own `forgejo-runner`
-account and restricted Docker executor. Job containers use host networking
-to reach the loopback Caddy edge, an explicit `.local` host mapping rather
-than image-specific mDNS, and a read-only host CA bundle with Git, OpenSSL,
-Python, and Node trust variables. Privileged containers, workflow-supplied
-host volumes, the job Docker socket, and the all-interface cache proxy remain
-disabled. The runner process itself has root-equivalent Docker daemon access,
-so it remains suitable only for trusted repositories. Forgejo lifecycle
-mutations coordinate a present runner and refuse server removal until the
-dependent runner is removed.
-
-The policy gate still classifies interactive forge administration
-(`forgejo`, `forgejo-runner`, `psql`, `createdb`) as `system_change` and
-database drops (`dropdb`/`dropuser`/`DROP DATABASE`) as `destructive`.
-
-The independent **Llama** infrastructure product has no dependency on
-`zombie`. It owns the pinned upstream CPU runtime under `/opt/llama.cpp`, the
-verified model under `/var/lib/llama.cpp`, fixed configuration under
-`/etc/llama.cpp`, and a hardened `llama-server.service` running as the
-non-login `llama-cpp` account. Its OpenAI-compatible listener is fixed to
-`127.0.0.1:8080`; it is intentionally available PC-wide to local users but
-never LAN-facing. `/usr/local/sbin/llama-manage` is the complete lifecycle
-entry point; `/usr/local/bin/llama-manager` is the restricted runtime helper.
-The product refuses to adopt paths, accounts, units, ports, models, or runtime
-trees unless its product marker or the exact supported legacy installation
-validates.
-
-Chat `/locals` discovery scans the configured LM Studio port across the
-local `/24`, plus loopback-only probes for the managed standalone port
-`8080` and reserved private port `58080`. The additional probes do not
-widen the LAN scan.
-
 ## Installer command grammar
 
 ```text
-scripts/install.sh <verb> [component ...] [flags]
+scripts/install.sh [verb] [flags]
 ```
 
 | Verb | Behaviour |
 | ---- | --------- |
-| `install` | Idempotent install. With no target, selects `zombie`. |
+| `install` | Idempotently install Ubuntu Zombie. |
 | `verify` | Read-only state check. |
 | `doctor` | Explain failures and likely fixes. |
 | `repair` | Re-assert permissions, re-render runtime config, redeploy skills, restart chat. |
-| `uninstall` | Delegate to `scripts/uninstall.sh`; explicit targets remove the selected component, while no target removes all managed components. |
-
-`install forgejo` and `install forgejo-runner` are standalone paths: they
-create neither the zombie account nor `/opt/ai-zombie`, and they do not
-deploy Node, the Python agent runtime, policy, audit, chat, or
-desktop-availability settings. The runner target selects Forgejo as its
-required component dependency.
-`install forgejo` and `install llama` are compatibility paths to their
-independent product lifecycles and likewise do not select or modify Zombie.
-Installer-owned transcript and receipt records remain under `/var/log/`.
-
-## Component manifest
-
-Installed components are tracked independently under
-`/var/lib/ubuntu-zombie/components/`. This directory is intentionally
-outside `/opt/ai-zombie`, so selective zombie removal does not erase the
-manifest entry for a remaining component such as Forgejo.
-
-Manifest files use a fixed format-version-`1` key/value layout:
-`format=`, `component=`, `ubuntu_zombie_version=`, `converged_utc=`,
-`component_version=`, and `suboptions=`. They are parsed as data, never
-sourced. Malformed or unknown entries are skipped.
-
-A component entry is written only after that component's install has
-completed successfully and passed its health checks. It is removed only
-after that component's uninstall completes successfully; if cleanup for a
-component fails, its manifest entry is retained so later lifecycle
-commands can see that the component still needs attention.
+| `uninstall` | Delegate to `scripts/uninstall.sh` and remove Ubuntu Zombie. |
 
 ## Logs and state
 

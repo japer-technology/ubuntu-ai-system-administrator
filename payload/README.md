@@ -23,7 +23,7 @@ agent must follow when changing these files, read
 
 The installer is the only thing that reads this tree. It copies each
 sub-directory to a fixed location, owned by `root` or by the
-operator-chosen `AGENT_USER` (default `agent`), with explicit modes.
+operator-chosen `ZOMBIE_USER` (default `zombie`), with explicit modes.
 Nothing here is executed from the repository on the target — it is
 *deployed* first, then run from its destination.
 
@@ -220,12 +220,12 @@ diagnostic helper is guarded so one failure does not abort collection.
 
 | Helper | Purpose |
 |--------|---------|
-| [`zombie-chat`](bin/zombie-chat) | Print the chat URL, an SSH-tunnel example, and every debugging entry point — the single command to discover the diagnostic surface. |
+| [`zombie-chat`](bin/zombie-chat) | Print the loopback chat URL and every debugging entry point — the single command to discover the diagnostic surface. |
 | [`health-check`](bin/health-check) | One-shot health summary (also run periodically by the health timer). |
 | [`audit-recent`](bin/audit-recent) | Pretty-print recent audit-log entries (`-n`, `--all`, `-t TYPE`, `--follow`). |
 | [`collect-diagnostics`](bin/collect-diagnostics) | Bundle logs and state into a tarball for bug reports, redacting secrets first. |
 | [`secrets-edit`](bin/secrets-edit) | Safely edit `/opt/ai-zombie/secrets/env`, re-asserting `0600` and ownership on exit. |
-| [`setup-agent-venv`](bin/setup-agent-venv) | Provision the unprivileged agent Python venv and Playwright/Chromium (run as the agent user, idempotent). |
+| [`setup-agent-venv`](bin/setup-agent-venv) | Provision the unprivileged agent Python venv and operator toolkit (run as the agent user, idempotent). |
 | [`verify-release`](bin/verify-release) | Verify a downloaded release: `SHA256SUMS`, cosign signatures, and SLSA provenance. |
 
 > ⚠️ **Do not run the mutating helpers** (`secrets-edit`,

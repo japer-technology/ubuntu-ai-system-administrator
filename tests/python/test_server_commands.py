@@ -56,9 +56,9 @@ def _get(server_mod, app, path: str) -> tuple[int, dict]:
 
 
 def test_whoami_is_provider_independent(tmp_path, monkeypatch) -> None:
-    monkeypatch.setenv("ZOMBIE_HISTORY_DB", str(tmp_path / "conversations.db"))
-    monkeypatch.setenv("ZOMBIE_AUDIT_LOG", str(tmp_path / "audit.log"))
-    monkeypatch.setenv("ZOMBIE_PROVIDER", "bogus")
+    monkeypatch.setenv("AI_SYS_ADMIN_HISTORY_DB", str(tmp_path / "conversations.db"))
+    monkeypatch.setenv("AI_SYS_ADMIN_AUDIT_LOG", str(tmp_path / "audit.log"))
+    monkeypatch.setenv("AI_SYS_ADMIN_PROVIDER", "bogus")
 
     import history as history_mod
     import server as server_mod
@@ -74,7 +74,7 @@ def test_whoami_is_provider_independent(tmp_path, monkeypatch) -> None:
         assert whoami["loopback_only"] is True
 
         profile = app.profile_info()
-        assert profile["zombie_dir"] == "/opt/ai-zombie"
+        assert profile["ai_sys_admin_dir"] == "/opt/ai-system-administrator"
         assert profile["history_db"] == str(tmp_path / "conversations.db")
 
         status, body = _get(server_mod, app, "/api/whoami")

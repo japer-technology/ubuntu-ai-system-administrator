@@ -6,7 +6,7 @@
 // but does not require `pi` or `node`-native modules other than what
 // ships with Node >=18.
 //
-// The stub script reads ZOMBIE_STUB_PLAN (a JSON array) and emits
+// The stub script reads AI_SYS_ADMIN_STUB_PLAN (a JSON array) and emits
 // each step in order. Defaults to live progress/token hints, a single
 // read-only fs.read call against /etc/os-release, and a "final"
 // message — enough to exercise streaming, schema-validation,
@@ -22,13 +22,13 @@ const PROVIDER_KEYS = [
   "OPENROUTER_API_KEY", "MISTRAL_API_KEY", "GROQ_API_KEY",
 ];
 
-// When ZOMBIE_STUB_START_OUT is set, record the received `start` frame
+// When AI_SYS_ADMIN_STUB_START_OUT is set, record the received `start` frame
 // and a snapshot of which provider keys are visible in our env. The
 // smoke test reads this to assert that pi_mono.run_turn passed the
 // resolved provider/model and forwarded only the active provider's
 // key (stripping the others).
 function recordStart(start) {
-  const out = process.env.ZOMBIE_STUB_START_OUT;
+  const out = process.env.AI_SYS_ADMIN_STUB_START_OUT;
   if (!out) return;
   const env = {};
   for (const k of PROVIDER_KEYS) env[k] = k in process.env;
@@ -37,7 +37,7 @@ function recordStart(start) {
   } catch (_e) { /* best-effort */ }
 }
 
-const plan = JSON.parse(process.env.ZOMBIE_STUB_PLAN || JSON.stringify([
+const plan = JSON.parse(process.env.AI_SYS_ADMIN_STUB_PLAN || JSON.stringify([
   { type: "progress", kind: "tool_start", id: "stub-progress", name: "read" },
   { type: "token", delta: "stubbed " },
   { type: "progress", kind: "tool_end", id: "stub-progress", name: "read" },

@@ -39,9 +39,9 @@ AI isn't there. Coexistence, drawn as anatomy.
 *Engineered. Inspectable. Replaceable.*
 
 - **Smooth white shell.** The administrator is a clean,
-  well-defined software surface: a named Linux user (`zombie` by
-  default, renameable via `ZOMBIE_USER`), a policy gate, an audit
-  log, a chat UI on `127.0.0.1:7878`. Nothing hidden under the
+  well-defined software surface: a named Linux user (`ai-sys-admin` by
+  default, renameable via `AI_SYS_ADMIN_USER`), a policy gate, an audit
+  log, a chat UI on `127.0.0.1:57878`. Nothing hidden under the
   plastic that you cannot open and read.
 - **Headphones and boom microphone.** It acts only when spoken to.
   You open a private chat, you ask, it proposes, you approve, it
@@ -50,11 +50,11 @@ AI isn't there. Coexistence, drawn as anatomy.
 - **The calm, curved eye.** Drawn as a gentle upward arc: content,
   attentive, on call. A helpful operator, not a looming presence.
 
-## The skull half (right) — the zombie
+## The skull half (right) — the host system
 
 *There was a PC here before the installer arrived.*
 
-- **Human bone, not chrome.** This is an Ubuntu *Zombie*, not an
+- **Human bone, not chrome.** This is an Ubuntu *AI System Administrator*, not an
   Ubuntu *Robot*. The machine was already someone's real computer
   with a real owner. The skull says: the AI reanimates capability
   that already belonged to the owner — it does not summon a new
@@ -65,7 +65,7 @@ AI isn't there. Coexistence, drawn as anatomy.
   repairing, and operating a messy real system, including the
   `doctor` and `repair` subcommands.
 - **Bared teeth.** Not smiling, not snarling — exposed. Ubuntu
-  Zombie is candid about granting a root-capable identity on your
+  AI System Administrator is candid about granting a root-capable identity on your
   machine; `SECURITY.md` exists for exactly this reason. The teeth
   are a reminder, not a threat.
 

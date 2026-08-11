@@ -18,18 +18,18 @@ The Python-facing surface is intentionally narrow so
 this file). The bridge is a small Node script that loads
 ``@earendil-works/pi-ai`` and performs a one-shot ``complete()`` call.
 
-Supported providers (set ``ZOMBIE_PROVIDER`` to one of the names on
+Supported providers (set ``AI_SYS_ADMIN_PROVIDER`` to one of the names on
 the left and supply the matching API key in
-``$ZOMBIE_DIR/secrets/env``)::
+``$AI_SYS_ADMIN_DIR/secrets/env``)::
 
     openai      OPENAI_API_KEY
     anthropic   ANTHROPIC_API_KEY
     gemini      GEMINI_API_KEY        (pi-ai provider id: google)
     xai         XAI_API_KEY
-    openrouter  OPENROUTER_API_KEY    (ZOMBIE_MODEL must be set)
+    openrouter  OPENROUTER_API_KEY    (AI_SYS_ADMIN_MODEL must be set)
     mistral     MISTRAL_API_KEY
     groq        GROQ_API_KEY
-    lmstudio    LMSTUDIO_API_KEY      (ZOMBIE_MODEL must be set)
+    lmstudio    LMSTUDIO_API_KEY      (AI_SYS_ADMIN_MODEL must be set)
 
 ``lmstudio`` is a local, OpenAI-compatible server (LM Studio, and by
 extension any ``/v1/chat/completions`` endpoint such as Ollama or
@@ -74,7 +74,7 @@ class ProviderError(RuntimeError):
 
 
 class NoProviderConfigured(ProviderError):
-    """Raised when no provider key (or an unknown ``ZOMBIE_PROVIDER``) is set."""
+    """Raised when no provider key (or an unknown ``AI_SYS_ADMIN_PROVIDER``) is set."""
 
 
 @dataclass
@@ -88,7 +88,7 @@ class Message:
 # ---------------------------------------------------------------------------
 
 # Operator-visible provider name → (env var holding the API key,
-# default model used when ``ZOMBIE_MODEL`` is unset, env var for a
+# default model used when ``AI_SYS_ADMIN_MODEL`` is unset, env var for a
 # provider-specific override). The defaults are deliberately
 # conservative cheap models so a fresh install can answer "hi" without
 # a configuration step beyond pasting a key.
@@ -115,30 +115,30 @@ class _ProviderSpec:
 
 _PI_AI_PROVIDERS: tuple[_ProviderSpec, ...] = (
     _ProviderSpec("openai",     "OPENAI_API_KEY",     "gpt-4o-mini",
-                  "ZOMBIE_OPENAI_MODEL"),
+                  "AI_SYS_ADMIN_OPENAI_MODEL"),
     _ProviderSpec("anthropic",  "ANTHROPIC_API_KEY",  "claude-3-5-sonnet-latest",
-                  "ZOMBIE_ANTHROPIC_MODEL"),
+                  "AI_SYS_ADMIN_ANTHROPIC_MODEL"),
     _ProviderSpec("gemini",     "GEMINI_API_KEY",     "gemini-2.0-flash",
-                  "ZOMBIE_GEMINI_MODEL", pi_provider="google"),
+                  "AI_SYS_ADMIN_GEMINI_MODEL", pi_provider="google"),
     _ProviderSpec("xai",        "XAI_API_KEY",        "grok-2-1212",
-                  "ZOMBIE_XAI_MODEL"),
+                  "AI_SYS_ADMIN_XAI_MODEL"),
     _ProviderSpec("mistral",    "MISTRAL_API_KEY",    "mistral-small-latest",
-                  "ZOMBIE_MISTRAL_MODEL"),
+                  "AI_SYS_ADMIN_MISTRAL_MODEL"),
     _ProviderSpec("groq",       "GROQ_API_KEY",       "llama-3.1-8b-instant",
-                  "ZOMBIE_GROQ_MODEL"),
+                  "AI_SYS_ADMIN_GROQ_MODEL"),
     # OpenRouter has no single sensible default model; the operator
-    # must set ``ZOMBIE_MODEL`` (or ``ZOMBIE_OPENROUTER_MODEL``) to a
+    # must set ``AI_SYS_ADMIN_MODEL`` (or ``AI_SYS_ADMIN_OPENROUTER_MODEL``) to a
     # fully-qualified id such as ``anthropic/claude-3.5-sonnet``.
     _ProviderSpec("openrouter", "OPENROUTER_API_KEY", "",
-                  "ZOMBIE_OPENROUTER_MODEL"),
+                  "AI_SYS_ADMIN_OPENROUTER_MODEL"),
     # A local, OpenAI-compatible server (LM Studio, Ollama, llama.cpp).
     # It has no fixed catalogue of models, so — like openrouter — the
-    # operator must pin ``ZOMBIE_MODEL`` to the id their server serves.
+    # operator must pin ``AI_SYS_ADMIN_MODEL`` to the id their server serves.
     # The agent loop reaches it through a custom ``pi`` provider named
     # ``lmstudio`` defined in ``~/.pi/agent/models.json`` (which carries
     # the base URL); the API key is usually ignored by the server.
     _ProviderSpec("lmstudio",   "LMSTUDIO_API_KEY",   "",
-                  "ZOMBIE_LMSTUDIO_MODEL"),
+                  "AI_SYS_ADMIN_LMSTUDIO_MODEL"),
 )
 
 _PROVIDER_BY_NAME: dict[str, _ProviderSpec] = {
@@ -167,13 +167,13 @@ ALL_KEY_ENVS: tuple[str, ...] = tuple(spec.key_env for spec in _PI_AI_PROVIDERS)
 def _resolve_model(spec: _ProviderSpec, model: str | None = None) -> str:
     """Resolve the model id for ``spec`` using the shared precedence.
 
-    explicit arg > ``ZOMBIE_MODEL`` > provider-specific override env >
+    explicit arg > ``AI_SYS_ADMIN_MODEL`` > provider-specific override env >
     the registry default. Returns ``""`` when nothing resolves (only
     possible for openrouter, which has no default).
     """
     return (
         model
-        or os.environ.get("ZOMBIE_MODEL")
+        or os.environ.get("AI_SYS_ADMIN_MODEL")
         or (os.environ.get(spec.model_env) if spec.model_env else None)
         or spec.default_model
     )
@@ -188,28 +188,28 @@ DEFAULT_BRIDGE = HERE / "pi-ai-bridge.mjs"
 
 
 def _secrets_file() -> Path:
-    install_root = Path(os.environ.get("ZOMBIE_DIR", "/opt/ai-zombie"))
+    install_root = Path(os.environ.get("AI_SYS_ADMIN_DIR", "/opt/ai-system-administrator"))
     return Path(os.environ.get(
-        "ZOMBIE_SECRETS", str(install_root / "secrets" / "env")
+        "AI_SYS_ADMIN_SECRETS", str(install_root / "secrets" / "env")
     ))
 
 
 def _bridge_path() -> Path:
     """Return the path to the Node bridge script.
 
-    Overridable via ``ZOMBIE_PI_AI_BRIDGE`` so tests can point at a
+    Overridable via ``AI_SYS_ADMIN_PI_AI_BRIDGE`` so tests can point at a
     stub. The default sits next to this module both in the source tree
     and after ``scripts/install.sh`` deploys ``payload/agent/`` to
-    ``${ZOMBIE_DIR}/agent/``.
+    ``${AI_SYS_ADMIN_DIR}/agent/``.
     """
-    override = os.environ.get("ZOMBIE_PI_AI_BRIDGE")
+    override = os.environ.get("AI_SYS_ADMIN_PI_AI_BRIDGE")
     if override:
         return Path(override)
     return DEFAULT_BRIDGE
 
 
 def _node_binary() -> str:
-    node = os.environ.get("ZOMBIE_NODE") or shutil.which("node")
+    node = os.environ.get("AI_SYS_ADMIN_NODE") or shutil.which("node")
     if not node:
         raise ProviderError(
             "node executable not found on PATH. Re-run scripts/install.sh "
@@ -267,7 +267,7 @@ def _run_bridge(
     if not bridge.exists():
         raise ProviderError(
             f"pi-ai bridge missing at {bridge}. Re-run scripts/install.sh "
-            "or set ZOMBIE_PI_AI_BRIDGE."
+            "or set AI_SYS_ADMIN_PI_AI_BRIDGE."
         )
     node = _node_binary()
     payload = json.dumps(request)
@@ -340,13 +340,13 @@ class BaseProvider:
         self._spec = spec
         self.name = spec.name
         # Resolution order matches the legacy code:
-        # explicit arg > ZOMBIE_MODEL > provider-specific override > default.
+        # explicit arg > AI_SYS_ADMIN_MODEL > provider-specific override > default.
         chosen = _resolve_model(spec, model)
         if not chosen:
             raise NoProviderConfigured(
-                f"{spec.name} requires a model id. Set ZOMBIE_MODEL in "
+                f"{spec.name} requires a model id. Set AI_SYS_ADMIN_MODEL in "
                 f"{_secrets_file()} (e.g. "
-                "ZOMBIE_MODEL=anthropic/claude-3.5-sonnet for openrouter)."
+                "AI_SYS_ADMIN_MODEL=anthropic/claude-3.5-sonnet for openrouter)."
             )
         self.model = chosen
         if spec.key_env and not os.environ.get(spec.key_env):
@@ -379,11 +379,11 @@ def provider_status() -> tuple[str, str]:
     def _ok(spec: _ProviderSpec) -> tuple[str, str]:
         model = _resolve_model(spec)
         if not model:
-            return (spec.name, "model not set (set ZOMBIE_MODEL" + (f" or {spec.model_env}" if spec.model_env else "") + ")")
+            return (spec.name, "model not set (set AI_SYS_ADMIN_MODEL" + (f" or {spec.model_env}" if spec.model_env else "") + ")")
         address = lmstudio_address() if spec.name == "lmstudio" else None
         return (spec.name, f"model {model}" + (f" at {address}" if address else ""))
 
-    explicit = (os.environ.get("ZOMBIE_PROVIDER") or "").strip().lower()
+    explicit = (os.environ.get("AI_SYS_ADMIN_PROVIDER") or "").strip().lower()
     if explicit:
         spec = _PROVIDER_BY_NAME.get(explicit)
         if spec is None:
@@ -424,7 +424,7 @@ def _resolve_spec(name: str | None = None) -> _ProviderSpec:
     Selection order mirrors :func:`provider_from_env`:
 
     1. ``name`` argument, if set.
-    2. ``ZOMBIE_PROVIDER`` environment variable.
+    2. ``AI_SYS_ADMIN_PROVIDER`` environment variable.
     3. The first provider in ``_PI_AI_PROVIDERS`` whose key env var is
        present (preserves the legacy "first key wins" autodetect).
 
@@ -433,7 +433,7 @@ def _resolve_spec(name: str | None = None) -> _ProviderSpec:
     and selection helpers for providers (openrouter, lmstudio) that have
     no default model yet.
     """
-    explicit = (name or os.environ.get("ZOMBIE_PROVIDER", "")).strip().lower()
+    explicit = (name or os.environ.get("AI_SYS_ADMIN_PROVIDER", "")).strip().lower()
     if explicit:
         spec = _PROVIDER_BY_NAME.get(explicit)
         if spec is None:
@@ -451,7 +451,7 @@ def _resolve_spec(name: str | None = None) -> _ProviderSpec:
     raise NoProviderConfigured(
         "No provider API key found. Set one of "
         f"{keys} in {_secrets_file()} and restart "
-        "ubuntu-zombie-chat.service."
+        "ubuntu-ai-system-administrator-chat.service."
     )
 
 
@@ -462,7 +462,7 @@ def provider_from_env(name: str | None = None,
     Selection order:
 
     1. ``name`` argument, if set.
-    2. ``ZOMBIE_PROVIDER`` environment variable.
+    2. ``AI_SYS_ADMIN_PROVIDER`` environment variable.
     3. The first provider in ``_PI_AI_PROVIDERS`` whose key env var is
        present (preserves the legacy "first key wins" autodetect).
     """
@@ -484,7 +484,7 @@ def current_model(name: str | None = None) -> str | None:
     """Return the model id the active provider would use, or ``None``.
 
     Applies the same precedence as the chat surface and agent loop
-    (``ZOMBIE_MODEL`` > provider override env > registry default).
+    (``AI_SYS_ADMIN_MODEL`` > provider override env > registry default).
     Returns ``None`` when nothing resolves (e.g. openrouter or lmstudio
     before a model is selected). Raises :class:`NoProviderConfigured`
     when no provider is configured at all.
@@ -557,7 +557,7 @@ def list_models(name: str | None = None) -> list[dict]:
 
 
 def _models_json_path() -> Path:
-    explicit = os.environ.get("ZOMBIE_PI_MODELS_JSON")
+    explicit = os.environ.get("AI_SYS_ADMIN_PI_MODELS_JSON")
     if explicit:
         return Path(explicit)
     return Path(os.environ.get("HOME", "/tmp")) / ".pi" / "agent" / "models.json"
@@ -677,11 +677,11 @@ def scan_lmstudio(
     """
     try:
         scan_port = int(port if port is not None
-                        else os.environ.get("ZOMBIE_LLM_SCAN_PORT", "1234"))
+                        else os.environ.get("AI_SYS_ADMIN_LLM_SCAN_PORT", "1234"))
     except (TypeError, ValueError) as exc:
-        raise ProviderError("ZOMBIE_LLM_SCAN_PORT must be a TCP port.") from exc
+        raise ProviderError("AI_SYS_ADMIN_LLM_SCAN_PORT must be a TCP port.") from exc
     if not (1 <= scan_port <= 65535):
-        raise ProviderError("ZOMBIE_LLM_SCAN_PORT must be between 1 and 65535.")
+        raise ProviderError("AI_SYS_ADMIN_LLM_SCAN_PORT must be between 1 and 65535.")
     try:
         subnet = (
             ipaddress.ip_network(network, strict=False)
@@ -723,7 +723,7 @@ def activate_lmstudio(server: dict) -> tuple[str, str, str]:
                or not _SAFE_MODEL_ID.fullmatch(model) for model in models)
     ):
         raise ProviderError("LM Studio discovery returned an invalid server.")
-    current = os.environ.get("ZOMBIE_MODEL", "")
+    current = os.environ.get("AI_SYS_ADMIN_MODEL", "")
     chosen = current if current in models else models[0]
     path = _models_json_path()
     try:
@@ -757,8 +757,8 @@ def activate_lmstudio(server: dict) -> tuple[str, str, str]:
         temp_path.replace(path)
     except (OSError, ValueError, TypeError) as exc:
         raise ProviderError(f"Could not update {path}: {exc}") from exc
-    os.environ["ZOMBIE_PROVIDER"] = "lmstudio"
-    os.environ["ZOMBIE_MODEL"] = chosen
+    os.environ["AI_SYS_ADMIN_PROVIDER"] = "lmstudio"
+    os.environ["AI_SYS_ADMIN_MODEL"] = chosen
     os.environ.setdefault("LMSTUDIO_API_KEY", "local")
     return ("lmstudio", chosen, address)
 
@@ -766,7 +766,7 @@ def activate_lmstudio(server: dict) -> tuple[str, str, str]:
 def set_active_model(model: str, name: str | None = None) -> tuple[str, str]:
     """Select ``model`` for the active provider for this process.
 
-    Sets ``ZOMBIE_MODEL`` in the current process environment so every
+    Sets ``AI_SYS_ADMIN_MODEL`` in the current process environment so every
     subsequent chat turn and agent loop (which both resolve through this
     module) uses it. When the provider exposes a model catalogue the id
     is validated against it; providers without a catalogue (lmstudio)
@@ -793,5 +793,5 @@ def set_active_model(model: str, name: str | None = None) -> tuple[str, str]:
             f"unknown model {chosen!r} for provider {spec.name!r}; "
             "use /model to list the available models."
         )
-    os.environ["ZOMBIE_MODEL"] = chosen
+    os.environ["AI_SYS_ADMIN_MODEL"] = chosen
     return (spec.name, chosen)

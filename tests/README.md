@@ -20,7 +20,7 @@ make test   # bash tests/smoke.sh all
   - `bad-usage` — wrong invocations exit `2`.
   - `flags` — UX contract: `--help`, `--version`, `--dry-run`,
     `--no-color`, `--quiet`, `--json`, helper-script `--help`.
-  - `noninteractive` — the `ZOMBIE_NONINTERACTIVE=1` path end-to-end.
+  - `noninteractive` — the `AI_SYS_ADMIN_NONINTERACTIVE=1` path end-to-end.
   - `diagnostics` — the diagnostic helpers work and redact secrets.
   - `standards` — repository invariants (no secrets, changelog
     discipline, workflow requirements, packaging list honesty).

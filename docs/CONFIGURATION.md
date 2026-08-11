@@ -4,13 +4,13 @@ Everything an operator can tune after a successful install.
 
 ## Provider keys
 
-Provider credentials live in `/opt/ai-zombie/secrets/env`, mode `0600`,
-owned by the local agent account (default `zombie:zombie`; whatever
-name was passed to `ZOMBIE_USER` at install time). Edit them with the
+Provider credentials live in `/opt/ai-system-administrator/secrets/env`, mode `0600`,
+owned by the local agent account (default `ai-sys-admin:ai-sys-admin`; whatever
+name was passed to `AI_SYS_ADMIN_USER` at install time). Edit them with the
 safe helper, which re-asserts permissions after `$EDITOR` exits:
 
 ```bash
-sudo /opt/ai-zombie/bin/secrets-edit
+sudo /opt/ai-system-administrator/bin/secrets-edit
 ```
 
 Supported variables:
@@ -21,25 +21,25 @@ Supported variables:
 | `ANTHROPIC_API_KEY`  | API key for the Anthropic provider       |
 | `GEMINI_API_KEY`     | API key for Google Gemini (routed via `pi-ai`'s `google` provider) |
 | `XAI_API_KEY`        | API key for the xAI provider             |
-| `OPENROUTER_API_KEY` | API key for the OpenRouter aggregator. Requires `ZOMBIE_MODEL` to be set to a fully-qualified id such as `anthropic/claude-3.5-sonnet`. |
+| `OPENROUTER_API_KEY` | API key for the OpenRouter aggregator. Requires `AI_SYS_ADMIN_MODEL` to be set to a fully-qualified id such as `anthropic/claude-3.5-sonnet`. |
 | `MISTRAL_API_KEY`    | API key for the Mistral provider         |
 | `GROQ_API_KEY`       | API key for the Groq provider            |
-| `ZOMBIE_PROVIDER`    | One of `openai`, `anthropic`, `gemini`, `xai`, `mistral`, `groq`, `openrouter`, `lmstudio` (default: first matching key found, in that order) |
-| `ZOMBIE_MODEL`       | Model used by both the agent loop and the chat surface; required for `openrouter`/`lmstudio` unless their provider-specific model env var is set; overrides provider-specific model env vars and defaults |
-| `ZOMBIE_OPENAI_MODEL`     | Override the default model used when the active provider is `openai` |
-| `ZOMBIE_ANTHROPIC_MODEL`  | Override the default model used when the active provider is `anthropic` |
-| `ZOMBIE_GEMINI_MODEL`     | Override the default model used when the active provider is `gemini` |
-| `ZOMBIE_XAI_MODEL`        | Override the default model used when the active provider is `xai` |
-| `ZOMBIE_MISTRAL_MODEL`    | Override the default model used when the active provider is `mistral` |
-| `ZOMBIE_GROQ_MODEL`       | Override the default model used when the active provider is `groq` |
-| `ZOMBIE_OPENROUTER_MODEL` | Fully-qualified OpenRouter model id (e.g. `anthropic/claude-3.5-sonnet`); used only when `ZOMBIE_MODEL` is unset |
-| `ZOMBIE_CHAT_PORT`   | Loopback port for the chat UI (default `7878`) |
-| `ZOMBIE_ADMIN_PASSWORD` | Chat-UI password gate. The installer asks for it (default `braaaains`) and stores only a PBKDF2 hash as `ZOMBIE_ADMIN_PASSWORD_HASH` in `secrets/env`. |
-| `ZOMBIE_TTL_DAYS`    | Initial Time to Live in whole days before the zombie is permanently disabled (default `7`). Valid existing lifecycle state is preserved on reinstall. |
-| `LMSTUDIO_API_KEY`   | API key for a local OpenAI-compatible server (LM Studio / Ollama / llama.cpp). Pair with `ZOMBIE_PROVIDER=lmstudio` and `ZOMBIE_MODEL`; the server URL lives in `~/.pi/agent/models.json` (most local servers ignore the key). |
+| `AI_SYS_ADMIN_PROVIDER`    | One of `openai`, `anthropic`, `gemini`, `xai`, `mistral`, `groq`, `openrouter`, `lmstudio` (default: first matching key found, in that order) |
+| `AI_SYS_ADMIN_MODEL`       | Model used by both the agent loop and the chat surface; required for `openrouter`/`lmstudio` unless their provider-specific model env var is set; overrides provider-specific model env vars and defaults |
+| `AI_SYS_ADMIN_OPENAI_MODEL`     | Override the default model used when the active provider is `openai` |
+| `AI_SYS_ADMIN_ANTHROPIC_MODEL`  | Override the default model used when the active provider is `anthropic` |
+| `AI_SYS_ADMIN_GEMINI_MODEL`     | Override the default model used when the active provider is `gemini` |
+| `AI_SYS_ADMIN_XAI_MODEL`        | Override the default model used when the active provider is `xai` |
+| `AI_SYS_ADMIN_MISTRAL_MODEL`    | Override the default model used when the active provider is `mistral` |
+| `AI_SYS_ADMIN_GROQ_MODEL`       | Override the default model used when the active provider is `groq` |
+| `AI_SYS_ADMIN_OPENROUTER_MODEL` | Fully-qualified OpenRouter model id (e.g. `anthropic/claude-3.5-sonnet`); used only when `AI_SYS_ADMIN_MODEL` is unset |
+| `AI_SYS_ADMIN_CHAT_PORT`   | Loopback port for the chat UI (default `57878`) |
+| `AI_SYS_ADMIN_ADMIN_PASSWORD` | Chat-UI password gate. The installer asks for it (default `change-me-now`) and stores only a PBKDF2 hash as `AI_SYS_ADMIN_ADMIN_PASSWORD_HASH` in `secrets/env`. |
+| `AI_SYS_ADMIN_TTL_DAYS`    | Initial Time to Live in whole days before the AI System Administrator is permanently disabled (default `7`). Valid existing lifecycle state is preserved on reinstall. |
+| `LMSTUDIO_API_KEY`   | API key for a local OpenAI-compatible server (LM Studio / Ollama / llama.cpp). Pair with `AI_SYS_ADMIN_PROVIDER=lmstudio` and `AI_SYS_ADMIN_MODEL`; the server URL lives in `~/.pi/agent/models.json` (most local servers ignore the key). |
 | `DISPLAY`            | Pre-seeded in the generated `secrets/env` (default `:0`); vestigial, retained for compatibility and not used by the loopback-only chat service |
 
-Per-provider defaults if no `ZOMBIE_MODEL` / `ZOMBIE_<PROVIDER>_MODEL`
+Per-provider defaults if no `AI_SYS_ADMIN_MODEL` / `AI_SYS_ADMIN_<PROVIDER>_MODEL`
 override is set (from `payload/agent/providers.py`):
 
 | Provider     | Default model               |
@@ -57,19 +57,19 @@ All providers are routed through [`@earendil-works/pi-ai`][pi-ai].
 At every install or repair, `scripts/install.sh` resolves the npm
 `latest` release, verifies the registry-provided integrity hash, and
 installs it globally. The resolved version is written to
-`/opt/ai-zombie/agent/pi-ai.version`. The chat service shells out to
-the Node bridge at `/opt/ai-zombie/agent/pi-ai-bridge.mjs`; there are
+`/opt/ai-system-administrator/agent/pi-ai.version`. The chat service shells out to
+the Node bridge at `/opt/ai-system-administrator/agent/pi-ai-bridge.mjs`; there are
 no bespoke per-provider Python clients.
 
-`ZOMBIE_PROVIDER` + `ZOMBIE_MODEL` (plus the matching `*_API_KEY`) are
+`AI_SYS_ADMIN_PROVIDER` + `AI_SYS_ADMIN_MODEL` (plus the matching `*_API_KEY`) are
 the **single source of truth** for both the status banner and the agent
 loop that produces every chat answer. Resolution is:
 
 1. explicit provider argument (internal API only), else
-   `ZOMBIE_PROVIDER`, else the first configured key in the provider
+   `AI_SYS_ADMIN_PROVIDER`, else the first configured key in the provider
    table order above;
-2. explicit model argument (internal API only), else `ZOMBIE_MODEL`,
-   else the provider-specific `ZOMBIE_<PROVIDER>_MODEL`, else the
+2. explicit model argument (internal API only), else `AI_SYS_ADMIN_MODEL`,
+   else the provider-specific `AI_SYS_ADMIN_<PROVIDER>_MODEL`, else the
    registry default.
 
 `payload/agent/pi_mono.py` resolves the active provider/model through
@@ -89,7 +89,7 @@ key still come from `secrets/env`). See
 Restart the chat service after editing:
 
 ```bash
-sudo systemctl restart ubuntu-zombie-chat.service
+sudo systemctl restart ubuntu-ai-system-administrator-chat.service
 ```
 
 ## Local LLM discovery (LAN scan)
@@ -102,16 +102,16 @@ answering on `http://<ip>:1234/v1`. Servers such as
 default), Ollama, and `llama.cpp` expose a `/v1/models` endpoint; the
 installer queries each responder, collects the model ids it advertises,
 and offers them as the **starting model** in the parameter-review step.
-If `ZOMBIE_MODEL` or a provider-specific model override is already non-empty
+If `AI_SYS_ADMIN_MODEL` or a provider-specific model override is already non-empty
 in the install environment or installed `secrets/env`, the automatic scan is
 skipped and that selection is preserved.
 
-When a model is chosen, the generated `/opt/ai-zombie/secrets/env`
+When a model is chosen, the generated `/opt/ai-system-administrator/secrets/env`
 records it as the `lmstudio` provider:
 
 ```
-ZOMBIE_PROVIDER=lmstudio
-ZOMBIE_MODEL=<the model id you picked>
+AI_SYS_ADMIN_PROVIDER=lmstudio
+AI_SYS_ADMIN_MODEL=<the model id you picked>
 LMSTUDIO_API_KEY=local
 ```
 
@@ -136,7 +136,7 @@ The agent loop (`pi-mono`, which produces every chat answer) reaches the
 local server through this `lmstudio` provider; `pi --provider openai`
 would ignore the base URL and hit `api.openai.com` instead, so a
 dedicated local provider is required. Most local servers ignore the API
-key; set `ZOMBIE_LOCAL_LLM_API_KEY` (or edit the files afterwards) if
+key; set `AI_SYS_ADMIN_LOCAL_LLM_API_KEY` (or edit the files afterwards) if
 yours requires a real one. After installation, `/locals` rescans common
 OpenAI-compatible ports across the local `/24` and on `127.0.0.1`, then lists
 the discovered API URLs and marks the active URL when found. `/local <url>`
@@ -176,9 +176,9 @@ and `python3` (both already required by the product).
 
 | Variable                 | Default | Purpose                                                              |
 | ------------------------ | ------- | -------------------------------------------------------------------- |
-| `ZOMBIE_SKIP_LLM_SCAN`   | `0`     | Set to `1` to skip the LAN scan entirely.                            |
-| `ZOMBIE_LLM_SCAN_PORT`   | `1234`  | Extra TCP port probed by runtime `/locals`; installer discovery uses this port exclusively. |
-| `ZOMBIE_LOCAL_LLM_API_KEY` | `local` | API key recorded for the discovered server (most local servers ignore it). |
+| `AI_SYS_ADMIN_SKIP_LLM_SCAN`   | `0`     | Set to `1` to skip the LAN scan entirely.                            |
+| `AI_SYS_ADMIN_LLM_SCAN_PORT`   | `1234`  | Extra TCP port probed by runtime `/locals`; installer discovery uses this port exclusively. |
+| `AI_SYS_ADMIN_LOCAL_LLM_API_KEY` | `local` | API key recorded for the discovered server (most local servers ignore it). |
 
 You can also trigger the scan on demand from the interactive setup
 review by choosing the **Local LLM** field.
@@ -187,11 +187,11 @@ review by choosing the **Local LLM** field.
 
 The installer creates a single local Linux user as the operating
 identity of the AI Systems Administrator. The default name is
-`zombie`. To pick a different name, pass `ZOMBIE_USER` to the
+`ai-sys-admin`. To pick a different name, pass `AI_SYS_ADMIN_USER` to the
 installer:
 
 ```bash
-sudo ZOMBIE_USER=admin ./scripts/install.sh install
+sudo AI_SYS_ADMIN_USER=admin ./scripts/install.sh install
 ```
 
 The same variable must be set on every later `install`, `verify`,
@@ -201,18 +201,18 @@ so older installs (which used `agent`) can still be repaired or
 removed by exporting `AGENT_USER=agent`.
 
 The chosen name appears throughout: `/home/<name>`, the sudoers
-drop-in `/etc/sudoers.d/90-<name>-ubuntu-zombie`, the systemd
-`User=`/`Group=` of `ubuntu-zombie-chat.service`, and the system
+drop-in `/etc/sudoers.d/90-<name>-ubuntu-ai-system-administrator`, the systemd
+`User=`/`Group=` of `ubuntu-ai-system-administrator-chat.service`, and the system
 prompt the chat service hands to the LLM.
 
 ## Install root
 
-The default install root is `/opt/ai-zombie`. To use another absolute
-path, set `ZOMBIE_DIR` on the initial install and on every later
+The default install root is `/opt/ai-system-administrator`. To use another absolute
+path, set `AI_SYS_ADMIN_DIR` on the initial install and on every later
 installer lifecycle command:
 
 ```bash
-sudo ZOMBIE_DIR=/srv/ai-zombie ./scripts/install.sh install
+sudo AI_SYS_ADMIN_DIR=/srv/ai-system-administrator ./scripts/install.sh install
 ```
 
 The rendered systemd units, pi-mono settings, logs, state, built-in
@@ -222,8 +222,8 @@ through the `/usr/local/bin` links.
 
 ## Rotating provider keys
 
-1. `sudo /opt/ai-zombie/bin/secrets-edit` — replace the value.
-2. `sudo systemctl restart ubuntu-zombie-chat.service`.
+1. `sudo /opt/ai-system-administrator/bin/secrets-edit` — replace the value.
+2. `sudo systemctl restart ubuntu-ai-system-administrator-chat.service`.
 3. Optionally revoke the old key in the provider's console.
 
 ## Revoking the agent
@@ -231,8 +231,8 @@ through the `/usr/local/bin` links.
 To stop useful agent operation immediately:
 
 ```bash
-sudo /opt/ai-zombie/bin/secrets-edit   # delete every API key
-sudo systemctl restart ubuntu-zombie-chat.service
+sudo /opt/ai-system-administrator/bin/secrets-edit   # delete every API key
+sudo systemctl restart ubuntu-ai-system-administrator-chat.service
 ```
 
 The chat will load but refuse to call any provider.
@@ -240,18 +240,18 @@ The chat will load but refuse to call any provider.
 To stop the service entirely:
 
 ```bash
-sudo systemctl disable --now ubuntu-zombie-chat.service
+sudo systemctl disable --now ubuntu-ai-system-administrator-chat.service
 ```
 
 To remove privileged access without uninstalling everything:
 
 ```bash
-sudo rm /etc/sudoers.d/90-zombie-ubuntu-zombie
+sudo rm /etc/sudoers.d/90-ai-sys-admin-ubuntu-ai-system-administrator
 ```
 
 ## Policy
 
-`/etc/ubuntu-zombie/policy.yaml` controls what the agent may run
+`/etc/ubuntu-ai-system-administrator/policy.yaml` controls what the agent may run
 without approval, what requires approval, and what requires the extra
 destructive confirmation phrase. See `ARCHITECTURE.md` for the action
 classes. The chat service reloads the policy on every request — no
@@ -299,16 +299,16 @@ The agent emits structured tool calls from a closed registry defined in
 | `skill.load`      | `read_only`            | Read the markdown body of a skill by name.                 |
 
 `fs.read` and `fs.list` resolve symlinks before checking the readable
-allow-list (`/opt/ai-zombie/state`, `/etc`, `/var/log`, `/proc`, `/sys`,
+allow-list (`/opt/ai-system-administrator/state`, `/etc`, `/var/log`, `/proc`, `/sys`,
 `/usr/share`, `/usr/lib` and `/run/systemd`), which keeps the canonical
 Ubuntu inspection files readable — `/etc/os-release`, `/etc/localtime`
 and `/etc/resolv.conf` are symlinks into the last three roots — while
-home directories and `/opt/ai-zombie/secrets` stay out of reach.
+home directories and `/opt/ai-system-administrator/secrets` stay out of reach.
 `/proc/<pid>/environ` is denied explicitly so provider keys held in the
 chat service's environment are never returned by an auto-approved read.
 Both tools then act on the resolved path, so a symlink swapped after the
 check cannot escape the allow-list.
-`fs.write` remains limited to `/opt/ai-zombie/state` and `/tmp`.
+`fs.write` remains limited to `/opt/ai-system-administrator/state` and `/tmp`.
 
 `web.fetch` performs read-only outbound lookups so the agent can check
 an upstream version or read documentation before advising a change. It
@@ -356,7 +356,7 @@ Budget enforcement:
   when the operator presses Stop.
 
 These shipped defaults deliberately favour capable local models. Operators
-can still tune all three values in `/opt/ai-zombie/etc/policy.yaml`; elevated
+can still tune all three values in `/opt/ai-system-administrator/etc/policy.yaml`; elevated
 calls continue to require the configured approvals regardless of budget.
 
 ### pi-mono runtime
@@ -364,29 +364,29 @@ calls continue to require the configured approvals regardless of budget.
 At every install or repair, the installer resolves the npm `latest`
 release of `@earendil-works/pi-coding-agent`, verifies the
 registry-provided integrity hash, and records the resolved version in
-`/opt/ai-zombie/agent/pi-mono.version`. It renders runtime configs into
-`/opt/ai-zombie/pi/`:
+`/opt/ai-system-administrator/agent/pi-mono.version`. It renders runtime configs into
+`/opt/ai-system-administrator/pi/`:
 
 | Path                                   | Purpose                                  |
 | -------------------------------------- | ---------------------------------------- |
-| `/opt/ai-zombie/pi/settings.json`      | pi-mono settings (`--no-builtin-tools`)  |
-| `/opt/ai-zombie/pi/APPEND_SYSTEM.md`   | rendered system-prompt prelude           |
-| `/opt/ai-zombie/agent/pi-mono-bridge.mjs` | Node bridge wrapping `pi --mode json` |
-| `/opt/ai-zombie/state/logs/pi-mono.*.log` | per-turn bridge logs, rotated daily   |
-| `/opt/ai-zombie/state/pi-mono-sessions/`  | pi session/checkpoint state           |
+| `/opt/ai-system-administrator/pi/settings.json`      | pi-mono settings (`--no-builtin-tools`)  |
+| `/opt/ai-system-administrator/pi/APPEND_SYSTEM.md`   | rendered system-prompt prelude           |
+| `/opt/ai-system-administrator/agent/pi-mono-bridge.mjs` | Node bridge wrapping `pi --mode json` |
+| `/opt/ai-system-administrator/state/logs/pi-mono.*.log` | per-turn bridge logs, rotated daily   |
+| `/opt/ai-system-administrator/state/pi-mono-sessions/`  | pi session/checkpoint state           |
 
 Environment overrides for the `pi-mono` runtime are documented in
 [Advanced environment overrides](#advanced-environment-overrides)
-below (look for the `ZOMBIE_PI_MONO_*` variables).
+below (look for the `AI_SYS_ADMIN_PI_MONO_*` variables).
 
 ## Chat access
 
-The chat UI is served at `http://127.0.0.1:${ZOMBIE_CHAT_PORT:-7878}/`.
+The chat UI is served at `http://127.0.0.1:${AI_SYS_ADMIN_CHAT_PORT:-57878}/`.
 On a shared desktop every local user can reach the loopback socket, so the UI is protected
 by a **password gate**: the installer asks for a chat password (default
-`braaaains`) and stores only a PBKDF2 hash as
-`ZOMBIE_ADMIN_PASSWORD_HASH` in `secrets/env`. Set a custom one with
-`ZOMBIE_ADMIN_PASSWORD` or through the interactive parameter review.
+`change-me-now`) and stores only a PBKDF2 hash as
+`AI_SYS_ADMIN_ADMIN_PASSWORD_HASH` in `secrets/env`. Set a custom one with
+`AI_SYS_ADMIN_ADMIN_PASSWORD` or through the interactive parameter review.
 (Having a root/agent shell on the box is still root-equivalent — that
 matches the trust model — but the password keeps casual local users
 out of the administrator.)
@@ -429,7 +429,7 @@ continuation, the terminal turn payload carries that outcome too, so the queued
 or stopped banner appears immediately rather than on the next poll.
 
 The shipped pi bridge presents this capability through a structured
-`<ubuntu-zombie-reactivation>` request in the agent's reply. The server removes
+`<ubuntu-ai-system-administrator-reactivation>` request in the agent's reply. The server removes
 every machine-readable block — wherever it appears, including inside a code
 fence or ahead of a closing sentence — before saving the visible answer, uses
 the last one, validates it against the closed `timer.reactivation` schema and
@@ -478,11 +478,12 @@ session.
 ### Time to Live (the kill switch)
 
 The first install gives the root-capable agent a bounded lifetime. The
-**Time to Live** defaults to 7 days (`ZOMBIE_TTL_DAYS`, or set it in the
+**Time to Live** defaults to 7 days (`AI_SYS_ADMIN_TTL_DAYS`, or set it in the
 interactive review). When the TTL elapses — or an operator runs the
-`/ttl --die` chat command — the zombie writes a durable tombstone and is
+`/ttl --die` chat command — the AI System Administrator writes a durable tombstone and is
 **permanently disabled**: it refuses to answer prompts and shows a "this
-zombie has died" notice. A re-run of `scripts/install.sh install` preserves a
+AI System Administrator has been disabled" notice. A re-run of
+`scripts/install.sh install` preserves a
 valid lifecycle file, including TTL extensions, remaining time, and a dead
 tombstone. A full uninstall followed by a fresh install creates a new
 countdown.
@@ -494,33 +495,33 @@ Chat commands:
 | `/ttl`                   | Show the remaining Time to Live.                              |
 | `/ttl <duration>`        | Extend the Time to Live by a duration from the current expiry. |
 | `/ttl reset [duration]`  | Reset the Time to Live from now (default: 7 days).             |
-| `/ttl --die`             | Trip the kill switch now — permanently disables the zombie.    |
+| `/ttl --die`             | Trip the kill switch now — permanently disables the AI System Administrator. |
 
 Durations are written as number/unit pairs such as `14 days`,
 `2 years 3 months`, or `3 hours`; a bare number is kept as the legacy
 days shorthand. Months and years are fixed approximations of 30 and
 365 days.
 
-State lives in `/opt/ai-zombie/state/lifecycle.json`. It can also be
+State lives in `/opt/ai-system-administrator/state/lifecycle.json`. It can also be
 inspected from the agent account with
-`python3 /opt/ai-zombie/agent/lifecycle.py status`.
+`python3 /opt/ai-system-administrator/agent/lifecycle.py status`.
 
 ## Logs and state
 
 | Path                                       | Purpose                                         |
 | ------------------------------------------ | ----------------------------------------------- |
-| `/var/log/ubuntu-zombie-install.log`       | Installer transcripts                           |
-| `/var/log/ubuntu-zombie/install-receipt.txt` | Install receipt (parameters + start/finish outcome) |
-| `/var/log/ubuntu-zombie/audit.log`         | JSON-lines AI audit trail                       |
-| `/opt/ai-zombie/state/conversations.db`    | Chat history (SQLite)                           |
-| `/opt/ai-zombie/state/lifecycle.json`      | Time-to-Live state + tombstone                  |
-| `/opt/ai-zombie/state/logs/pi-mono.*.log`  | Per-turn pi-mono bridge logs (rotated daily)    |
-| `/opt/ai-zombie/state/pi-mono-sessions/`   | pi session/checkpoint state                     |
+| `/var/log/ubuntu-ai-system-administrator-install.log`       | Installer transcripts                           |
+| `/var/log/ubuntu-ai-system-administrator/install-receipt.txt` | Install receipt (parameters + start/finish outcome) |
+| `/var/log/ubuntu-ai-system-administrator/audit.log`         | JSON-lines AI audit trail                       |
+| `/opt/ai-system-administrator/state/conversations.db`    | Chat history (SQLite)                           |
+| `/opt/ai-system-administrator/state/lifecycle.json`      | Time-to-Live state + tombstone                  |
+| `/opt/ai-system-administrator/state/logs/pi-mono.*.log`  | Per-turn pi-mono bridge logs (rotated daily)    |
+| `/opt/ai-system-administrator/state/pi-mono-sessions/`   | pi session/checkpoint state                     |
 
 ## Operator helpers
 
 `scripts/install.sh` installs a small set of helper commands under
-`/opt/ai-zombie/bin/`:
+`/opt/ai-system-administrator/bin/`:
 
 | Command                | Purpose                                                                 |
 | ---------------------- | ----------------------------------------------------------------------- |
@@ -528,26 +529,26 @@ inspected from the agent account with
 | `health-check`         | One-shot health summary (chat service, provider credential, disk, …)    |
 | `audit-recent`         | Tail the most recent decisions from `audit.log`                         |
 | `collect-diagnostics`  | Bundle logs and state into a tarball with secrets redacted              |
-| `zombie-chat`          | Print the local chat URL                                               |
+| `chat`          | Print the local chat URL                                               |
 
 The installer also drops `verify` under the same directory.
 
 ## Interactive setup review
 
 When `scripts/install.sh install` runs on an interactive terminal (i.e.
-not `--yes` and not `ZOMBIE_NONINTERACTIVE=1`), it opens an editable
+not `--yes` and not `AI_SYS_ADMIN_NONINTERACTIVE=1`), it opens an editable
 **parameter review** before touching the host. The review shows the Ubuntu
-Zombie agent, chat, TTL, provider, local-LLM, transcript, and receipt settings.
+AI System Administrator agent, chat, TTL, provider, local-LLM, transcript, and receipt settings.
 Enter a number to edit a field (with validation and re-prompting on bad input)
 and repeat until you are satisfied; then accept to begin the install.
 Cancelling at the review (`q`) exits without changing anything.
 
-The review uses the **Zombie Orchid** highlight (`#AC43D9`) with
+The review uses the **AI System Administrator Orchid** highlight (`#AC43D9`) with
 compatible accent colours when colour is enabled. Colour follows the same
-`ZOMBIE_COLOR=auto|always|never` / `NO_COLOR` policy as the rest of the
+`AI_SYS_ADMIN_COLOR=auto|always|never` / `NO_COLOR` policy as the rest of the
 output, so `--no-color` produces a plain, screen-reader-friendly table.
 
-Automated runs (`--yes`, `ZOMBIE_NONINTERACTIVE=1`, or non-TTY stdin) skip
+Automated runs (`--yes`, `AI_SYS_ADMIN_NONINTERACTIVE=1`, or non-TTY stdin) skip
 the review entirely and use the supplied environment unchanged.
 
 ## Install receipt
@@ -560,8 +561,8 @@ values and provider keys are never written.
 
 | Variable             | Default                                        | Effect                                             |
 | -------------------- | ---------------------------------------------- | -------------------------------------------------- |
-| `ZOMBIE_RECEIPT`     | `1`                                            | Set to `0` to disable the receipt.                 |
-| `ZOMBIE_RECEIPT_FILE`| `/var/log/ubuntu-zombie/install-receipt.txt`   | Override the receipt file path (absolute).         |
+| `AI_SYS_ADMIN_RECEIPT`     | `1`                                            | Set to `0` to disable the receipt.                 |
+| `AI_SYS_ADMIN_RECEIPT_FILE`| `/var/log/ubuntu-ai-system-administrator/install-receipt.txt`   | Override the receipt file path (absolute).         |
 
 ## Install command grammar
 
@@ -571,7 +572,7 @@ values and provider keys are never written.
 scripts/install.sh [verb] [flags]
 ```
 
-All verbs honour the same relevant `ZOMBIE_*` environment variables
+All verbs honour the same relevant `AI_SYS_ADMIN_*` environment variables
 documented above.
 
 | Verb        | Effect                                                                |
@@ -592,7 +593,7 @@ sudo ./scripts/install.sh uninstall --dry-run
 ```
 
 After editing `policy.yaml` or any template under
-`/opt/ai-zombie/agent/templates/`, run `sudo ./scripts/install.sh
+`/opt/ai-system-administrator/agent/templates/`, run `sudo ./scripts/install.sh
 repair` to re-render the `pi/` tree and restart the chat service.
 
 ## Command-line flags
@@ -606,14 +607,14 @@ verb:
 | `-h`, `--help`       | Grouped help with end-to-end example recipes, then exit.                     |
 | `-v`, `--version`    | Print the version and exit.                                                  |
 | `-n`, `--dry-run`    | Print every action; mutate nothing.                                          |
-| `-y`, `--yes`        | Skip the interactive `Type YES` gate (attended scripted runs). Still prompts for any missing inputs unless `ZOMBIE_NONINTERACTIVE=1`. |
+| `-y`, `--yes`        | Skip the interactive `Type YES` gate (attended scripted runs). Still prompts for any missing inputs unless `AI_SYS_ADMIN_NONINTERACTIVE=1`. |
 | `-q`, `--quiet`      | Only print warnings and errors.                                              |
 | `--verbose`, `--debug` | Write shell xtrace to the install transcript (not the console).            |
-| `--no-color`         | Disable coloured output (also honours `NO_COLOR` and `ZOMBIE_COLOR=never`).  |
+| `--no-color`         | Disable coloured output (also honours `NO_COLOR` and `AI_SYS_ADMIN_COLOR=never`).  |
 | `--strict`           | Treat preflight warnings as fatal.                                           |
 | `--json`             | Emit machine-readable JSON from `verify` / `doctor` (human output is default). |
 
-Colour follows the `ZOMBIE_COLOR=auto|always|never` policy and the
+Colour follows the `AI_SYS_ADMIN_COLOR=auto|always|never` policy and the
 widely-supported [`NO_COLOR`](https://no-color.org/) convention; output
 is plain when not writing to a TTY.
 
@@ -636,10 +637,10 @@ Skill files are short markdown briefs the agent loads via `skill.list`
 
 | Path                         | Purpose                                                         |
 | ---------------------------- | --------------------------------------------------------------- |
-| `/opt/ai-zombie/skills/`     | Root-owned Ubuntu system-administration and Ubuntu AI System Administrator built-ins. |
-| `/etc/ubuntu-zombie/skills.d/` | Operator-extensible. Same mode/owner contract as `policy.yaml`. |
+| `/opt/ai-system-administrator/skills/`     | Root-owned Ubuntu system-administration and Ubuntu AI System Administrator built-ins. |
+| `/etc/ubuntu-ai-system-administrator/skills.d/` | Operator-extensible. Same mode/owner contract as `policy.yaml`. |
 
-Drop additional `*.md` files into `/etc/ubuntu-zombie/skills.d/` to
+Drop additional `*.md` files into `/etc/ubuntu-ai-system-administrator/skills.d/` to
 extend the catalogue. Names must be unique across both directories;
 shadowing is rejected at load time.
 
@@ -659,31 +660,31 @@ processes and are useful for development, CI, and bespoke layouts:
 
 | Variable                  | Default                                  | Consumer            |
 | ------------------------- | ---------------------------------------- | ------------------- |
-| `ZOMBIE_DIR`              | `/opt/ai-zombie`                         | installer, agent    |
-| `ZOMBIE_SECRETS`          | `${ZOMBIE_DIR}/secrets/env`              | `server.py`, audit  |
-| `ZOMBIE_POLICY`           | `/etc/ubuntu-zombie/policy.yaml`         | `policy.py`         |
-| `ZOMBIE_AUDIT_LOG`        | `/var/log/ubuntu-zombie/audit.log`       | `audit.py`, `audit-recent` |
-| `ZOMBIE_AUDIT_VERBOSE`    | *(unset; off)*                           | `audit.py` (opt-in: adds redacted `stdout_preview`/`stderr_preview` to `tool_call` entries to aid pre-release testing and operator debugging) |
-| `ZOMBIE_AUDIT_PREVIEW_BYTES` | `2048`                                | `audit.py` (per-stream preview cap when `ZOMBIE_AUDIT_VERBOSE=1`; hard ceiling 16 KiB) |
-| `ZOMBIE_HISTORY_DB`       | `${ZOMBIE_DIR}/state/conversations.db`   | `history.py`        |
-| `ZOMBIE_SKILLS_DIR`       | *(unset)*                                | `skill_loader.py` (extra directory consulted first) |
-| `ZOMBIE_NODE`             | `which node`                             | pi-ai bridge spawner |
-| `ZOMBIE_PI_AI_BRIDGE`     | `${ZOMBIE_DIR}/agent/pi-ai-bridge.mjs`   | pi-ai bridge spawner (used by tests) |
-| `ZOMBIE_PI_MONO_BIN`      | `which pi`                               | `pi_mono.py`        |
-| `ZOMBIE_PI_MONO_BRIDGE`   | `${ZOMBIE_DIR}/agent/pi-mono-bridge.mjs` | `pi_mono.py` (used by smoke tests) |
-| `ZOMBIE_PI_MONO_LOG_DIR`  | `${ZOMBIE_DIR}/state/logs`               | `pi_mono.py`        |
-| `ZOMBIE_PI_MONO_SETTINGS` | `${ZOMBIE_DIR}/pi/settings.json`         | `pi_mono.py`        |
+| `AI_SYS_ADMIN_DIR`              | `/opt/ai-system-administrator`                         | installer, agent    |
+| `AI_SYS_ADMIN_SECRETS`          | `${AI_SYS_ADMIN_DIR}/secrets/env`              | `server.py`, audit  |
+| `AI_SYS_ADMIN_POLICY`           | `/etc/ubuntu-ai-system-administrator/policy.yaml`         | `policy.py`         |
+| `AI_SYS_ADMIN_AUDIT_LOG`        | `/var/log/ubuntu-ai-system-administrator/audit.log`       | `audit.py`, `audit-recent` |
+| `AI_SYS_ADMIN_AUDIT_VERBOSE`    | *(unset; off)*                           | `audit.py` (opt-in: adds redacted `stdout_preview`/`stderr_preview` to `tool_call` entries to aid pre-release testing and operator debugging) |
+| `AI_SYS_ADMIN_AUDIT_PREVIEW_BYTES` | `2048`                                | `audit.py` (per-stream preview cap when `AI_SYS_ADMIN_AUDIT_VERBOSE=1`; hard ceiling 16 KiB) |
+| `AI_SYS_ADMIN_HISTORY_DB`       | `${AI_SYS_ADMIN_DIR}/state/conversations.db`   | `history.py`        |
+| `AI_SYS_ADMIN_SKILLS_DIR`       | *(unset)*                                | `skill_loader.py` (extra directory consulted first) |
+| `AI_SYS_ADMIN_NODE`             | `which node`                             | pi-ai bridge spawner |
+| `AI_SYS_ADMIN_PI_AI_BRIDGE`     | `${AI_SYS_ADMIN_DIR}/agent/pi-ai-bridge.mjs`   | pi-ai bridge spawner (used by tests) |
+| `AI_SYS_ADMIN_PI_MONO_BIN`      | `which pi`                               | `pi_mono.py`        |
+| `AI_SYS_ADMIN_PI_MONO_BRIDGE`   | `${AI_SYS_ADMIN_DIR}/agent/pi-mono-bridge.mjs` | `pi_mono.py` (used by smoke tests) |
+| `AI_SYS_ADMIN_PI_MONO_LOG_DIR`  | `${AI_SYS_ADMIN_DIR}/state/logs`               | `pi_mono.py`        |
+| `AI_SYS_ADMIN_PI_MONO_SETTINGS` | `${AI_SYS_ADMIN_DIR}/pi/settings.json`         | `pi_mono.py`        |
 
 ## Health check
 
 Run on demand:
 
 ```bash
-/opt/ai-zombie/bin/health-check
+/opt/ai-system-administrator/bin/health-check
 ```
 
 Enable the systemd timer for periodic checks:
 
 ```bash
-sudo systemctl enable --now ubuntu-zombie-health.timer
+sudo systemctl enable --now ubuntu-ai-system-administrator-health.timer
 ```

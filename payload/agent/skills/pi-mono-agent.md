@@ -2,15 +2,15 @@
 # Skill: pi-mono agent runtime
 
 This skill is loaded for the pi-mono coding-agent runtime embedded in Ubuntu
-Zombie.
+AI System Administrator.
 
 Operating rules:
 
 - Distinguish the embedded runtime from a user's standalone `pi`
   installation. Ubuntu AI System Administrator pins
   `@earendil-works/pi-coding-agent`, renders settings under
-  `${ZOMBIE_DIR}/pi/`, and starts it through
-  `${ZOMBIE_DIR}/agent/pi-mono-bridge.mjs`.
+  `${AI_SYS_ADMIN_DIR}/pi/`, and starts it through
+  `${AI_SYS_ADMIN_DIR}/agent/pi-mono-bridge.mjs`.
 - The Python chat service owns provider/model selection and starts the Node
   bridge over line-delimited JSON. The bridge emits model, tool, progress and
   final events; it is not a separate network service and should not gain a
@@ -22,9 +22,9 @@ Operating rules:
 - Inspect the pinned version files, rendered settings, service status and
   bounded per-turn logs before changing anything. `/version` reports the
   installed and available runtime versions without modifying the install.
-- Per-turn logs live under `${ZOMBIE_DIR}/state/logs/`;
+- Per-turn logs live under `${AI_SYS_ADMIN_DIR}/state/logs/`;
   session/checkpoint state lives under
-  `${ZOMBIE_DIR}/state/pi-mono-sessions/`. Redact prompts, tool
+  `${AI_SYS_ADMIN_DIR}/state/pi-mono-sessions/`. Redact prompts, tool
   arguments and provider errors before sharing diagnostics.
 - Provider credentials come from Ubuntu AI System Administrator's root-owned secrets flow.
   Do not add keys to pi settings, a user's native pi configuration, command
@@ -35,5 +35,5 @@ Operating rules:
 - A bridge failure can come from Node availability, a missing pin, malformed
   protocol output, provider failure, cancellation or the idle watchdog.
   Diagnose those layers separately and retain the first concrete error.
-- Restarting `ubuntu-zombie-chat.service` terminates the active conversation.
+- Restarting `ubuntu-ai-system-administrator-chat.service` terminates the active conversation.
   Warn the operator and obtain approval before applying a runtime change.

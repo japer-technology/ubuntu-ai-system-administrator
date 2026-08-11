@@ -51,7 +51,7 @@ debian/*.substvars
 debian/*.debhelper
 debian/*.log
 debian/tmp/
-debian/ubuntu-zombie/
+debian/ubuntu-ai-system-administrator/
 *.deb
 *.buildinfo
 *.changes

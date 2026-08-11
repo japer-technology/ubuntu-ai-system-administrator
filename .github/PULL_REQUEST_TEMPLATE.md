@@ -18,7 +18,7 @@ can move quickly. Delete sections that do not apply.
 ## Checklist
 
 - [ ] The installer remains **idempotent** — re-running `install` converges to the desired state without errors.
-- [ ] The installer still supports **non-interactive** mode (`ZOMBIE_NONINTERACTIVE=1`) without prompting.
+- [ ] The installer still supports **non-interactive** mode (`AI_SYS_ADMIN_NONINTERACTIVE=1`) without prompting.
 - [ ] Any new privileged behaviour goes through the **policy gate** and is written to the **audit log**.
 - [ ] New external commands are justified, version-pinned where practical, and retried on transient network failures.
 - [ ] No secrets, screenshots, or local state have been committed.

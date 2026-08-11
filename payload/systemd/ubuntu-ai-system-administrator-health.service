@@ -1,0 +1,10 @@
+[Unit]
+Description=Periodic Ubuntu AI System Administrator health check
+
+[Service]
+Type=oneshot
+User=__AGENT_USER__
+Group=__AGENT_USER__
+Environment=AI_SYS_ADMIN_DIR=__AI_SYS_ADMIN_DIR__
+Environment=AI_SYS_ADMIN_HEALTH_WARN_ONLY=1
+ExecStart=__AI_SYS_ADMIN_DIR__/bin/health-check

@@ -41,19 +41,19 @@ install-local:
 	./scripts/install.sh install
 
 verify:
-	@if [ -x /opt/ai-zombie/bin/verify ]; then /opt/ai-zombie/bin/verify; \
+	@if [ -x /opt/ai-system-administrator/bin/verify ]; then /opt/ai-system-administrator/bin/verify; \
 	 else ./scripts/install.sh verify; fi
 
 package:
 	@mkdir -p dist
 	@tar --exclude-vcs --exclude='dist' --exclude='__pycache__' \
-	     -czf dist/ubuntu-zombie-$(VERSION).tar.gz \
+	     -czf dist/ubuntu-ai-system-administrator-$(VERSION).tar.gz \
 	     scripts payload tests \
 	     Makefile VERSION \
 	     README.md CHANGELOG.md CONTRIBUTING.md CODE_OF_CONDUCT.md \
 	     LICENSE .editorconfig \
 	     SECURITY.md docs debian
-	@echo "Wrote dist/ubuntu-zombie-$(VERSION).tar.gz"
+	@echo "Wrote dist/ubuntu-ai-system-administrator-$(VERSION).tar.gz"
 
 deb:
 	@command -v dpkg-deb >/dev/null || { echo 'install dpkg-dev first (sudo apt install dpkg-dev)' >&2; exit 1; }

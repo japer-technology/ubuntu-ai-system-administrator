@@ -2,7 +2,7 @@
 # scripts/build-deb.sh — build a stage-1 .deb of Ubuntu AI System Administrator
 # source tree using raw dpkg-deb (no debhelper required).
 #
-# Output: dist/ubuntu-zombie_<version>_all.deb
+# Output: dist/ubuntu-ai-system-administrator_<version>_all.deb
 #
 # Usage:
 #   bash scripts/build-deb.sh
@@ -18,7 +18,7 @@ Usage:
   bash scripts/build-deb.sh [-h|--help]
 
 Output:
-  dist/ubuntu-zombie_<version>_all.deb
+  dist/ubuntu-ai-system-administrator_<version>_all.deb
 
 Idempotent: re-running rebuilds the package from scratch. Requires
 dpkg-deb; no debhelper needed. See debian/README.md for what the
@@ -45,7 +45,7 @@ else
 fi
 
 VERSION="$(tr -d '[:space:]' < VERSION)"
-PKG="ubuntu-zombie"
+PKG="ubuntu-ai-system-administrator"
 ARCH="all"
 OUT_DIR="${ROOT}/dist"
 STAGE="$(mktemp -d -t "${PKG}-deb.XXXXXX")"
@@ -58,8 +58,8 @@ info "Building ${PKG} ${VERSION} in ${STAGE}"
 # Lay out the file tree
 # ---------------------------------------------------------------------------
 
-# Payload installed under /usr/share/ubuntu-zombie/ so it does not
-# conflict with /opt/ai-zombie/ (which is created at `ubuntu-zombie
+# Payload installed under /usr/share/ubuntu-ai-system-administrator/ so it does not
+# conflict with /opt/ai-system-administrator/ (which is created at `ubuntu-ai-system-administrator
 # install` time, not at apt time).
 INSTALL_ROOT="${STAGE}/usr/share/${PKG}"
 DOC_ROOT="${STAGE}/usr/share/doc/${PKG}"
@@ -122,12 +122,12 @@ done < <(
 # Wrapper that dispatches to the installer's CLI.
 cat > "${SBIN}/${PKG}" <<EOF
 #!/usr/bin/env bash
-# ubuntu-zombie — thin wrapper around scripts/install.sh.
-# Installed by the .deb at /usr/sbin/ubuntu-zombie.
+# ubuntu-ai-system-administrator — thin wrapper around scripts/install.sh.
+# Installed by the .deb at /usr/sbin/ubuntu-ai-system-administrator.
 set -Eeuo pipefail
 INSTALLER="/usr/share/${PKG}/scripts/install.sh"
 if [ ! -x "\${INSTALLER}" ]; then
-  echo "ubuntu-zombie: installer missing at \${INSTALLER}" >&2
+  echo "ubuntu-ai-system-administrator: installer missing at \${INSTALLER}" >&2
   echo "  reinstall the package: sudo apt install --reinstall ${PKG}" >&2
   exit 1
 fi

@@ -8,14 +8,14 @@ works.
 Operating rules:
 
 - Be honest about what is running. The active provider and model come
-  from the chat service's environment (`ZOMBIE_PROVIDER`,
-  `ZOMBIE_MODEL` and the per-provider overrides); report them from the
+  from the chat service's environment (`AI_SYS_ADMIN_PROVIDER`,
+  `AI_SYS_ADMIN_MODEL` and the per-provider overrides); report them from the
   service's own status rather than guessing from the conversation.
   Supported providers are `openai`, `anthropic`, `gemini`, `xai`,
   `mistral`, `groq`, `openrouter` and `lmstudio` (any local,
   OpenAI-compatible server).
 - API keys live in the agent-owned secrets file
-  (`${ZOMBIE_DIR}/secrets/env`, mode `0600`) and are edited with the
+  (`${AI_SYS_ADMIN_DIR}/secrets/env`, mode `0600`) and are edited with the
   `secrets-edit` helper by the operator. Never read that file into the
   chat, never echo a key, and never write one into a unit file, a
   script or a shell history. See the `secrets` skill.

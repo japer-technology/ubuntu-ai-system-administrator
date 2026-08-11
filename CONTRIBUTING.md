@@ -38,7 +38,7 @@ what ends up on a target machine:
 ├── scripts/
 │   ├── install.sh                # main installer
 │   └── uninstall.sh              # uninstaller
-├── payload/                      # files copied to /opt/ai-zombie/
+├── payload/                      # files copied to /opt/ai-system-administrator/
 │   ├── agent/                    # Python chat service
 │   ├── bin/                      # operator helpers
 │   ├── etc/policy.yaml           # default policy
@@ -108,7 +108,7 @@ Please attach a redacted diagnostic bundle when reporting installer
 failures:
 
 ```bash
-sudo /opt/ai-zombie/bin/collect-diagnostics
+sudo /opt/ai-system-administrator/bin/collect-diagnostics
 ```
 
 Security issues: see `SECURITY.md` for responsible disclosure.

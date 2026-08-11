@@ -157,7 +157,7 @@
            border-top: 1px solid var(--border); background: var(--surface);
            backdrop-filter: blur(12px); }
   /* Modal overlay for the password gate and the TTL tombstone. Covers
-     the whole viewport so a locked-out / expired zombie cannot be
+     the whole viewport so a locked-out or expired administrator cannot be
      driven from the chat box behind it. */
   .overlay { position: fixed; inset: 0; z-index: 50;
              background: #000a; backdrop-filter: blur(3px);
@@ -425,14 +425,14 @@ let pendingReactivation = null;
 // live into the transcript, so the poller never attaches to it twice.
 let reactivationLiveTurnId = null;
 let reactivationStreamPaused = false;
-const REACTIVATION_REQUEST_MARKER = "<ubuntu-zombie-reactivation>";
+const REACTIVATION_REQUEST_MARKER = "<ubuntu-ai-system-administrator-reactivation>";
 
 // In-flight turn state. ``turnController`` lets the operator (or a
 // client-side timeout) abort a request that the server is taking too
 // long to answer, so the UI can never wedge on a single prompt. The
 // default ceiling is generous — longer than the server-side idle
 // deadlines (Python max_turn_seconds and the bridge
-// ZOMBIE_PI_MONO_IDLE_TIMEOUT) — so a legitimately slow turn always
+// AI_SYS_ADMIN_PI_MONO_IDLE_TIMEOUT) — so a legitimately slow turn always
 // completes (or fails cleanly) server-side before the browser gives up.
 let turnController = null;
 let activeEventSource = null;
@@ -1829,11 +1829,11 @@ function uzSafeName(value) {
     .slice(0, 80) || "conversation";
 }
 
-const BRAND_STORAGE_KEY = "ubuntu-zombie.brandTitle";
+const BRAND_STORAGE_KEY = "ubuntu-ai-system-administrator.brandTitle";
 const DEFAULT_BRAND_TITLE = "Ubuntu AI System Administrator";
-const PROMPT_STORAGE_KEY = "ubuntu-zombie.promptPlaceholder";
+const PROMPT_STORAGE_KEY = "ubuntu-ai-system-administrator.promptPlaceholder";
 const DEFAULT_PROMPT_PLACEHOLDER = "AI System Administrator";
-const FULLWIDTH_STORAGE_KEY = "ubuntu-zombie.fullWidth";
+const FULLWIDTH_STORAGE_KEY = "ubuntu-ai-system-administrator.fullWidth";
 
 function uzStorageGet(key) {
   try { return window.localStorage.getItem(key); }
@@ -1937,7 +1937,7 @@ async function uzExportConversation() {
   if (!conversationId) throw new Error("No active conversation to export.");
   const data = await uzFetchJson(`/api/conversation/${conversationId}`);
   const conv = data.conversation || {};
-  const base = `ubuntu-zombie-${uzSafeName(conv.title || `conversation-${conversationId}`)}`;
+  const base = `ubuntu-ai-system-administrator-${uzSafeName(conv.title || `conversation-${conversationId}`)}`;
   uzDownload(`${base}.md`, uzConversationMarkdown(data), "text/markdown;charset=utf-8");
   uzDownload(`${base}.json`, JSON.stringify(data, null, 2), "application/json;charset=utf-8");
 }
@@ -2844,7 +2844,7 @@ async function handleSlashCommand(input) {
             }
           } else {
             const suffix = data.latest_checked &&
-              ["ubuntu-zombie", "pi-mono", "pi-ai"].includes(component.name)
+              ["ubuntu-ai-system-administrator", "pi-mono", "pi-ai"].includes(component.name)
               ? "latest unavailable"
               : component.source;
             lines.push(`${component.name}: ${component.installed} (${suffix})`);
@@ -3384,7 +3384,7 @@ function showLogin(show) {
 }
 
 function showTombstone(status) {
-  // A dead zombie can never be revived from the browser; lock the UI.
+  // A disabled administrator cannot be reactivated from the browser; lock the UI.
   if (status && status.dead_reason === "killed") {
     tombMessage.textContent =
       `The ${brandTitle} Systems Administrator has been killed and is ` +

@@ -6,7 +6,7 @@
 #   python        py_compile on every Python file under payload/agent
 #   subcommands   ensure scripts/install.sh recognises every documented subcommand
 #   bad-usage     ensure scripts reject unexpected args and unsafe config
-#   noninteractive verify ZOMBIE_NONINTERACTIVE=1 with missing required env
+#   noninteractive verify AI_SYS_ADMIN_NONINTERACTIVE=1 with missing required env
 #                  exits with code 64
 #   branding      ensure installer and chat startup wordmarks stay present
 #   standards     ensure repository metadata and packaging inputs are present
@@ -58,7 +58,7 @@ run_python() {
   echo "  import policy"
   PYTHONPATH=payload/agent python3 -c 'import policy; p = policy.load_policy(); print("classes:", list(p.classes))'
   echo "  custom install-root defaults"
-  ZOMBIE_DIR="/tmp/ubuntu-zombie-custom-root" \
+  AI_SYS_ADMIN_DIR="/tmp/ubuntu-ai-system-administrator-custom-root" \
     PYTHONPATH=payload/agent python3 - <<'PY'
 import json
 import os
@@ -73,7 +73,7 @@ import server
 import skill_loader
 import tools
 
-root = Path(os.environ["ZOMBIE_DIR"])
+root = Path(os.environ["AI_SYS_ADMIN_DIR"])
 expected = {
     "history": root / "state" / "conversations.db",
     "lifecycle": root / "state" / "lifecycle.json",
@@ -101,14 +101,14 @@ if str(expected["secrets"]) in redacted:
     raise SystemExit("audit redaction must cover the custom secrets path")
 
 template = Path("payload/agent/templates/settings.json.tmpl").read_text()
-settings = json.loads(template.replace("__ZOMBIE_DIR__", str(root)))
+settings = json.loads(template.replace("__AI_SYS_ADMIN_DIR__", str(root)))
 if settings["sessionDir"] != str(root / "state" / "pi-mono-sessions"):
     raise SystemExit("pi-mono sessionDir did not render under custom root")
 if settings["appendSystemPromptFile"] != str(root / "pi" / "APPEND_SYSTEM.md"):
     raise SystemExit("pi-mono prompt path did not render under custom root")
 PY
   echo "  policy payload regressions"
-  PYTHONPATH=payload/agent ZOMBIE_POLICY=payload/etc/policy.yaml python3 - <<'PY'
+  PYTHONPATH=payload/agent AI_SYS_ADMIN_POLICY=payload/etc/policy.yaml python3 - <<'PY'
 import platform
 import policy
 import server
@@ -134,7 +134,7 @@ cases = {
     "LC_ALL=C ls /etc": "read_only",
     "FOO=bar apt-get install pkg": "system_change",
     "sudo apt install foo": "system_change",
-    "sudo -u zombie ls /tmp": "read_only",
+    "sudo -u ai-sys-admin ls /tmp": "read_only",
     "sudo -E systemctl restart cron": "system_change",
     # Quoted destructive path is now caught because rules see the
     # de-quoted argv (the historical regex-only matcher missed it).
@@ -282,7 +282,7 @@ if platform.system() == "Linux":
         if not _t._within(_candidate, _read_roots):
             raise SystemExit(f"{_linked} must be inside the read allow-list")
 for _denied in ("/home", "/root/.ssh/id_rsa",
-                "/opt/ai-zombie/secrets/env", "/usr/bin/sudo"):
+                "/opt/ai-system-administrator/secrets/env", "/usr/bin/sudo"):
     if _t._within(Path(_denied), _read_roots):
         raise SystemExit(f"{_denied} must stay outside the read allow-list")
 # ``bool`` must not satisfy an ``integer`` field. Python treats ``bool``
@@ -296,23 +296,23 @@ except _t.SchemaError:
     pass
 
 # ``_skills_dirs`` must not silently add the chat service's working
-# directory when ``ZOMBIE_SKILLS_DIR`` is unset or empty.
+# directory when ``AI_SYS_ADMIN_SKILLS_DIR`` is unset or empty.
 import os as _os
 from pathlib import Path as _P
-_saved = _os.environ.pop("ZOMBIE_SKILLS_DIR", None)
+_saved = _os.environ.pop("AI_SYS_ADMIN_SKILLS_DIR", None)
 try:
     dirs = _t._skills_dirs()
     assert _P(".") not in dirs and _P("") not in dirs, dirs
-    _os.environ["ZOMBIE_SKILLS_DIR"] = ""
+    _os.environ["AI_SYS_ADMIN_SKILLS_DIR"] = ""
     dirs = _t._skills_dirs()
     assert _P(".") not in dirs and _P("") not in dirs, dirs
-    _os.environ["ZOMBIE_SKILLS_DIR"] = "/tmp/zombie-extra-skills"
+    _os.environ["AI_SYS_ADMIN_SKILLS_DIR"] = "/tmp/ai-sys-admin-extra-skills"
     dirs = _t._skills_dirs()
-    assert _P("/tmp/zombie-extra-skills") in dirs, dirs
+    assert _P("/tmp/ai-sys-admin-extra-skills") in dirs, dirs
 finally:
-    _os.environ.pop("ZOMBIE_SKILLS_DIR", None)
+    _os.environ.pop("AI_SYS_ADMIN_SKILLS_DIR", None)
     if _saved is not None:
-        _os.environ["ZOMBIE_SKILLS_DIR"] = _saved
+        _os.environ["AI_SYS_ADMIN_SKILLS_DIR"] = _saved
 
 # Skill loader discovers every built-in skill, parses their trigger
 # markers, selects only on trigger-word match in recent user messages,
@@ -330,7 +330,8 @@ assert names == {
     "locale", "network", "obsidian", "openclaw-agent", "packages",
     "performance", "pi-mono-agent", "process", "reactivation", "scheduling",
     "secrets", "security", "services", "snap", "sql", "systemd",
-    "troubleshoot", "ubuntu", "users", "virtualization", "web", "zombie",
+    "troubleshoot", "ubuntu", "users", "virtualization", "web",
+    "ai-system-administrator",
     "zram",
 }, names
 for s in skills:
@@ -403,7 +404,7 @@ assert skill_loader.render_skills_block([]) == ""
 
 # providers.py is a thin adapter over @earendil-works/pi-ai. The
 # Python-facing surface must stay import-clean (no third-party deps)
-# and provider selection must honour ZOMBIE_PROVIDER plus the
+# and provider selection must honour AI_SYS_ADMIN_PROVIDER plus the
 # expanded key matrix.
 import os
 import providers as _pr
@@ -415,7 +416,7 @@ assert set(_pr.SUPPORTED_PROVIDERS) == {
 
 # Snapshot env so we can reset it cleanly.
 _keys = (
-    "ZOMBIE_PROVIDER", "ZOMBIE_MODEL",
+    "AI_SYS_ADMIN_PROVIDER", "AI_SYS_ADMIN_MODEL",
     "OPENAI_API_KEY", "ANTHROPIC_API_KEY", "GEMINI_API_KEY",
     "XAI_API_KEY", "OPENROUTER_API_KEY", "MISTRAL_API_KEY", "GROQ_API_KEY",
     "LMSTUDIO_API_KEY",
@@ -433,15 +434,15 @@ try:
     if name != "none":
         raise SystemExit(f"provider_status with no key returned {name!r}")
 
-    # Unknown ZOMBIE_PROVIDER must fail loudly.
-    os.environ["ZOMBIE_PROVIDER"] = "bogus"
+    # Unknown AI_SYS_ADMIN_PROVIDER must fail loudly.
+    os.environ["AI_SYS_ADMIN_PROVIDER"] = "bogus"
     try:
         _pr.provider_from_env()
     except _pr.NoProviderConfigured:
         pass
     else:
-        raise SystemExit("unknown ZOMBIE_PROVIDER should raise")
-    del os.environ["ZOMBIE_PROVIDER"]
+        raise SystemExit("unknown AI_SYS_ADMIN_PROVIDER should raise")
+    del os.environ["AI_SYS_ADMIN_PROVIDER"]
 
     # Autodetect picks the first provider whose key is set.
     os.environ["GROQ_API_KEY"] = "test"
@@ -451,9 +452,9 @@ try:
     if not p_auto.model:
         raise SystemExit("groq adapter should pick a default model")
 
-    # Explicit ZOMBIE_PROVIDER wins over autodetect, but still needs
+    # Explicit AI_SYS_ADMIN_PROVIDER wins over autodetect, but still needs
     # its own key.
-    os.environ["ZOMBIE_PROVIDER"] = "gemini"
+    os.environ["AI_SYS_ADMIN_PROVIDER"] = "gemini"
     try:
         _pr.provider_from_env()
     except _pr.NoProviderConfigured:
@@ -466,16 +467,16 @@ try:
         raise SystemExit(f"explicit provider returned {p_gem.name!r}")
 
     # OpenRouter has no default model and must surface a clear error
-    # when ZOMBIE_MODEL is not set.
-    os.environ["ZOMBIE_PROVIDER"] = "openrouter"
+    # when AI_SYS_ADMIN_MODEL is not set.
+    os.environ["AI_SYS_ADMIN_PROVIDER"] = "openrouter"
     os.environ["OPENROUTER_API_KEY"] = "test"
     try:
         _pr.provider_from_env()
     except _pr.NoProviderConfigured:
         pass
     else:
-        raise SystemExit("openrouter without ZOMBIE_MODEL should raise")
-    os.environ["ZOMBIE_MODEL"] = "anthropic/claude-3.5-sonnet"
+        raise SystemExit("openrouter without AI_SYS_ADMIN_MODEL should raise")
+    os.environ["AI_SYS_ADMIN_MODEL"] = "anthropic/claude-3.5-sonnet"
     p_or = _pr.provider_from_env()
     if p_or.model != "anthropic/claude-3.5-sonnet":
         raise SystemExit(f"openrouter model was {p_or.model!r}")
@@ -491,9 +492,9 @@ try:
 
     # The status banner must report the model the agent loop will use,
     # and the gemini name must map to the pi provider id "google".
-    for k in ("ZOMBIE_PROVIDER", "ZOMBIE_MODEL", "OPENROUTER_API_KEY"):
+    for k in ("AI_SYS_ADMIN_PROVIDER", "AI_SYS_ADMIN_MODEL", "OPENROUTER_API_KEY"):
         os.environ.pop(k, None)
-    os.environ["ZOMBIE_PROVIDER"] = "gemini"
+    os.environ["AI_SYS_ADMIN_PROVIDER"] = "gemini"
     os.environ["GEMINI_API_KEY"] = "test"
     s_name, s_status = _pr.provider_status()
     if s_name != "gemini" or s_status != "model gemini-2.0-flash":
@@ -512,18 +513,18 @@ try:
     # lmstudio is a local OpenAI-compatible provider: its pi id is
     # "lmstudio" (the custom provider the installer writes to
     # ~/.pi/agent/models.json) and, like openrouter, it has no default
-    # model so ZOMBIE_MODEL must be set.
-    for k in ("ZOMBIE_PROVIDER", "ZOMBIE_MODEL", "GEMINI_API_KEY"):
+    # model so AI_SYS_ADMIN_MODEL must be set.
+    for k in ("AI_SYS_ADMIN_PROVIDER", "AI_SYS_ADMIN_MODEL", "GEMINI_API_KEY"):
         os.environ.pop(k, None)
-    os.environ["ZOMBIE_PROVIDER"] = "lmstudio"
+    os.environ["AI_SYS_ADMIN_PROVIDER"] = "lmstudio"
     os.environ["LMSTUDIO_API_KEY"] = "local"
     try:
         _pr.provider_from_env()
     except _pr.NoProviderConfigured:
         pass
     else:
-        raise SystemExit("lmstudio without ZOMBIE_MODEL should raise")
-    os.environ["ZOMBIE_MODEL"] = "qwen/qwen3-coder"
+        raise SystemExit("lmstudio without AI_SYS_ADMIN_MODEL should raise")
+    os.environ["AI_SYS_ADMIN_MODEL"] = "qwen/qwen3-coder"
     p_lm = _pr.provider_from_env()
     if (p_lm.name, p_lm.pi_provider, p_lm.key_env, p_lm.model) != (
         "lmstudio", "lmstudio", "LMSTUDIO_API_KEY", "qwen/qwen3-coder"):
@@ -547,10 +548,10 @@ PY
   echo "  durable timer reactivation"
   _REACTIVATION_TMP="$(mktemp -d)"
   trap 'rm -rf "${_REACTIVATION_TMP:-}"' EXIT
-  ZOMBIE_HISTORY_DB="${_REACTIVATION_TMP}/conversations.db" \
-  ZOMBIE_LIFECYCLE_STATE="${_REACTIVATION_TMP}/lifecycle.json" \
-  ZOMBIE_AUDIT_LOG="${_REACTIVATION_TMP}/audit.jsonl" \
-  ZOMBIE_POLICY=payload/etc/policy.yaml \
+  AI_SYS_ADMIN_HISTORY_DB="${_REACTIVATION_TMP}/conversations.db" \
+  AI_SYS_ADMIN_LIFECYCLE_STATE="${_REACTIVATION_TMP}/lifecycle.json" \
+  AI_SYS_ADMIN_AUDIT_LOG="${_REACTIVATION_TMP}/audit.jsonl" \
+  AI_SYS_ADMIN_POLICY=payload/etc/policy.yaml \
   PYTHONPATH=payload/agent python3 - <<'PY'
 import json
 import os
@@ -559,7 +560,7 @@ import time
 from pathlib import Path
 from history import History
 
-Path(os.environ["ZOMBIE_LIFECYCLE_STATE"]).write_text(json.dumps({
+Path(os.environ["AI_SYS_ADMIN_LIFECYCLE_STATE"]).write_text(json.dumps({
     "created_at": time.time(),
     "expires_at": time.time() + 3600,
     "dead": False,
@@ -638,7 +639,7 @@ for name, old_minimum, old_maximum, expected_minimum, expected_maximum in (
     ("inverted", 10, 1, 10, 10),
     ("high", 10, 7200, 10, 3600),
 ):
-    migration_path = Path(os.environ["ZOMBIE_HISTORY_DB"]).with_name(
+    migration_path = Path(os.environ["AI_SYS_ADMIN_HISTORY_DB"]).with_name(
         f"migration-{name}.db"
     )
     with sqlite3.connect(migration_path) as connection:
@@ -728,7 +729,7 @@ assert reset_info["pending"] is None, reset_info
 assert reset_info["active"] is None, reset_info
 assert reset_info["last"] is None, reset_info
 assert app.history.count_reactivations(conversation_id) == 0
-with sqlite3.connect(os.environ["ZOMBIE_HISTORY_DB"]) as connection:
+with sqlite3.connect(os.environ["AI_SYS_ADMIN_HISTORY_DB"]) as connection:
     retained = connection.execute(
         "SELECT status, error FROM reactivations WHERE id = ?",
         (queued_for_reset["reactivation"]["id"],),
@@ -737,9 +738,9 @@ assert retained == ("cancelled", "reset by operator"), retained
 
 visible, request, error = server._agent_reactivation_request(
     "I need another turn.\n"
-    '<ubuntu-zombie-reactivation>{"delay_seconds":5,'
+    '<ubuntu-ai-system-administrator-reactivation>{"delay_seconds":5,'
     '"prompt":"Continue the test.","reason":"More work remains.",'
-    '"replace_existing":false}</ubuntu-zombie-reactivation>'
+    '"replace_existing":false}</ubuntu-ai-system-administrator-reactivation>'
 )
 assert visible == "I need another turn.", visible
 assert error is None, error
@@ -758,9 +759,9 @@ try:
     server.pi_mono.run_turn = lambda **kwargs: {
         "final": (
             "Scheduling the next step.\n"
-            '<ubuntu-zombie-reactivation>{"delay_seconds":5,'
+            '<ubuntu-ai-system-administrator-reactivation>{"delay_seconds":5,'
             '"prompt":"Payload queued continuation.",'
-            '"reason":"Payload outcome."}</ubuntu-zombie-reactivation>'
+            '"reason":"Payload outcome."}</ubuntu-ai-system-administrator-reactivation>'
         ),
         "events": [],
         "log_path": None,
@@ -785,7 +786,7 @@ assert app.reactivation_info()["pending"]["prompt"] == \
 app.cancel_reactivation()
 
 visible, request, error = server._agent_reactivation_request(
-    "Visible reply\n<ubuntu-zombie-reactivation>{bad json}"
+    "Visible reply\n<ubuntu-ai-system-administrator-reactivation>{bad json}"
 )
 assert visible == "Visible reply", visible
 assert request is None
@@ -795,8 +796,8 @@ assert error, error
 # fence around the block, and repeated blocks all still schedule.
 visible, request, error = server._agent_reactivation_request(
     "Working.\n"
-    '<ubuntu-zombie-reactivation>{"delay_seconds":1,"prompt":"p"}'
-    "</ubuntu-zombie-reactivation>\nI will continue shortly."
+    '<ubuntu-ai-system-administrator-reactivation>{"delay_seconds":1,"prompt":"p"}'
+    "</ubuntu-ai-system-administrator-reactivation>\nI will continue shortly."
 )
 assert error is None, error
 assert request == {"delay_seconds": 1, "prompt": "p"}, request
@@ -804,18 +805,18 @@ assert visible == "Working.\n\nI will continue shortly.", visible
 
 visible, request, error = server._agent_reactivation_request(
     "Working.\n```json\n"
-    '<ubuntu-zombie-reactivation>{"delay_seconds":2,"prompt":"p"}'
-    "</ubuntu-zombie-reactivation>\n```"
+    '<ubuntu-ai-system-administrator-reactivation>{"delay_seconds":2,"prompt":"p"}'
+    "</ubuntu-ai-system-administrator-reactivation>\n```"
 )
 assert error is None, error
 assert request["delay_seconds"] == 2, request
 assert visible == "Working.", visible
 
 visible, request, error = server._agent_reactivation_request(
-    '<ubuntu-zombie-reactivation>{"delay_seconds":1,"prompt":"first"}'
-    "</ubuntu-zombie-reactivation>Middle."
-    '<ubuntu-zombie-reactivation>{"delay_seconds":3,"prompt":"last"}'
-    "</ubuntu-zombie-reactivation>"
+    '<ubuntu-ai-system-administrator-reactivation>{"delay_seconds":1,"prompt":"first"}'
+    "</ubuntu-ai-system-administrator-reactivation>Middle."
+    '<ubuntu-ai-system-administrator-reactivation>{"delay_seconds":3,"prompt":"last"}'
+    "</ubuntu-ai-system-administrator-reactivation>"
 )
 assert error is None, error
 assert request["prompt"] == "last", request
@@ -824,10 +825,10 @@ assert visible == "Middle.", visible
 # Minor JSON slips from a model should not break a continuation.
 visible, request, error = server._agent_reactivation_request(
     "Before."
-    "<ubuntu-zombie-reactivation>```json\n"
+    "<ubuntu-ai-system-administrator-reactivation>```json\n"
     "{'delay_seconds': 4, 'prompt': 'relaxed true', "
     "'replace_existing': false,}\n```"
-    "</ubuntu-zombie-reactivation>After."
+    "</ubuntu-ai-system-administrator-reactivation>After."
 )
 assert error is None, error
 assert request == {
@@ -945,8 +946,8 @@ PY
   # requiring `pi` (or even npm) on the test host.
   if command -v node >/dev/null 2>&1; then
     echo "  pi-mono stub end-to-end"
-    ZOMBIE_PI_MONO_BRIDGE="$(pwd)/tests/fixtures/stub-pi-mono.mjs" \
-    ZOMBIE_PI_MONO_LOG_DIR="$(mktemp -d)" \
+    AI_SYS_ADMIN_PI_MONO_BRIDGE="$(pwd)/tests/fixtures/stub-pi-mono.mjs" \
+    AI_SYS_ADMIN_PI_MONO_LOG_DIR="$(mktemp -d)" \
     PYTHONPATH=payload/agent \
       python3 - <<'PY'
 import json, os, sys
@@ -997,17 +998,17 @@ if "".join(e.get("delta", "") for e in streamed if e.get("type") == "token") != 
 PY
 
     # Unified model selection + auth isolation: pi_mono.run_turn must
-    # resolve the model from ZOMBIE_PROVIDER/ZOMBIE_MODEL (via the same
+    # resolve the model from AI_SYS_ADMIN_PROVIDER/AI_SYS_ADMIN_MODEL (via the same
     # providers registry the banner uses) and pass it to the bridge,
     # while forwarding ONLY the active provider's key. The stub records
     # the received `start` frame and its env-key visibility.
     echo "  pi-mono unified model selection + key isolation"
     _START_OUT="$(mktemp)"
-    ZOMBIE_PI_MONO_BRIDGE="$(pwd)/tests/fixtures/stub-pi-mono.mjs" \
-    ZOMBIE_PI_MONO_LOG_DIR="$(mktemp -d)" \
-    ZOMBIE_STUB_START_OUT="${_START_OUT}" \
-    ZOMBIE_PROVIDER="gemini" \
-    ZOMBIE_MODEL="gemini-2.0-flash" \
+    AI_SYS_ADMIN_PI_MONO_BRIDGE="$(pwd)/tests/fixtures/stub-pi-mono.mjs" \
+    AI_SYS_ADMIN_PI_MONO_LOG_DIR="$(mktemp -d)" \
+    AI_SYS_ADMIN_STUB_START_OUT="${_START_OUT}" \
+    AI_SYS_ADMIN_PROVIDER="gemini" \
+    AI_SYS_ADMIN_MODEL="gemini-2.0-flash" \
     GEMINI_API_KEY="test-gemini" \
     OPENAI_API_KEY="test-openai-should-be-stripped" \
     PYTHONPATH=payload/agent \
@@ -1047,10 +1048,10 @@ PY
     # install is needed. Also exercises the server App wrappers.
     echo "  providers model catalogue + /model endpoints"
     _MODEL_TMP="$(mktemp -d)"
-    ZOMBIE_PI_AI_BRIDGE="$(pwd)/tests/fixtures/stub-pi-ai-bridge.mjs" \
-    ZOMBIE_NODE="$(command -v node)" \
-    ZOMBIE_HISTORY_DB="${_MODEL_TMP}/conversations.db" \
-    ZOMBIE_AUDIT_LOG="${_MODEL_TMP}/audit.log" \
+    AI_SYS_ADMIN_PI_AI_BRIDGE="$(pwd)/tests/fixtures/stub-pi-ai-bridge.mjs" \
+    AI_SYS_ADMIN_NODE="$(command -v node)" \
+    AI_SYS_ADMIN_HISTORY_DB="${_MODEL_TMP}/conversations.db" \
+    AI_SYS_ADMIN_AUDIT_LOG="${_MODEL_TMP}/audit.log" \
     PYTHONPATH=payload/agent \
       python3 - <<'PY'
 import json
@@ -1059,7 +1060,7 @@ import tempfile
 import providers as _pr
 import server
 
-for k in ("ZOMBIE_PROVIDER", "ZOMBIE_MODEL", "OPENAI_API_KEY",
+for k in ("AI_SYS_ADMIN_PROVIDER", "AI_SYS_ADMIN_MODEL", "OPENAI_API_KEY",
           "ANTHROPIC_API_KEY", "GEMINI_API_KEY", "XAI_API_KEY",
           "OPENROUTER_API_KEY", "MISTRAL_API_KEY", "GROQ_API_KEY",
           "LMSTUDIO_API_KEY"):
@@ -1075,7 +1076,7 @@ for fn in (_pr.active_provider, _pr.list_models, _pr.current_model):
     else:
         raise SystemExit(f"{fn.__name__} should raise without a provider")
 
-os.environ["ZOMBIE_PROVIDER"] = "openai"
+os.environ["AI_SYS_ADMIN_PROVIDER"] = "openai"
 os.environ["OPENAI_API_KEY"] = "test"
 
 if _pr.active_provider() != "openai":
@@ -1092,13 +1093,13 @@ o3 = next(m for m in models if m["id"] == "o3-mini")
 if o3["reasoning"] is not True or o3["context_window"] != 200000:
     raise SystemExit(f"list_models lost model metadata: {o3!r}")
 
-# Selecting a known id pins ZOMBIE_MODEL for this process so every
+# Selecting a known id pins AI_SYS_ADMIN_MODEL for this process so every
 # later turn resolves the same model.
 prov, chosen = _pr.set_active_model("gpt-4o")
 if (prov, chosen) != ("openai", "gpt-4o"):
     raise SystemExit(f"set_active_model returned {(prov, chosen)!r}")
-if os.environ.get("ZOMBIE_MODEL") != "gpt-4o":
-    raise SystemExit("set_active_model must pin ZOMBIE_MODEL")
+if os.environ.get("AI_SYS_ADMIN_MODEL") != "gpt-4o":
+    raise SystemExit("set_active_model must pin AI_SYS_ADMIN_MODEL")
 if _pr.current_model() != "gpt-4o":
     raise SystemExit("current_model must reflect the selection")
 
@@ -1112,11 +1113,11 @@ for bad in ("definitely-not-a-model", ""):
     else:
         raise SystemExit(f"set_active_model({bad!r}) should raise ValueError")
 # The rejected selection must not have changed the pinned model.
-if os.environ.get("ZOMBIE_MODEL") != "gpt-4o":
-    raise SystemExit("a rejected selection must not mutate ZOMBIE_MODEL")
+if os.environ.get("AI_SYS_ADMIN_MODEL") != "gpt-4o":
+    raise SystemExit("a rejected selection must not mutate AI_SYS_ADMIN_MODEL")
 
 # lmstudio has no catalogue, so any non-empty id is accepted free-form.
-os.environ["ZOMBIE_PROVIDER"] = "lmstudio"
+os.environ["AI_SYS_ADMIN_PROVIDER"] = "lmstudio"
 os.environ["LMSTUDIO_API_KEY"] = "local"
 if _pr.list_models() != []:
     raise SystemExit("lmstudio should expose an empty catalogue")
@@ -1162,7 +1163,7 @@ if [entry["address"] for entry in discovered] != [
 
 models_dir = tempfile.mkdtemp()
 models_path = os.path.join(models_dir, "models.json")
-os.environ["ZOMBIE_PI_MODELS_JSON"] = models_path
+os.environ["AI_SYS_ADMIN_PI_MODELS_JSON"] = models_path
 provider, chosen, address = _pr.activate_lmstudio(discovered[0])
 if (provider, chosen, address) != (
     "lmstudio", "qwen/qwen3-coder", "127.0.0.1:1234"
@@ -1181,8 +1182,8 @@ if _pr.provider_status() != (
     raise SystemExit(f"lmstudio provider status wrong: {_pr.provider_status()!r}")
 
 # Server App wrappers: model and local API listing/selection payloads.
-os.environ["ZOMBIE_PROVIDER"] = "openai"
-os.environ.pop("ZOMBIE_MODEL", None)
+os.environ["AI_SYS_ADMIN_PROVIDER"] = "openai"
+os.environ.pop("AI_SYS_ADMIN_MODEL", None)
 app = server.App()
 info = app.models_info()
 if info.get("provider") != "openai" or info.get("current") != "gpt-4o-mini":
@@ -1289,13 +1290,13 @@ JS
         exit 1
     fi
     _LM_OUT="$(printf '%s' '{"op":"list_models","provider":"lmstudio"}' \
-        | ZOMBIE_PI_MODELS_JSON="${_LM_DIR}/models.json" \
+        | AI_SYS_ADMIN_PI_MODELS_JSON="${_LM_DIR}/models.json" \
           LMSTUDIO_API_KEY=local \
           node payload/agent/pi-ai-bridge.mjs)"
     kill "${_LM_PID}" 2>/dev/null || true
-    ZOMBIE_LM_OUT="${_LM_OUT}" python3 - <<'PY'
+    AI_SYS_ADMIN_LM_OUT="${_LM_OUT}" python3 - <<'PY'
 import json, os
-out = json.loads(os.environ["ZOMBIE_LM_OUT"])
+out = json.loads(os.environ["AI_SYS_ADMIN_LM_OUT"])
 if not out.get("ok"):
     raise SystemExit(f"live list_models failed: {out!r}")
 ids = [m["id"] for m in out.get("models", [])]
@@ -1360,24 +1361,24 @@ JS
     _PI_AI_LOCAL_OUT="$(printf '%s' \
         '{"provider":"lmstudio","model":"llama-3.1-8b","messages":[{"role":"user","content":"ping"}]}' \
         | NODE_PATH="${_LM_DIR}/node_modules" \
-          ZOMBIE_PI_MODELS_JSON="${_LM_DIR}/models.json" \
+          AI_SYS_ADMIN_PI_MODELS_JSON="${_LM_DIR}/models.json" \
           LMSTUDIO_API_KEY=local \
           node payload/agent/pi-ai-bridge.mjs)"
-    ZOMBIE_PI_AI_LIST_OUT="${_PI_AI_LIST_OUT}" \
-      ZOMBIE_PI_AI_COMPLETE_OUT="${_PI_AI_COMPLETE_OUT}" \
-      ZOMBIE_PI_AI_LOCAL_OUT="${_PI_AI_LOCAL_OUT}" python3 - <<'PY'
+    AI_SYS_ADMIN_PI_AI_LIST_OUT="${_PI_AI_LIST_OUT}" \
+      AI_SYS_ADMIN_PI_AI_COMPLETE_OUT="${_PI_AI_COMPLETE_OUT}" \
+      AI_SYS_ADMIN_PI_AI_LOCAL_OUT="${_PI_AI_LOCAL_OUT}" python3 - <<'PY'
 import json
 import os
 
-listed = json.loads(os.environ["ZOMBIE_PI_AI_LIST_OUT"])
+listed = json.loads(os.environ["AI_SYS_ADMIN_PI_AI_LIST_OUT"])
 if listed != {"ok": True, "models": [{
         "id": "anthropic-model", "name": "Compat model",
         "reasoning": True, "contextWindow": 64000}]}:
     raise SystemExit(f"compat list_models failed: {listed!r}")
-completed = json.loads(os.environ["ZOMBIE_PI_AI_COMPLETE_OUT"])
+completed = json.loads(os.environ["AI_SYS_ADMIN_PI_AI_COMPLETE_OUT"])
 if completed != {"ok": True, "text": "compat completion"}:
     raise SystemExit(f"compat completion failed: {completed!r}")
-local = json.loads(os.environ["ZOMBIE_PI_AI_LOCAL_OUT"])
+local = json.loads(os.environ["AI_SYS_ADMIN_PI_AI_LOCAL_OUT"])
 expected_text = (
     "local openai-completions http://127.0.0.1:7891/v1 key=local"
 )
@@ -1391,14 +1392,14 @@ PY
     # observation) once exceeded so the model ends the turn cleanly
     # rather than looping.
     echo "  pi-mono per-turn tool-call budget enforcement"
-    ZOMBIE_STUB_PLAN='[
+    AI_SYS_ADMIN_STUB_PLAN='[
       {"type":"tool_call","id":"1","name":"fs.read","args":{"path":"/etc/os-release","max_bytes":64}},
       {"type":"tool_call","id":"2","name":"fs.read","args":{"path":"/etc/os-release","max_bytes":64}},
       {"type":"tool_call","id":"3","name":"fs.read","args":{"path":"/etc/os-release","max_bytes":64}},
       {"type":"final","text":"budget run complete"}
     ]' \
-    ZOMBIE_PI_MONO_BRIDGE="$(pwd)/tests/fixtures/stub-pi-mono.mjs" \
-    ZOMBIE_PI_MONO_LOG_DIR="$(mktemp -d)" \
+    AI_SYS_ADMIN_PI_MONO_BRIDGE="$(pwd)/tests/fixtures/stub-pi-mono.mjs" \
+    AI_SYS_ADMIN_PI_MONO_LOG_DIR="$(mktemp -d)" \
     PYTHONPATH=payload/agent \
       python3 - <<'PY'
 import pi_mono, tools
@@ -1436,17 +1437,17 @@ PY
 
     echo "  server elevated-call budget enforcement"
     _BUDGET_TMP="$(mktemp -d)"
-    ZOMBIE_HISTORY_DB="${_BUDGET_TMP}/conversations.db" \
-    ZOMBIE_AUDIT_LOG="${_BUDGET_TMP}/audit.log" \
-    ZOMBIE_POLICY="payload/etc/policy.yaml" \
-    ZOMBIE_STUB_PLAN='[
-      {"type":"tool_call","id":"a","name":"fs.write","args":{"path":"/tmp/zombie-budget-1","content":"x"}},
-      {"type":"tool_call","id":"b","name":"fs.write","args":{"path":"/tmp/zombie-budget-2","content":"x"}},
-      {"type":"tool_call","id":"c","name":"fs.write","args":{"path":"/tmp/zombie-budget-3","content":"x"}},
+    AI_SYS_ADMIN_HISTORY_DB="${_BUDGET_TMP}/conversations.db" \
+    AI_SYS_ADMIN_AUDIT_LOG="${_BUDGET_TMP}/audit.log" \
+    AI_SYS_ADMIN_POLICY="payload/etc/policy.yaml" \
+    AI_SYS_ADMIN_STUB_PLAN='[
+      {"type":"tool_call","id":"a","name":"fs.write","args":{"path":"/tmp/ai-sys-admin-budget-1","content":"x"}},
+      {"type":"tool_call","id":"b","name":"fs.write","args":{"path":"/tmp/ai-sys-admin-budget-2","content":"x"}},
+      {"type":"tool_call","id":"c","name":"fs.write","args":{"path":"/tmp/ai-sys-admin-budget-3","content":"x"}},
       {"type":"final","text":"elevated budget run complete"}
     ]' \
-    ZOMBIE_PI_MONO_BRIDGE="$(pwd)/tests/fixtures/stub-pi-mono.mjs" \
-    ZOMBIE_PI_MONO_LOG_DIR="$(mktemp -d)" \
+    AI_SYS_ADMIN_PI_MONO_BRIDGE="$(pwd)/tests/fixtures/stub-pi-mono.mjs" \
+    AI_SYS_ADMIN_PI_MONO_LOG_DIR="$(mktemp -d)" \
     PYTHONPATH=payload/agent \
       python3 - <<'PY'
 import json
@@ -1503,8 +1504,8 @@ PY
     # subprocess and raise a clean BridgeError once the idle timeout
     # elapses (the "Hello hangs forever" regression).
     echo "  pi-mono idle timeout terminates a wedged turn"
-    ZOMBIE_PI_MONO_BRIDGE="$(pwd)/tests/fixtures/hang-pi-mono.mjs" \
-    ZOMBIE_PI_MONO_LOG_DIR="$(mktemp -d)" \
+    AI_SYS_ADMIN_PI_MONO_BRIDGE="$(pwd)/tests/fixtures/hang-pi-mono.mjs" \
+    AI_SYS_ADMIN_PI_MONO_LOG_DIR="$(mktemp -d)" \
     PYTHONPATH=payload/agent \
       python3 - <<'PY'
 import time
@@ -1597,9 +1598,9 @@ PY
     #      bridge must not keep its stdin open (the "120s inactivity
     #      timeout" with a working local LM Studio server).
     echo "  pi-mono real bridge parses pi --mode json (text answer)"
-    ZOMBIE_PI_MONO_BRIDGE="$(pwd)/payload/agent/pi-mono-bridge.mjs" \
-    ZOMBIE_PI_MONO_BIN="$(pwd)/tests/fixtures/fake-pi-json.mjs" \
-    ZOMBIE_PI_MONO_LOG_DIR="$(mktemp -d)" \
+    AI_SYS_ADMIN_PI_MONO_BRIDGE="$(pwd)/payload/agent/pi-mono-bridge.mjs" \
+    AI_SYS_ADMIN_PI_MONO_BIN="$(pwd)/tests/fixtures/fake-pi-json.mjs" \
+    AI_SYS_ADMIN_PI_MONO_LOG_DIR="$(mktemp -d)" \
     PYTHONPATH=payload/agent \
       python3 - <<'PY'
 import time
@@ -1640,10 +1641,10 @@ PY
     # only in agent_end.messages. The bridge must recover that terminal
     # snapshot instead of returning an empty turn.
     echo "  pi-mono bridge recovers terminal-only post-tool answer"
-    ZOMBIE_FAKE_PI_MODE="terminal-answer" \
-    ZOMBIE_PI_MONO_BRIDGE="$(pwd)/payload/agent/pi-mono-bridge.mjs" \
-    ZOMBIE_PI_MONO_BIN="$(pwd)/tests/fixtures/fake-pi-json.mjs" \
-    ZOMBIE_PI_MONO_LOG_DIR="$(mktemp -d)" \
+    AI_SYS_ADMIN_FAKE_PI_MODE="terminal-answer" \
+    AI_SYS_ADMIN_PI_MONO_BRIDGE="$(pwd)/payload/agent/pi-mono-bridge.mjs" \
+    AI_SYS_ADMIN_PI_MONO_BIN="$(pwd)/tests/fixtures/fake-pi-json.mjs" \
+    AI_SYS_ADMIN_PI_MONO_LOG_DIR="$(mktemp -d)" \
     PYTHONPATH=payload/agent \
       python3 - <<'PY'
 import os
@@ -1651,7 +1652,7 @@ import os
 import pi_mono, tools
 
 for mode in ("terminal-answer", "turn-answer"):
-    os.environ["ZOMBIE_FAKE_PI_MODE"] = mode
+    os.environ["AI_SYS_ADMIN_FAKE_PI_MODE"] = mode
     out = pi_mono.run_turn(
         prompt="which operating system is this?",
         system_prompt="stub",
@@ -1670,10 +1671,10 @@ PY
     # grep finding no match). Pi nests bash exit metadata under result.details;
     # preserve it so the UI can distinguish that status from a tool failure.
     echo "  pi-mono bridge distinguishes shell status from tool failure"
-    ZOMBIE_FAKE_PI_MODE="shell-status" \
-    ZOMBIE_PI_MONO_BRIDGE="$(pwd)/payload/agent/pi-mono-bridge.mjs" \
-    ZOMBIE_PI_MONO_BIN="$(pwd)/tests/fixtures/fake-pi-json.mjs" \
-    ZOMBIE_PI_MONO_LOG_DIR="$(mktemp -d)" \
+    AI_SYS_ADMIN_FAKE_PI_MODE="shell-status" \
+    AI_SYS_ADMIN_PI_MONO_BRIDGE="$(pwd)/payload/agent/pi-mono-bridge.mjs" \
+    AI_SYS_ADMIN_PI_MONO_BIN="$(pwd)/tests/fixtures/fake-pi-json.mjs" \
+    AI_SYS_ADMIN_PI_MONO_LOG_DIR="$(mktemp -d)" \
     PYTHONPATH=payload/agent \
       python3 - <<'PY'
 import pi_mono, tools
@@ -1703,10 +1704,10 @@ PY
     # the bridge previously dropped `history`, so the model forgot names
     # and earlier context). The fake pi echoes its -p prompt back.
     echo "  pi-mono real bridge forwards conversation history (memory)"
-    ZOMBIE_FAKE_PI_MODE="echo" \
-    ZOMBIE_PI_MONO_BRIDGE="$(pwd)/payload/agent/pi-mono-bridge.mjs" \
-    ZOMBIE_PI_MONO_BIN="$(pwd)/tests/fixtures/fake-pi-json.mjs" \
-    ZOMBIE_PI_MONO_LOG_DIR="$(mktemp -d)" \
+    AI_SYS_ADMIN_FAKE_PI_MODE="echo" \
+    AI_SYS_ADMIN_PI_MONO_BRIDGE="$(pwd)/payload/agent/pi-mono-bridge.mjs" \
+    AI_SYS_ADMIN_PI_MONO_BIN="$(pwd)/tests/fixtures/fake-pi-json.mjs" \
+    AI_SYS_ADMIN_PI_MONO_LOG_DIR="$(mktemp -d)" \
     PYTHONPATH=payload/agent \
       python3 - <<'PY'
 import pi_mono, tools
@@ -1742,10 +1743,10 @@ PY
     # The real bridge must surface a provider/connection error as a
     # clean BridgeError rather than a blank answer or a hung turn.
     echo "  pi-mono real bridge surfaces provider errors"
-    ZOMBIE_FAKE_PI_MODE="error" \
-    ZOMBIE_PI_MONO_BRIDGE="$(pwd)/payload/agent/pi-mono-bridge.mjs" \
-    ZOMBIE_PI_MONO_BIN="$(pwd)/tests/fixtures/fake-pi-json.mjs" \
-    ZOMBIE_PI_MONO_LOG_DIR="$(mktemp -d)" \
+    AI_SYS_ADMIN_FAKE_PI_MODE="error" \
+    AI_SYS_ADMIN_PI_MONO_BRIDGE="$(pwd)/payload/agent/pi-mono-bridge.mjs" \
+    AI_SYS_ADMIN_PI_MONO_BIN="$(pwd)/tests/fixtures/fake-pi-json.mjs" \
+    AI_SYS_ADMIN_PI_MONO_LOG_DIR="$(mktemp -d)" \
     PYTHONPATH=payload/agent \
       python3 - <<'PY'
 import pi_mono, tools
@@ -1773,10 +1774,10 @@ PY
     # that stale partial text (the operator would otherwise see a
     # truncated preamble and no explanation at all).
     echo "  pi-mono real bridge prefers a late error over partial text"
-    ZOMBIE_FAKE_PI_MODE="partial-error" \
-    ZOMBIE_PI_MONO_BRIDGE="$(pwd)/payload/agent/pi-mono-bridge.mjs" \
-    ZOMBIE_PI_MONO_BIN="$(pwd)/tests/fixtures/fake-pi-json.mjs" \
-    ZOMBIE_PI_MONO_LOG_DIR="$(mktemp -d)" \
+    AI_SYS_ADMIN_FAKE_PI_MODE="partial-error" \
+    AI_SYS_ADMIN_PI_MONO_BRIDGE="$(pwd)/payload/agent/pi-mono-bridge.mjs" \
+    AI_SYS_ADMIN_PI_MONO_BIN="$(pwd)/tests/fixtures/fake-pi-json.mjs" \
+    AI_SYS_ADMIN_PI_MONO_LOG_DIR="$(mktemp -d)" \
     PYTHONPATH=payload/agent \
       python3 - <<'PY'
 import pi_mono, tools
@@ -1805,13 +1806,13 @@ PY
     # bubbles, so the operator saw tool activity and then nothing.
     echo "  empty model turn still produces a visible reply"
     _EMPTY_TMP="$(mktemp -d)"
-    ZOMBIE_HISTORY_DB="${_EMPTY_TMP}/conversations.db" \
-    ZOMBIE_AUDIT_LOG="${_EMPTY_TMP}/audit.log" \
-    ZOMBIE_POLICY="payload/etc/policy.yaml" \
-    ZOMBIE_FAKE_PI_MODE="silent" \
-    ZOMBIE_PI_MONO_BRIDGE="$(pwd)/payload/agent/pi-mono-bridge.mjs" \
-    ZOMBIE_PI_MONO_BIN="$(pwd)/tests/fixtures/fake-pi-json.mjs" \
-    ZOMBIE_PI_MONO_LOG_DIR="$(mktemp -d)" \
+    AI_SYS_ADMIN_HISTORY_DB="${_EMPTY_TMP}/conversations.db" \
+    AI_SYS_ADMIN_AUDIT_LOG="${_EMPTY_TMP}/audit.log" \
+    AI_SYS_ADMIN_POLICY="payload/etc/policy.yaml" \
+    AI_SYS_ADMIN_FAKE_PI_MODE="silent" \
+    AI_SYS_ADMIN_PI_MONO_BRIDGE="$(pwd)/payload/agent/pi-mono-bridge.mjs" \
+    AI_SYS_ADMIN_PI_MONO_BIN="$(pwd)/tests/fixtures/fake-pi-json.mjs" \
+    AI_SYS_ADMIN_PI_MONO_LOG_DIR="$(mktemp -d)" \
     PYTHONPATH=payload/agent \
       python3 - <<'PY'
 import server
@@ -1843,7 +1844,7 @@ PY
 
   echo "  audit redaction + verbose preview round-trip"
   _AUDIT_TMP="$(mktemp -d)"
-  ZOMBIE_AUDIT_LOG="${_AUDIT_TMP}/audit.log" \
+  AI_SYS_ADMIN_AUDIT_LOG="${_AUDIT_TMP}/audit.log" \
   PYTHONPATH=payload/agent python3 - <<'PY'
 import json
 import os
@@ -1862,7 +1863,7 @@ audit.log_tool_call(
 
 # Verbose mode: previews appear and are redacted by the same rules
 # applied to every other field.
-os.environ["ZOMBIE_AUDIT_VERBOSE"] = "1"
+os.environ["AI_SYS_ADMIN_AUDIT_VERBOSE"] = "1"
 try:
     audit.log_tool_call(
         tool="shell.run", classification="read_only", decision="executed",
@@ -1871,9 +1872,9 @@ try:
         exit_code=0, duration_ms=8,
     )
 finally:
-    del os.environ["ZOMBIE_AUDIT_VERBOSE"]
+    del os.environ["AI_SYS_ADMIN_AUDIT_VERBOSE"]
 
-path = os.environ["ZOMBIE_AUDIT_LOG"]
+path = os.environ["AI_SYS_ADMIN_AUDIT_LOG"]
 lines = [json.loads(l) for l in open(path, encoding="utf-8") if l.strip()]
 assert len(lines) == 3, lines
 
@@ -1910,7 +1911,7 @@ assert info.get("version") and info["version"] != "unknown", info
 assert info.get("pi_mono"), info
 assert info.get("pi_ai"), info
 components = {row["name"]: row for row in info["components"]}
-assert {"ubuntu-zombie", "pi-mono", "pi-ai", "python", "node", "sqlite"} <= set(components), info
+assert {"ubuntu-ai-system-administrator", "pi-mono", "pi-ai", "python", "node", "sqlite"} <= set(components), info
 
 class Response:
     def __init__(self, payload):
@@ -1924,7 +1925,7 @@ class Response:
 
 def fake_urlopen(request, timeout):
     assert timeout == server.VERSION_CHECK_TIMEOUT_SECONDS
-    assert request.get_header("User-agent").startswith("ubuntu-zombie/")
+    assert request.get_header("User-agent").startswith("ubuntu-ai-system-administrator/")
     if "github.com" in request.full_url:
         return Response({"tag_name": "v2099.1.2"})
     return Response({"version": "9.8.7"})
@@ -1936,7 +1937,7 @@ server._version_cache = (
 )
 checked = server.version_info(check_latest=True)
 checked_components = {row["name"]: row for row in checked["components"]}
-assert checked_components["ubuntu-zombie"]["latest"] == "2099.1.2", checked
+assert checked_components["ubuntu-ai-system-administrator"]["latest"] == "2099.1.2", checked
 assert checked_components["pi-mono"]["latest"] == "9.8.7", checked
 
 server.machine_facts = lambda: {"hostname": "test-host"}
@@ -1952,10 +1953,10 @@ PY
 
   echo "  server proof-of-life status"
   _STATUS_TMP="$(mktemp -d)"
-  ZOMBIE_HISTORY_DB="${_STATUS_TMP}/conversations.db" \
-  ZOMBIE_LIFECYCLE_STATE="${_STATUS_TMP}/lifecycle.json" \
-  ZOMBIE_AUDIT_LOG="${_STATUS_TMP}/audit.log" \
-  ZOMBIE_POLICY=payload/etc/policy.yaml \
+  AI_SYS_ADMIN_HISTORY_DB="${_STATUS_TMP}/conversations.db" \
+  AI_SYS_ADMIN_LIFECYCLE_STATE="${_STATUS_TMP}/lifecycle.json" \
+  AI_SYS_ADMIN_AUDIT_LOG="${_STATUS_TMP}/audit.log" \
+  AI_SYS_ADMIN_POLICY=payload/etc/policy.yaml \
   PYTHONPATH=payload/agent python3 - <<'PY'
 import server
 
@@ -1990,10 +1991,10 @@ PY
 
   echo "  server conversation endpoint (existing / bad id / not found)"
   _CONV_TMP="$(mktemp -d)"
-  ZOMBIE_HISTORY_DB="${_CONV_TMP}/conversations.db" \
-  ZOMBIE_AUDIT_LOG="${_CONV_TMP}/audit.log" \
-  ZOMBIE_POLICY=payload/etc/policy.yaml \
-  ZOMBIE_SKILLS_DIR=payload/agent/skills \
+  AI_SYS_ADMIN_HISTORY_DB="${_CONV_TMP}/conversations.db" \
+  AI_SYS_ADMIN_AUDIT_LOG="${_CONV_TMP}/audit.log" \
+  AI_SYS_ADMIN_POLICY=payload/etc/policy.yaml \
+  AI_SYS_ADMIN_SKILLS_DIR=payload/agent/skills \
   PYTHONPATH=payload/agent python3 - <<'PY'
 import atexit
 import json
@@ -2001,7 +2002,7 @@ import os
 import shutil
 from pathlib import Path
 
-_db = os.environ.get("ZOMBIE_HISTORY_DB")
+_db = os.environ.get("AI_SYS_ADMIN_HISTORY_DB")
 if _db:
     _td = Path(_db).resolve().parent
     if _td != Path("/") and len(str(_td)) > 10:
@@ -2151,8 +2152,8 @@ status, original = get(app, f"/api/conversation/{cid}")
 assert any(m["content"] == "try this" for m in original["messages"]), original
 
 # Read-only command-support endpoints.
-saved_provider = os.environ.get("ZOMBIE_PROVIDER")
-os.environ["ZOMBIE_PROVIDER"] = "bogus"
+saved_provider = os.environ.get("AI_SYS_ADMIN_PROVIDER")
+os.environ["AI_SYS_ADMIN_PROVIDER"] = "bogus"
 for path in ("/api/config", "/api/profile", "/api/whoami",
              "/api/policy", "/api/skills"):
     status, body = get(app, path)
@@ -2163,12 +2164,12 @@ assert whoami["hostname"], whoami
 assert whoami["chat_url"].startswith("http://127.0.0.1:"), whoami
 assert whoami["loopback_only"] is True, whoami
 status, profile = get(app, "/api/profile")
-assert profile["zombie_dir"] == os.environ.get("ZOMBIE_DIR", "/opt/ai-zombie"), profile
-assert profile["history_db"] == os.environ["ZOMBIE_HISTORY_DB"], profile
+assert profile["ai_sys_admin_dir"] == os.environ.get("AI_SYS_ADMIN_DIR", "/opt/ai-system-administrator"), profile
+assert profile["history_db"] == os.environ["AI_SYS_ADMIN_HISTORY_DB"], profile
 if saved_provider is None:
-    os.environ.pop("ZOMBIE_PROVIDER", None)
+    os.environ.pop("AI_SYS_ADMIN_PROVIDER", None)
 else:
-    os.environ["ZOMBIE_PROVIDER"] = saved_provider
+    os.environ["AI_SYS_ADMIN_PROVIDER"] = saved_provider
 assert any(s["name"] == "apt" for s in get(app, "/api/skills")[1]["skills"])
 status, body = get(app, "/api/skill/apt")
 assert status == 200 and "content" in body and body["name"] == "apt", body
@@ -2223,7 +2224,7 @@ PY
 
   echo "  lifecycle TTL kill switch"
   _LIFE_TMP="$(mktemp -d)"
-  ZOMBIE_LIFECYCLE_STATE="${_LIFE_TMP}/lifecycle.json" \
+  AI_SYS_ADMIN_LIFECYCLE_STATE="${_LIFE_TMP}/lifecycle.json" \
   PYTHONPATH=payload/agent python3 - <<'PY'
 import time
 import lifecycle
@@ -2269,7 +2270,7 @@ for bad in (0, -1):
 st = lifecycle.kill()
 assert st["dead"] is True and st["dead_reason"] == "killed", st
 st = lifecycle.set_ttl(5)
-assert st["dead"] is True, "a dead zombie must not be revivable via set_ttl"
+assert st["dead"] is True, "a disabled administrator must not be reactivated via set_ttl"
 
 # Only a fresh initialize() (a reinstall) clears the tombstone.
 st = lifecycle.initialize(1)
@@ -2280,7 +2281,7 @@ assert st["dead"] is False, st
 lifecycle.initialize(1)
 import json
 from pathlib import Path
-p = Path(__import__("os").environ["ZOMBIE_LIFECYCLE_STATE"])
+p = Path(__import__("os").environ["AI_SYS_ADMIN_LIFECYCLE_STATE"])
 data = json.loads(p.read_text())
 data["expires_at"] = time.time() - 1
 p.write_text(json.dumps(data))
@@ -2302,9 +2303,9 @@ os.environ.pop(auth.HASH_ENV, None)
 assert auth.auth_required() is False
 assert auth.check_password("anything") is True
 
-h = auth.hash_password("braaaains")
+h = auth.hash_password("change-me-now")
 assert h.startswith("pbkdf2_sha256$"), h
-assert auth.verify_password("braaaains", h) is True
+assert auth.verify_password("change-me-now", h) is True
 assert auth.verify_password("wrong", h) is False
 # Malformed stored hashes never validate.
 for bad in ("", "garbage", "pbkdf2_sha256$nope"):
@@ -2313,7 +2314,7 @@ for bad in ("", "garbage", "pbkdf2_sha256$nope"):
 os.environ[auth.HASH_ENV] = h
 try:
     assert auth.auth_required() is True
-    assert auth.check_password("braaaains") is True
+    assert auth.check_password("change-me-now") is True
     assert auth.check_password("nope") is False
 finally:
     os.environ.pop(auth.HASH_ENV, None)
@@ -2324,11 +2325,11 @@ PY
 
   echo "  server password gate + /ttl endpoints"
   _GATE_TMP="$(mktemp -d)"
-  ZOMBIE_HISTORY_DB="${_GATE_TMP}/conversations.db" \
-  ZOMBIE_AUDIT_LOG="${_GATE_TMP}/audit.log" \
-  ZOMBIE_POLICY=payload/etc/policy.yaml \
-  ZOMBIE_LIFECYCLE_STATE="${_GATE_TMP}/lifecycle.json" \
-  ZOMBIE_SECRETS="${_GATE_TMP}/secrets/env" \
+  AI_SYS_ADMIN_HISTORY_DB="${_GATE_TMP}/conversations.db" \
+  AI_SYS_ADMIN_AUDIT_LOG="${_GATE_TMP}/audit.log" \
+  AI_SYS_ADMIN_POLICY=payload/etc/policy.yaml \
+  AI_SYS_ADMIN_LIFECYCLE_STATE="${_GATE_TMP}/lifecycle.json" \
+  AI_SYS_ADMIN_SECRETS="${_GATE_TMP}/secrets/env" \
   PYTHONPATH=payload/agent python3 - <<'PY'
 import json
 import os
@@ -2400,7 +2401,7 @@ def post(app, path, body=None, cookie=None):
 
 
 # --- Gate enabled: protected endpoints require a login. ---
-os.environ[auth.HASH_ENV] = auth.hash_password("braaaains")
+os.environ[auth.HASH_ENV] = auth.hash_password("change-me-now")
 lifecycle.initialize(3)
 app = server.App()
 
@@ -2413,7 +2414,7 @@ assert status == 401, (status, body)
 status, body, _ = post(app, "/api/login", {"password": "wrong"})
 assert status == 401, (status, body)
 
-status, body, headers = post(app, "/api/login", {"password": "braaaains"})
+status, body, headers = post(app, "/api/login", {"password": "change-me-now"})
 assert status == 200 and body.get("ok"), (status, body)
 cookie = next(v.split(";", 1)[0] for k, v in headers if k == "Set-Cookie")
 
@@ -2422,13 +2423,13 @@ assert status == 200, (status, body)
 
 # Password changes rewrite secrets/env without leaking plaintext, and a
 # changed password clears existing sessions.
-status, body, _ = post(app, "/api/password", {"password": "new-braaaains"},
+status, body, _ = post(app, "/api/password", {"password": "new-change-me-now"},
                        cookie=cookie)
 assert status == 200 and body["required"] is True, (status, body)
-assert auth.check_password("new-braaaains") is True
+assert auth.check_password("new-change-me-now") is True
 status, body, _ = get(app, "/api/health", cookie=cookie)
 assert status == 401, (status, body)
-status, body, headers = post(app, "/api/login", {"password": "new-braaaains"})
+status, body, headers = post(app, "/api/login", {"password": "new-change-me-now"})
 assert status == 200 and body.get("ok"), (status, body)
 cookie = next(v.split(";", 1)[0] for k, v in headers if k == "Set-Cookie")
 
@@ -2439,7 +2440,7 @@ assert status == 200 and body["required"] is False, (status, body)
 status, body, _ = get(app, "/api/health")
 assert status == 200, (status, body)
 
-os.environ[auth.HASH_ENV] = auth.hash_password("braaaains")
+os.environ[auth.HASH_ENV] = auth.hash_password("change-me-now")
 
 # Logout invalidates the token.
 post(app, "/api/logout", cookie=cookie)
@@ -2490,7 +2491,7 @@ run_branding() {
   local first_line
   first_line='╭──────────────────────────────────╮'
   grep -Fq "$first_line" scripts/lib.sh
-  grep -Fq 'Ubuntu AI System Administrator' payload/bin/zombie-chat
+  grep -Fq 'Ubuntu AI System Administrator' payload/bin/chat
   grep -Fq 'function brandWordmark' payload/agent/templates/index.html
   PYTHONPATH=payload/agent python3 - <<'PY'
 import server
@@ -2500,19 +2501,19 @@ assert server._provider_banner(
     "lmstudio", "model qwen3 at 192.0.2.10:1234"
 ) == "qwen3 at 192.0.2.10:1234"
 assert server._provider_banner(
-    "openrouter", "model not set (set ZOMBIE_MODEL)"
-) == "model not set (set ZOMBIE_MODEL)"
+    "openrouter", "model not set (set AI_SYS_ADMIN_MODEL)"
+) == "model not set (set AI_SYS_ADMIN_MODEL)"
 assert server._provider_banner("none", "No provider configured") == (
     "No provider configured"
 )
 PY
   local out
-  out="$(ZOMBIE_COLOR=never ./scripts/install.sh --dry-run)"
+  out="$(AI_SYS_ADMIN_COLOR=never ./scripts/install.sh --dry-run)"
   grep -Fq "$first_line" <<<"${out}"
   # A real uninstall run opens with the splash; --help stays concise.
-  out="$(ZOMBIE_COLOR=never ./scripts/uninstall.sh --dry-run 2>&1 || true)"
+  out="$(AI_SYS_ADMIN_COLOR=never ./scripts/uninstall.sh --dry-run 2>&1 || true)"
   grep -Fq "$first_line" <<<"${out}"
-  out="$(ZOMBIE_COLOR=never ./scripts/uninstall.sh --help)"
+  out="$(AI_SYS_ADMIN_COLOR=never ./scripts/uninstall.sh --help)"
   if grep -Fq "$first_line" <<<"${out}"; then
     echo "FAIL: uninstall.sh --help must not print the splash" >&2
     exit 1
@@ -2541,22 +2542,22 @@ run_subcommands() {
   # Ubuntu AI System Administrator is the only install plan. Legacy product-selection
   # environment variables must be inert.
   local default_out legacy_env_out
-  default_out="$(ZOMBIE_COLOR=never ./scripts/install.sh install --dry-run)"
-  legacy_env_out="$(ZOMBIE_COLOR=never ZOMBIE_INSTALL_FORGEJO=1 \
-    ZOMBIE_INSTALL_FORGEJO_RUNNER=1 ZOMBIE_INSTALL_LLAMA=1 \
+  default_out="$(AI_SYS_ADMIN_COLOR=never ./scripts/install.sh install --dry-run)"
+  legacy_env_out="$(AI_SYS_ADMIN_COLOR=never AI_SYS_ADMIN_INSTALL_FORGEJO=1 \
+    AI_SYS_ADMIN_INSTALL_FORGEJO_RUNNER=1 AI_SYS_ADMIN_INSTALL_LLAMA=1 \
     ./scripts/install.sh install --dry-run)"
   [[ "${default_out}" == "${legacy_env_out}" ]] \
-    || { echo "FAIL: legacy product-selection variables changed the Zombie plan" >&2; exit 1; }
+    || { echo "FAIL: legacy product-selection variables changed the AI System Administrator plan" >&2; exit 1; }
   if grep -Eqi 'forgejo|forgejo-runner|standalone llama' <<<"${default_out}"; then
-    echo "FAIL: Zombie dry-run advertises a removed install mode" >&2
+    echo "FAIL: AI System Administrator dry-run advertises a removed install mode" >&2
     exit 1
   fi
   expect_exit_code 2 ./scripts/install.sh install --json --dry-run
 
   # Lifecycle grammar is a verb plus flags only. Every former component
-  # target, including the old explicit Zombie alias, must fail as bad usage.
+  # target, including the old explicit AI System Administrator alias, must fail as bad usage.
   for sub in install verify doctor repair uninstall; do
-    for target in nope zombie forgejo forgejo-runner llama "${sub}"; do
+    for target in nope ai-sys-admin forgejo forgejo-runner llama "${sub}"; do
       expect_exit_code 2 ./scripts/install.sh "${sub}" "${target}"
     done
   done
@@ -2589,28 +2590,28 @@ run_bad_usage() {
   # Duplicate subcommand tokens must be rejected too (FIX-1-15).
   expect_exit_code 2 ./scripts/install.sh doctor doctor
   expect_exit_code 2 ./scripts/install.sh install install
-  expect_exit_code 2 env 'ZOMBIE_USER=bad user' ./scripts/install.sh doctor
-  expect_exit_code 2 env 'ZOMBIE_USER=root' ./scripts/install.sh doctor
-  expect_exit_code 2 env 'ZOMBIE_USER=bad-' ./scripts/install.sh doctor
-  expect_exit_code 2 env 'ZOMBIE_USER=bad_' ./scripts/install.sh doctor
-  expect_exit_code 2 env 'ZOMBIE_DIR=relative/path' ./scripts/install.sh doctor
-  expect_exit_code 2 env 'ZOMBIE_DIR=/tmp/zombie;touch /tmp/install-path-pwn' ./scripts/install.sh doctor
+  expect_exit_code 2 env 'AI_SYS_ADMIN_USER=bad user' ./scripts/install.sh doctor
+  expect_exit_code 2 env 'AI_SYS_ADMIN_USER=root' ./scripts/install.sh doctor
+  expect_exit_code 2 env 'AI_SYS_ADMIN_USER=bad-' ./scripts/install.sh doctor
+  expect_exit_code 2 env 'AI_SYS_ADMIN_USER=bad_' ./scripts/install.sh doctor
+  expect_exit_code 2 env 'AI_SYS_ADMIN_DIR=relative/path' ./scripts/install.sh doctor
+  expect_exit_code 2 env 'AI_SYS_ADMIN_DIR=/tmp/ai-sys-admin;touch /tmp/install-path-pwn' ./scripts/install.sh doctor
   expect_exit_code 2 env 'LOG_FILE=relative.log' ./scripts/install.sh doctor
-  expect_exit_code 2 env 'LOG_FILE=/tmp/zombie log' ./scripts/install.sh doctor
-  expect_exit_code 2 env 'ZOMBIE_RECEIPT=1' 'ZOMBIE_RECEIPT_FILE=relative-receipt.txt' ./scripts/install.sh doctor
-  expect_exit_code 2 env 'ZOMBIE_CHAT_PORT=70000' ./scripts/install.sh doctor
-  # FIX-2-01: uninstall.sh must validate ZOMBIE_USER / paths *before*
+  expect_exit_code 2 env 'LOG_FILE=/tmp/ai-sys-admin log' ./scripts/install.sh doctor
+  expect_exit_code 2 env 'AI_SYS_ADMIN_RECEIPT=1' 'AI_SYS_ADMIN_RECEIPT_FILE=relative-receipt.txt' ./scripts/install.sh doctor
+  expect_exit_code 2 env 'AI_SYS_ADMIN_CHAT_PORT=70000' ./scripts/install.sh doctor
+  # FIX-2-01: uninstall.sh must validate AI_SYS_ADMIN_USER / paths *before*
   # any side-effecting command runs (so a smoke run as non-root still
   # exits 2 rather than 1).
-  expect_exit_code 2 env 'ZOMBIE_USER=zombie;touch /tmp/zombie-pwn' ./scripts/uninstall.sh --dry-run
-  expect_exit_code 2 env 'ZOMBIE_USER=root' ./scripts/uninstall.sh --dry-run
-  expect_exit_code 2 env 'ZOMBIE_DIR=relative/path' ./scripts/uninstall.sh --dry-run
-  expect_exit_code 2 env 'ZOMBIE_DIR=/tmp/zombie;touch /tmp/uninstall-path-pwn' ./scripts/uninstall.sh --dry-run
+  expect_exit_code 2 env 'AI_SYS_ADMIN_USER=ai-sys-admin;touch /tmp/ai-sys-admin-pwn' ./scripts/uninstall.sh --dry-run
+  expect_exit_code 2 env 'AI_SYS_ADMIN_USER=root' ./scripts/uninstall.sh --dry-run
+  expect_exit_code 2 env 'AI_SYS_ADMIN_DIR=relative/path' ./scripts/uninstall.sh --dry-run
+  expect_exit_code 2 env 'AI_SYS_ADMIN_DIR=/tmp/ai-sys-admin;touch /tmp/uninstall-path-pwn' ./scripts/uninstall.sh --dry-run
   expect_exit_code 2 env 'BACKUP_DIR=relative/path' ./scripts/uninstall.sh --dry-run
-  expect_exit_code 2 env 'BACKUP_DIR=/tmp/zombie backup' ./scripts/uninstall.sh --dry-run
-  [[ ! -e /tmp/zombie-pwn ]] || { echo "FAIL: uninstall.sh ZOMBIE_USER injection created /tmp/zombie-pwn" >&2; exit 1; }
-  [[ ! -e /tmp/install-path-pwn ]] || { echo "FAIL: install.sh ZOMBIE_DIR injection created /tmp/install-path-pwn" >&2; exit 1; }
-  [[ ! -e /tmp/uninstall-path-pwn ]] || { echo "FAIL: uninstall.sh ZOMBIE_DIR injection created /tmp/uninstall-path-pwn" >&2; exit 1; }
+  expect_exit_code 2 env 'BACKUP_DIR=/tmp/ai-sys-admin backup' ./scripts/uninstall.sh --dry-run
+  [[ ! -e /tmp/ai-sys-admin-pwn ]] || { echo "FAIL: uninstall.sh AI_SYS_ADMIN_USER injection created /tmp/ai-sys-admin-pwn" >&2; exit 1; }
+  [[ ! -e /tmp/install-path-pwn ]] || { echo "FAIL: install.sh AI_SYS_ADMIN_DIR injection created /tmp/install-path-pwn" >&2; exit 1; }
+  [[ ! -e /tmp/uninstall-path-pwn ]] || { echo "FAIL: uninstall.sh AI_SYS_ADMIN_DIR injection created /tmp/uninstall-path-pwn" >&2; exit 1; }
   # FIX-2-11: uninstall.sh run() must refuse extra arguments.
   set +e
   out="$(bash -c '
@@ -2635,7 +2636,7 @@ run_bad_usage() {
   # Uninstall must keep cleaning up even when host-level best-effort
   # removals fail, and it must quote paths passed through its eval helper.
   grep -Fq 'run_or_warn "systemctl daemon-reload"' scripts/uninstall.sh
-  grep -Fq 'remove_tree_checked "${ZOMBIE_DIR}" "${ZOMBIE_DIR}"' scripts/uninstall.sh
+  grep -Fq 'remove_tree_checked "${AI_SYS_ADMIN_DIR}" "${AI_SYS_ADMIN_DIR}"' scripts/uninstall.sh
   grep -Fq 'run_or_warn "Remove global npm package ${_pkg}"' scripts/uninstall.sh
   grep -Fq 'rm -f -- $(shell_quote "${f}")' scripts/uninstall.sh
   grep -Fq 'rm -f -- $(shell_quote "${_path}")' scripts/uninstall.sh
@@ -2735,7 +2736,7 @@ run_noninteractive() {
   # --help. The previous version of this test allocated a tmpdir and
   # probed `sudo -n true` but discarded both, so they have been removed
   # (FIX-1-13).
-  ./scripts/install.sh --help | grep -q ZOMBIE_NONINTERACTIVE
+  ./scripts/install.sh --help | grep -q AI_SYS_ADMIN_NONINTERACTIVE
   # The connectivity preflight must not use the retrying download helper:
   # curl_get adds 45 seconds of wrapper backoff before fallback probes run.
   if sed -n '/^preflight() {/,/^}/p' scripts/install.sh \
@@ -2762,7 +2763,7 @@ run_diagnostics() {
     exit 1
   fi
   local -a tarballs
-  mapfile -t tarballs < <(find "${td}" -maxdepth 1 -name 'ubuntu-zombie-diagnostics-*.tar.gz' -print)
+  mapfile -t tarballs < <(find "${td}" -maxdepth 1 -name 'ubuntu-ai-system-administrator-diagnostics-*.tar.gz' -print)
   if [[ "${#tarballs[@]}" -ne 1 ]]; then
     rm -rf "${td}"
     echo "FAIL: collect-diagnostics must produce exactly one tarball (found ${#tarballs[@]})" >&2
@@ -2777,7 +2778,7 @@ run_diagnostics() {
   fi
   # The staging directory must be cleaned up by the EXIT trap, leaving
   # only the tarball behind.
-  if find "${td}" -maxdepth 1 -type d -name 'ubuntu-zombie-diagnostics-*' | grep -q .; then
+  if find "${td}" -maxdepth 1 -type d -name 'ubuntu-ai-system-administrator-diagnostics-*' | grep -q .; then
     rm -rf "${td}"
     echo "FAIL: collect-diagnostics left its staging directory behind" >&2
     exit 1
@@ -2791,13 +2792,13 @@ run_diagnostics() {
 exit 1
 EOF
   chmod +x "${td}/systemctl"
-  if PATH="${td}:${PATH}" ZOMBIE_DIR="${td}/missing" \
+  if PATH="${td}:${PATH}" AI_SYS_ADMIN_DIR="${td}/missing" \
       bash payload/bin/health-check >/dev/null 2>&1; then
     rm -rf "${td}"
     echo "FAIL: health-check should exit non-zero for manual failed checks" >&2
     exit 1
   fi
-  if ! PATH="${td}:${PATH}" ZOMBIE_DIR="${td}/missing" ZOMBIE_HEALTH_WARN_ONLY=1 \
+  if ! PATH="${td}:${PATH}" AI_SYS_ADMIN_DIR="${td}/missing" AI_SYS_ADMIN_HEALTH_WARN_ONLY=1 \
       bash payload/bin/health-check >/dev/null 2>&1; then
     rm -rf "${td}"
     echo "FAIL: health-check timer warn-only mode should not fail the systemd unit" >&2
@@ -2899,74 +2900,74 @@ run_standards() {
 
   # The built-in skills ship under payload/agent/skills/ so
   # ``make package`` carries them into the release bundle and the
-  # installer can deploy them to /opt/ai-zombie/skills/.
+  # installer can deploy them to /opt/ai-system-administrator/skills/.
   local s
   for s in ai-agents apt backup certificates containers css database \
            desktop dev disk files git hardware hermes-agent html \
            journal json kernel llm locale network obsidian openclaw-agent \
            packages performance pi-mono-agent process reactivation \
            scheduling secrets security services snap sql systemd \
-           troubleshoot ubuntu users virtualization web zombie zram; do
+           troubleshoot ubuntu users virtualization web ai-system-administrator zram; do
     [[ -s "payload/agent/skills/${s}.md" ]] || \
       { echo "missing built-in skill: payload/agent/skills/${s}.md" >&2; exit 1; }
   done
 
-  grep -q "__ZOMBIE_DIR__" payload/systemd/ubuntu-zombie-chat.service \
-    || { echo "chat systemd template must keep __ZOMBIE_DIR__ placeholder" >&2; exit 1; }
-  grep -q "Environment=ZOMBIE_DIR=__ZOMBIE_DIR__" \
-    payload/systemd/ubuntu-zombie-chat.service \
+  grep -q "__AI_SYS_ADMIN_DIR__" payload/systemd/ubuntu-ai-system-administrator-chat.service \
+    || { echo "chat systemd template must keep __AI_SYS_ADMIN_DIR__ placeholder" >&2; exit 1; }
+  grep -q "Environment=AI_SYS_ADMIN_DIR=__AI_SYS_ADMIN_DIR__" \
+    payload/systemd/ubuntu-ai-system-administrator-chat.service \
     || { echo "chat service must export its rendered install root" >&2; exit 1; }
-  grep -q "ExecStart=__ZOMBIE_DIR__/bin/health-check" payload/systemd/ubuntu-zombie-health.service \
-    || { echo "health systemd template must use __ZOMBIE_DIR__ placeholder" >&2; exit 1; }
-  grep -q "ZOMBIE_HEALTH_WARN_ONLY=1" payload/systemd/ubuntu-zombie-health.service \
+  grep -q "ExecStart=__AI_SYS_ADMIN_DIR__/bin/health-check" payload/systemd/ubuntu-ai-system-administrator-health.service \
+    || { echo "health systemd template must use __AI_SYS_ADMIN_DIR__ placeholder" >&2; exit 1; }
+  grep -q "AI_SYS_ADMIN_HEALTH_WARN_ONLY=1" payload/systemd/ubuntu-ai-system-administrator-health.service \
     || { echo "health timer must not leave a failed unit after reporting unhealthy state" >&2; exit 1; }
-  grep -q "__ZOMBIE_DIR__/state/logs" payload/logrotate/ubuntu-zombie \
+  grep -q "__AI_SYS_ADMIN_DIR__/state/logs" payload/logrotate/ubuntu-ai-system-administrator \
     || { echo "logrotate template must use the install-root placeholder" >&2; exit 1; }
-  grep -q '"sessionDir": "__ZOMBIE_DIR__/state/' \
+  grep -q '"sessionDir": "__AI_SYS_ADMIN_DIR__/state/' \
     payload/agent/templates/settings.json.tmpl \
     || { echo "pi-mono settings must use the install-root placeholder" >&2; exit 1; }
-  grep -q '/var/log/ubuntu-zombie/install-receipt.txt' debian/prerm \
+  grep -q '/var/log/ubuntu-ai-system-administrator/install-receipt.txt' debian/prerm \
     || { echo "Debian removal guard must detect recorded custom installs" >&2; exit 1; }
-  grep -q '/usr/local/bin/zombie-chat' debian/prerm \
+  grep -q '/usr/local/bin/chat' debian/prerm \
     || { echo "Debian removal guard must detect custom install links" >&2; exit 1; }
 
   local helper_root helper_output username_functions detected_owner expected_owner
   helper_root="$(mktemp -d)"
   mkdir -p "${helper_root}/bin"
   install -m 755 payload/bin/secrets-edit "${helper_root}/bin/secrets-edit"
-  install -m 755 payload/bin/zombie-chat "${helper_root}/bin/zombie-chat"
+  install -m 755 payload/bin/chat "${helper_root}/bin/chat"
   helper_output="$("${helper_root}/bin/secrets-edit" --help)"
   grep -Fq "${helper_root}/secrets/env" <<<"${helper_output}" \
     || { rm -rf "${helper_root}"; echo "secrets-edit must auto-detect its install root" >&2; exit 1; }
-  helper_output="$("${helper_root}/bin/zombie-chat")"
+  helper_output="$("${helper_root}/bin/chat")"
   grep -Fq "${helper_root}/bin/secrets-edit" <<<"${helper_output}" \
-    || { rm -rf "${helper_root}"; echo "zombie-chat must auto-detect its install root" >&2; exit 1; }
+    || { rm -rf "${helper_root}"; echo "chat must auto-detect its install root" >&2; exit 1; }
 
   username_functions="$(
     sed -n '/^is_supported_agent_username() {/,/^}/p' payload/bin/secrets-edit
     sed -n '/^resolve_agent_user() {/,/^}/p' payload/bin/secrets-edit
   )"
   detected_owner="$(
-    env -u ZOMBIE_USER -u AGENT_USER ZOMBIE_DIR="${helper_root}" \
+    env -u AI_SYS_ADMIN_USER -u AGENT_USER AI_SYS_ADMIN_DIR="${helper_root}" \
       bash -c "${username_functions}"$'\n''resolve_agent_user'
   )"
   expected_owner="$(id -un)"
   [[ "${expected_owner}" != "root" && "${expected_owner}" != "nobody" ]] \
-    || expected_owner="zombie"
+    || expected_owner="ai-sys-admin"
   [[ "${detected_owner}" == "${expected_owner}" ]] \
     || { rm -rf "${helper_root}"; echo "secrets-edit must detect the installed account owner" >&2; exit 1; }
   [[ "$(
-    ZOMBIE_USER=customadmin AGENT_USER=legacy ZOMBIE_DIR="${helper_root}" \
+    AI_SYS_ADMIN_USER=customadmin AGENT_USER=legacy AI_SYS_ADMIN_DIR="${helper_root}" \
       bash -c "${username_functions}"$'\n''resolve_agent_user'
   )" == "customadmin" ]] \
-    || { rm -rf "${helper_root}"; echo "secrets-edit must prefer ZOMBIE_USER" >&2; exit 1; }
-  expect_exit_code 2 env ZOMBIE_USER=root payload/bin/secrets-edit
+    || { rm -rf "${helper_root}"; echo "secrets-edit must prefer AI_SYS_ADMIN_USER" >&2; exit 1; }
+  expect_exit_code 2 env AI_SYS_ADMIN_USER=root payload/bin/secrets-edit
   rm -rf "${helper_root}"
 
   local provider_helper provider_test_file
   provider_helper="$(install_function provider_credential_configured)"
   provider_test_file="$(mktemp)"
-  printf 'ZOMBIE_PROVIDER=lmstudio\nLMSTUDIO_API_KEY=local\n' > "${provider_test_file}"
+  printf 'AI_SYS_ADMIN_PROVIDER=lmstudio\nLMSTUDIO_API_KEY=local\n' > "${provider_test_file}"
   bash -c "${provider_helper}
     provider_credential_configured \"\$1\"" _ "${provider_test_file}" \
     || { rm -f "${provider_test_file}"; echo "Local LLM credentials must satisfy installer health checks" >&2; exit 1; }
@@ -2981,21 +2982,21 @@ run_standards() {
   model_test_dir="$(mktemp -d)"
   mkdir -p "${model_test_dir}/secrets"
   cat > "${model_test_dir}/secrets/env" <<'EOF'
-# ZOMBIE_MODEL=commented-out
-ZOMBIE_MODEL=
+# AI_SYS_ADMIN_MODEL=commented-out
+AI_SYS_ADMIN_MODEL=
 EOF
   bash -c "${model_helper}
-    ZOMBIE_DIR=\"\$1\"
-    for key in ZOMBIE_MODEL ZOMBIE_OPENAI_MODEL ZOMBIE_ANTHROPIC_MODEL \
-        ZOMBIE_GEMINI_MODEL ZOMBIE_XAI_MODEL ZOMBIE_MISTRAL_MODEL \
-        ZOMBIE_GROQ_MODEL ZOMBIE_OPENROUTER_MODEL; do
+    AI_SYS_ADMIN_DIR=\"\$1\"
+    for key in AI_SYS_ADMIN_MODEL AI_SYS_ADMIN_OPENAI_MODEL AI_SYS_ADMIN_ANTHROPIC_MODEL \
+        AI_SYS_ADMIN_GEMINI_MODEL AI_SYS_ADMIN_XAI_MODEL AI_SYS_ADMIN_MISTRAL_MODEL \
+        AI_SYS_ADMIN_GROQ_MODEL AI_SYS_ADMIN_OPENROUTER_MODEL; do
       unset \"\${key}\"
     done
     ! model_selection_configured
-    printf '%s\n' 'ZOMBIE_MODEL=installed-model' >> \"\${ZOMBIE_DIR}/secrets/env\"
+    printf '%s\n' 'AI_SYS_ADMIN_MODEL=installed-model' >> \"\${AI_SYS_ADMIN_DIR}/secrets/env\"
     model_selection_configured
-    : > \"\${ZOMBIE_DIR}/secrets/env\"
-    ZOMBIE_OPENAI_MODEL=environment-model
+    : > \"\${AI_SYS_ADMIN_DIR}/secrets/env\"
+    AI_SYS_ADMIN_OPENAI_MODEL=environment-model
     model_selection_configured" _ "${model_test_dir}" \
     || { rm -rf "${model_test_dir}"; echo "Configured model detection failed" >&2; exit 1; }
   rm -rf "${model_test_dir}"
@@ -3020,18 +3021,18 @@ EOF
     warn() { :; }
     ok() { :; }
     die() { printf '%s\n' \"\$1\" >&2; return \"\${2:-1}\"; }
-    ZOMBIE_DIR=\"\$1\"
-    AGENT_USER=zombie
+    AI_SYS_ADMIN_DIR=\"\$1\"
+    AGENT_USER=ai-sys-admin
     TTL_DAYS=7
     init_lifecycle_state"
   bash -c "${lifecycle_runner}" _ "${lifecycle_test_dir}"
-  ZOMBIE_LIFECYCLE_STATE="${lifecycle_state}" \
+  AI_SYS_ADMIN_LIFECYCLE_STATE="${lifecycle_state}" \
     PYTHONPATH=payload/agent python3 -c 'import lifecycle; lifecycle.set_ttl(11)'
   cp "${lifecycle_state}" "${lifecycle_state}.extended"
   bash -c "${lifecycle_runner}" _ "${lifecycle_test_dir}"
   cmp -s "${lifecycle_state}.extended" "${lifecycle_state}" \
     || { rm -rf "${lifecycle_test_dir}"; echo "Reinstall must preserve an extended TTL" >&2; exit 1; }
-  ZOMBIE_LIFECYCLE_STATE="${lifecycle_state}" \
+  AI_SYS_ADMIN_LIFECYCLE_STATE="${lifecycle_state}" \
     PYTHONPATH=payload/agent python3 -c 'import lifecycle; lifecycle.kill()'
   cp "${lifecycle_state}" "${lifecycle_state}.dead"
   bash -c "${lifecycle_runner}" _ "${lifecycle_test_dir}"
@@ -3039,7 +3040,7 @@ EOF
     || { rm -rf "${lifecycle_test_dir}"; echo "Reinstall must preserve a TTL tombstone" >&2; exit 1; }
   printf 'invalid\n' > "${lifecycle_state}"
   bash -c "${lifecycle_runner}" _ "${lifecycle_test_dir}"
-  ZOMBIE_LIFECYCLE_STATE="${lifecycle_state}" \
+  AI_SYS_ADMIN_LIFECYCLE_STATE="${lifecycle_state}" \
     PYTHONPATH=payload/agent python3 -c \
       'import lifecycle; assert lifecycle.status()["configured"]'
   rm -rf "${lifecycle_test_dir}"
@@ -3071,7 +3072,7 @@ EOF
       payload/agent/templates/index.html \
     || { echo "active reactivations must expose pause and stop controls" >&2; exit 1; }
   grep -q 'visibleReactivationReply' payload/agent/templates/index.html \
-    && grep -q 'ubuntu-zombie-reactivation' \
+    && grep -q 'ubuntu-ai-system-administrator-reactivation' \
       payload/agent/templates/index.html \
     || { echo "structured reactivation requests must stay out of live chat" >&2; exit 1; }
   grep -q 'showPendingReactivation' payload/agent/templates/index.html \
@@ -3331,7 +3332,7 @@ reactivation_end = text.index(
     "async function uzStreamReactivationTurn", reactivation_start
 )
 test = r'''
-const marker = "<ubuntu-zombie-reactivation>";
+const marker = "<ubuntu-ai-system-administrator-reactivation>";
 const REACTIVATION_REQUEST_MARKER = marker;
 if (visibleReactivationReply("Visible reply") !== "Visible reply") {
   throw new Error("ordinary streamed replies must remain visible");
@@ -3340,7 +3341,7 @@ if (visibleReactivationReply("Visible reply\n" + marker + '{"delay_seconds":1}')
     "Visible reply") {
   throw new Error("complete structured requests must be hidden");
 }
-if (visibleReactivationReply("Visible reply\n<ubuntu-zombie-react") !==
+if (visibleReactivationReply("Visible reply\n<ubuntu-ai-system-administrator-react") !==
     "Visible reply") {
   throw new Error("partial structured request markers must be hidden");
 }
@@ -3722,8 +3723,8 @@ PY
     echo "chat UI must not add external script dependencies" >&2
     exit 1
   fi
-  grep -q "s|__ZOMBIE_DIR__|\\\${ZOMBIE_DIR}|g" scripts/install.sh \
-    || { echo "install.sh must render __ZOMBIE_DIR__ in systemd units" >&2; exit 1; }
+  grep -q "s|__AI_SYS_ADMIN_DIR__|\\\${AI_SYS_ADMIN_DIR}|g" scripts/install.sh \
+    || { echo "install.sh must render __AI_SYS_ADMIN_DIR__ in systemd units" >&2; exit 1; }
   if grep -n '\[\[ "${JSON}"' scripts/install.sh; then
     echo "generated verify script must escape JSON references in install.sh heredoc" >&2
     exit 1
@@ -3742,12 +3743,12 @@ PY
 
   # Keep the release bundle source list honest without creating dist/.
   tar --exclude-vcs --exclude='dist' --exclude='__pycache__' \
-      -czf /tmp/ubuntu-zombie-smoke-package.tar.gz \
+      -czf /tmp/ubuntu-ai-system-administrator-smoke-package.tar.gz \
       scripts payload tests Makefile VERSION \
       README.md CHANGELOG.md CONTRIBUTING.md CODE_OF_CONDUCT.md \
       LICENSE .editorconfig \
       SECURITY.md docs debian
-  rm -f /tmp/ubuntu-zombie-smoke-package.tar.gz
+  rm -f /tmp/ubuntu-ai-system-administrator-smoke-package.tar.gz
 }
 
 run_flags() {
@@ -3764,7 +3765,7 @@ run_flags() {
 
   # Removed install modes must stay out of the public help surface.
   if ./scripts/install.sh --help \
-      | grep -Eq 'FORGEJO|ZOMBIE_INSTALL_LLAMA|install (forgejo|llama)'; then
+      | grep -Eq 'FORGEJO|AI_SYS_ADMIN_INSTALL_LLAMA|install (forgejo|llama)'; then
     echo "FAIL: installer help advertises a removed install mode" >&2
     exit 1
   fi
@@ -3825,7 +3826,7 @@ run_flags() {
     payload/bin/health-check
     payload/bin/secrets-edit
     payload/bin/setup-agent-venv
-    payload/bin/zombie-chat
+    payload/bin/chat
     scripts/build-deb.sh
     scripts/verify-bridge-pins.sh
   )

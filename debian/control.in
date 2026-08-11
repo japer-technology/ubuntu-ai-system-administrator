@@ -1,4 +1,4 @@
-Package: ubuntu-zombie
+Package: ubuntu-ai-system-administrator
 Version: __VERSION__
 Section: admin
 Priority: optional
@@ -14,9 +14,9 @@ Description: Private AI Systems Administrator for Ubuntu Desktop LTS
  itself.
  .
  This compatibility package only stages the installer, payload, and
- documentation under /usr/share/ubuntu-zombie/ and exposes a wrapper at
- /usr/sbin/ubuntu-zombie. The wrapper delegates to scripts/install.sh
+ documentation under /usr/share/ubuntu-ai-system-administrator/ and exposes a wrapper at
+ /usr/sbin/ubuntu-ai-system-administrator. The wrapper delegates to scripts/install.sh
  from the staged tree; nothing is changed on the host until the
- operator runs `sudo ubuntu-zombie install`.
+ operator runs `sudo ubuntu-ai-system-administrator install`.
  .
- See /usr/share/doc/ubuntu-zombie/README.md after install.
+ See /usr/share/doc/ubuntu-ai-system-administrator/README.md after install.

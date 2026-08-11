@@ -8,7 +8,7 @@ the bits an autonomous agent is most likely to get wrong.
 ## What this repository is
 
 This is a Bash + Python installer that adds a private,
-root-capable AI Systems Administrator account (`zombie` by default) to an Ubuntu
+root-capable AI Systems Administrator account (`ai-sys-admin` by default) to an Ubuntu
 Desktop LTS machine. The whole product ships as shell scripts and a
 small Python service. There is no compiled artifact and no package
 manager registry — a "release" is a tarball produced by `make package`.
@@ -29,7 +29,7 @@ Read these before changing anything substantive:
 scripts/
   install.sh              # main installer (idempotent; install/verify/doctor/repair/uninstall)
   uninstall.sh            # uninstaller
-payload/                  # files copied to /opt/ai-zombie/ on the target
+payload/                  # files copied to /opt/ai-system-administrator/ on the target
   agent/                  # Python chat service (audit, history, policy, providers, runner, server)
   bin/                    # operator helpers (verify, secrets-edit, collect-diagnostics, ...)
   etc/policy.yaml         # default policy gate
@@ -48,7 +48,7 @@ Run these from the repo root. They are the same commands CI runs.
 ```bash
 make lint     # shellcheck (warning+) on every bash file, bash -n, python compile
 make test     # tests/smoke.sh all (syntax, python, subcommands, noninteractive, standards)
-make package  # produce dist/ubuntu-zombie-$(cat VERSION).tar.gz
+make package  # produce dist/ubuntu-ai-system-administrator-$(cat VERSION).tar.gz
 ```
 
 Always run `make lint` and `make test` after editing shell or Python.
@@ -60,7 +60,7 @@ from an agent environment, your workstation, or any machine you are
 not prepared to wipe. The installer mutates users, sudoers, and systemd
 units; it is intended only for
 a disposable Ubuntu Desktop LTS VM. The same applies to `uninstall.sh`,
-`secrets-edit`, and anything under `/opt/ai-zombie/`.
+`secrets-edit`, and anything under `/opt/ai-system-administrator/`.
 
 ## Non-negotiable rules
 
@@ -70,7 +70,7 @@ of them will get a change rejected.
 1. **Idempotence.** `scripts/install.sh install` must converge on
    re-run without errors. Any new step that creates files, users,
    or services must check current state first.
-2. **Non-interactive mode.** `ZOMBIE_NONINTERACTIVE=1` must work
+2. **Non-interactive mode.** `AI_SYS_ADMIN_NONINTERACTIVE=1` must work
    end-to-end; CI depends on it. Missing required env in
    non-interactive mode exits `64`.
 3. **Policy gate + audit log.** Any new privileged behaviour must go
@@ -121,7 +121,7 @@ invariants the runtime relies on:
 - [ ] `make lint` is clean.
 - [ ] `make test` is clean.
 - [ ] If you touched `scripts/install.sh`, you re-checked
-      idempotence and the `ZOMBIE_NONINTERACTIVE=1` path.
+      idempotence and the `AI_SYS_ADMIN_NONINTERACTIVE=1` path.
 - [ ] If you touched anything under `payload/agent/`, you verified
       no new `sudo`/privileged action bypasses the policy gate or
       audit log.

@@ -1,6 +1,6 @@
 """Policy gate.
 
-Reads ``/etc/ubuntu-zombie/policy.yaml`` (or ``$ZOMBIE_POLICY``) on
+Reads ``/etc/ubuntu-ai-system-administrator/policy.yaml`` (or ``$AI_SYS_ADMIN_POLICY``) on
 every classification so the operator can edit it without restarting
 the chat service.
 
@@ -24,7 +24,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Iterable
 
-POLICY_PATH = Path(os.environ.get("ZOMBIE_POLICY", "/etc/ubuntu-zombie/policy.yaml"))
+POLICY_PATH = Path(os.environ.get("AI_SYS_ADMIN_POLICY", "/etc/ubuntu-ai-system-administrator/policy.yaml"))
 
 # Ordered low → high severity. ``_max_class`` exploits the index.
 CLASS_ORDER = (
@@ -108,7 +108,7 @@ class Policy:
     # token / tool call / tool result resets it), so a generous value
     # does not slow normal turns. ``0`` disables the watchdog. Must stay
     # the smallest of the three layered idle deadlines (Python < bridge
-    # ZOMBIE_PI_MONO_IDLE_TIMEOUT < client CLIENT_TURN_TIMEOUT_MS).
+    # AI_SYS_ADMIN_PI_MONO_IDLE_TIMEOUT < client CLIENT_TURN_TIMEOUT_MS).
     max_turn_seconds: int = 86400
 
     def classify(self, command: str | Iterable[str]) -> str:

@@ -27,7 +27,7 @@ Operating rules:
   edit. Read the current file, apply the narrowest change, write to a
   temporary path, validate it, then move it into place; keep a
   timestamped `.bak`. `fs.write` replaces a file wholesale and only
-  reaches `/tmp` and the zombie state directory, so anything under
+  reaches `/tmp` and the AI System Administrator state directory, so anything under
   `/etc` is `shell.run` with `sudo`.
 - JSON does not preserve comments, and many "JSON" config files
   (VS Code, some tooling) are JSON5/JSONC with comments and trailing

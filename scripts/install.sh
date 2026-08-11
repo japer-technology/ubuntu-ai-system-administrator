@@ -18,13 +18,13 @@
 #   uninstall   Delegate to uninstall.sh.
 #
 # Common env vars (run `install.sh --help` for the full list):
-#   ZOMBIE_NONINTERACTIVE=1     skip prompts for fully unattended installs.
-#   ZOMBIE_USER="zombie"        name of the local account created as the
+#   AI_SYS_ADMIN_NONINTERACTIVE=1     skip prompts for fully unattended installs.
+#   AI_SYS_ADMIN_USER="ai-sys-admin"        name of the local account created as the
 #                               operating identity of the AI Systems
-#                               Administrator. Defaults to `zombie`. The
+#                               Administrator. Defaults to `ai-sys-admin`. The
 #                               legacy name `AGENT_USER` is still
 #                               accepted for backward compatibility.
-#   ZOMBIE_CHAT_PORT=7878       loopback-only chat UI port.
+#   AI_SYS_ADMIN_CHAT_PORT=57878       loopback-only chat UI port.
 
 set -Eeuo pipefail
 
@@ -58,48 +58,48 @@ else
 fi
 readonly SCRIPT_VERSION
 
-AGENT_USER="${ZOMBIE_USER:-${AGENT_USER:-zombie}}"
+AGENT_USER="${AI_SYS_ADMIN_USER:-${AGENT_USER:-ai-sys-admin}}"
 AGENT_HOME="/home/${AGENT_USER}"
-ZOMBIE_DIR="${ZOMBIE_DIR:-/opt/ai-zombie}"
-ZOMBIE_ETC="/etc/ubuntu-zombie"
-ZOMBIE_LOG_DIR="/var/log/ubuntu-zombie"
-CHAT_PORT="${ZOMBIE_CHAT_PORT:-7878}"
-LOG_FILE="${LOG_FILE:-/var/log/ubuntu-zombie-install.log}"
+AI_SYS_ADMIN_DIR="${AI_SYS_ADMIN_DIR:-/opt/ai-system-administrator}"
+AI_SYS_ADMIN_ETC="/etc/ubuntu-ai-system-administrator"
+AI_SYS_ADMIN_LOG_DIR="/var/log/ubuntu-ai-system-administrator"
+CHAT_PORT="${AI_SYS_ADMIN_CHAT_PORT:-57878}"
+LOG_FILE="${LOG_FILE:-/var/log/ubuntu-ai-system-administrator-install.log}"
 
 # Install receipt: a human-readable record of every parameter, written once
 # when the install starts and finalised with the outcome when it finishes.
-# Set ZOMBIE_RECEIPT=0 to disable, or point ZOMBIE_RECEIPT_FILE elsewhere.
-ZOMBIE_RECEIPT="${ZOMBIE_RECEIPT:-1}"
-RECEIPT_FILE="${ZOMBIE_RECEIPT_FILE:-${ZOMBIE_LOG_DIR}/install-receipt.txt}"
+# Set AI_SYS_ADMIN_RECEIPT=0 to disable, or point AI_SYS_ADMIN_RECEIPT_FILE elsewhere.
+AI_SYS_ADMIN_RECEIPT="${AI_SYS_ADMIN_RECEIPT:-1}"
+RECEIPT_FILE="${AI_SYS_ADMIN_RECEIPT_FILE:-${AI_SYS_ADMIN_LOG_DIR}/install-receipt.txt}"
 
-ZOMBIE_NONINTERACTIVE="${ZOMBIE_NONINTERACTIVE:-0}"
+AI_SYS_ADMIN_NONINTERACTIVE="${AI_SYS_ADMIN_NONINTERACTIVE:-0}"
 
 # Ubuntu AI System Administrator chat-UI password gate and Time-to-Live (TTL) kill switch.
 # The chat service is reachable by every local user on http://127.0.0.1:PORT,
 # so it is protected by a shared password (only a PBKDF2 hash is stored in
 # secrets/env). The TTL bounds the lifetime of the root-capable agent: once
-# it elapses (or the operator runs `/ttl --die`) the zombie is permanently
+# it elapses (or the operator runs `/ttl --die`) the AI System Administrator is permanently
 # disabled until its lifecycle state is deliberately reinitialised. Routine
 # reinstalls preserve the existing countdown and tombstone.
-ZOMBIE_ADMIN_PASSWORD_DEFAULT="braaaains"
-ADMIN_PASSWORD="${ZOMBIE_ADMIN_PASSWORD:-}"
+AI_SYS_ADMIN_ADMIN_PASSWORD_DEFAULT="change-me-now"
+ADMIN_PASSWORD="${AI_SYS_ADMIN_ADMIN_PASSWORD:-}"
 # 1 once the operator has explicitly chosen a password (env or prompt), so a
 # re-install does not silently overwrite a customised password with the default.
 ADMIN_PASSWORD_SET=0
 [[ -n "${ADMIN_PASSWORD}" ]] && ADMIN_PASSWORD_SET=1
-TTL_DAYS="${ZOMBIE_TTL_DAYS:-7}"
+TTL_DAYS="${AI_SYS_ADMIN_TTL_DAYS:-7}"
 
 # Local LLM discovery. During an interactive install the script can scan the
 # host's IPv4 /24 (all 256 addresses) for an OpenAI-compatible local LLM
 # server — LM Studio, Ollama, llama.cpp, etc. — answering on
 # http://<ip>:PORT/v1 and offer the models it advertises as the starting
-# model. Set ZOMBIE_SKIP_LLM_SCAN=1 to skip the scan, ZOMBIE_LLM_SCAN_PORT to
+# model. Set AI_SYS_ADMIN_SKIP_LLM_SCAN=1 to skip the scan, AI_SYS_ADMIN_LLM_SCAN_PORT to
 # probe a different port (default 1234, LM Studio's default), and
-# ZOMBIE_LOCAL_LLM_API_KEY to record a non-default key for the local server
+# AI_SYS_ADMIN_LOCAL_LLM_API_KEY to record a non-default key for the local server
 # (most ignore it).
-ZOMBIE_SKIP_LLM_SCAN="${ZOMBIE_SKIP_LLM_SCAN:-0}"
-ZOMBIE_LLM_SCAN_PORT="${ZOMBIE_LLM_SCAN_PORT:-1234}"
-ZOMBIE_LOCAL_LLM_API_KEY="${ZOMBIE_LOCAL_LLM_API_KEY:-local}"
+AI_SYS_ADMIN_SKIP_LLM_SCAN="${AI_SYS_ADMIN_SKIP_LLM_SCAN:-0}"
+AI_SYS_ADMIN_LLM_SCAN_PORT="${AI_SYS_ADMIN_LLM_SCAN_PORT:-1234}"
+AI_SYS_ADMIN_LOCAL_LLM_API_KEY="${AI_SYS_ADMIN_LOCAL_LLM_API_KEY:-local}"
 # Selection populated by discover_local_llms (empty when none is chosen).
 LOCAL_LLM_ENDPOINT=""
 LOCAL_LLM_BASE_URL=""
@@ -113,16 +113,16 @@ provider_credential_configured() {
 
 model_selection_configured() {
   local key
-  for key in ZOMBIE_MODEL ZOMBIE_OPENAI_MODEL ZOMBIE_ANTHROPIC_MODEL \
-      ZOMBIE_GEMINI_MODEL ZOMBIE_XAI_MODEL ZOMBIE_MISTRAL_MODEL \
-      ZOMBIE_GROQ_MODEL ZOMBIE_OPENROUTER_MODEL; do
+  for key in AI_SYS_ADMIN_MODEL AI_SYS_ADMIN_OPENAI_MODEL AI_SYS_ADMIN_ANTHROPIC_MODEL \
+      AI_SYS_ADMIN_GEMINI_MODEL AI_SYS_ADMIN_XAI_MODEL AI_SYS_ADMIN_MISTRAL_MODEL \
+      AI_SYS_ADMIN_GROQ_MODEL AI_SYS_ADMIN_OPENROUTER_MODEL; do
     if [[ -v "${key}" && -n "${!key}" ]]; then
       return 0
     fi
   done
   grep -Eq \
-    '^[[:space:]]*(export[[:space:]]+)?ZOMBIE_(MODEL|(OPENAI|ANTHROPIC|GEMINI|XAI|MISTRAL|GROQ|OPENROUTER)_MODEL)[[:space:]]*=[[:space:]]*[^[:space:]#]' \
-    "${ZOMBIE_DIR}/secrets/env" 2>/dev/null
+    '^[[:space:]]*(export[[:space:]]+)?AI_SYS_ADMIN_(MODEL|(OPENAI|ANTHROPIC|GEMINI|XAI|MISTRAL|GROQ|OPENROUTER)_MODEL)[[:space:]]*=[[:space:]]*[^[:space:]#]' \
+    "${AI_SYS_ADMIN_DIR}/secrets/env" 2>/dev/null
 }
 
 # UX flags (set by argument parsing below; env provides the defaults).
@@ -131,10 +131,10 @@ model_selection_configured() {
 #   STRICT       treat preflight warnings as fatal.
 #   JSON_OUTPUT  emit machine-readable JSON from verify/doctor.
 #   VERBOSE      enable xtrace into the transcript.
-ASSUME_YES="${ZOMBIE_ASSUME_YES:-0}"
-STRICT="${ZOMBIE_STRICT:-0}"
+ASSUME_YES="${AI_SYS_ADMIN_ASSUME_YES:-0}"
+STRICT="${AI_SYS_ADMIN_STRICT:-0}"
 JSON_OUTPUT=0
-VERBOSE="${ZOMBIE_VERBOSE:-0}"
+VERBOSE="${AI_SYS_ADMIN_VERBOSE:-0}"
 # Set to 1 once the operator has reviewed (and possibly edited) the install
 # parameters interactively, so the later confirmation gate is not asked twice.
 REVIEWED=0
@@ -254,25 +254,25 @@ Flags:
       --strict      Treat preflight warnings as fatal.
       --json        Machine-readable output for verify and doctor.
       --archive     Archive the install root before uninstalling.
-      --keep-agent  Keep the Zombie account during uninstall.
+      --keep-agent  Keep the AI System Administrator account during uninstall.
   -h, --help        Show this help and exit.
   -v, --version     Print the version and exit.
 
 Environment variables (see docs/CONFIGURATION.md for the full reference):
-  ZOMBIE_NONINTERACTIVE=1       skip prompts for unattended installs.
-  ZOMBIE_USER=<name>            local account name (default zombie).
-  ZOMBIE_CHAT_PORT=<n>          loopback chat port (default 7878).
-  ZOMBIE_RECEIPT=0              disable the install receipt.
-  ZOMBIE_RECEIPT_FILE=<path>    override the install receipt path.
-  ZOMBIE_SKIP_LLM_SCAN=1        skip discovery of an existing local
+  AI_SYS_ADMIN_NONINTERACTIVE=1       skip prompts for unattended installs.
+  AI_SYS_ADMIN_USER=<name>            local account name (default ai-sys-admin).
+  AI_SYS_ADMIN_CHAT_PORT=<n>          loopback chat port (default 57878).
+  AI_SYS_ADMIN_RECEIPT=0              disable the install receipt.
+  AI_SYS_ADMIN_RECEIPT_FILE=<path>    override the install receipt path.
+  AI_SYS_ADMIN_SKIP_LLM_SCAN=1        skip discovery of an existing local
                                 OpenAI-compatible LLM server.
-  ZOMBIE_ADMIN_PASSWORD=<value> chat password (only a hash is stored).
-  ZOMBIE_TTL_DAYS=<n>           lifetime in days (default 7).
+  AI_SYS_ADMIN_ADMIN_PASSWORD=<value> chat password (only a hash is stored).
+  AI_SYS_ADMIN_TTL_DAYS=<n>           lifetime in days (default 7).
 
 Examples:
   sudo ./${SCRIPT_NAME} install --dry-run
   sudo ./${SCRIPT_NAME} install
-  sudo ZOMBIE_NONINTERACTIVE=1 ./${SCRIPT_NAME} install
+  sudo AI_SYS_ADMIN_NONINTERACTIVE=1 ./${SCRIPT_NAME} install
   ./${SCRIPT_NAME} verify --json
   ./${SCRIPT_NAME} doctor
   sudo ./${SCRIPT_NAME} repair
@@ -297,9 +297,9 @@ while [[ $# -gt 0 ]]; do
     -v|--version) printf '%s %s\n' "${SCRIPT_NAME}" "${SCRIPT_VERSION}"; exit 0 ;;
     -n|--dry-run) DRY_RUN=1; shift ;;
     -y|--yes)     ASSUME_YES=1; shift ;;
-    -q|--quiet)   ZOMBIE_QUIET=1; shift ;;
+    -q|--quiet)   AI_SYS_ADMIN_QUIET=1; shift ;;
     --verbose|--debug) VERBOSE=1; shift ;;
-    --no-color|--no-colour) export ZOMBIE_COLOR=never; lib_setup_colors; shift ;;
+    --no-color|--no-colour) export AI_SYS_ADMIN_COLOR=never; lib_setup_colors; shift ;;
     --strict)     STRICT=1; shift ;;
     --json)       JSON_OUTPUT=1; shift ;;
     --archive)    UNINSTALL_ARCHIVE=1; shift ;;
@@ -323,7 +323,7 @@ if (( JSON_OUTPUT )) \
   die "--json only applies to the verify and doctor subcommands." 2
 fi
 
-if [[ "${SUBCOMMAND}" == "install" ]] && ! (( ZOMBIE_QUIET )); then
+if [[ "${SUBCOMMAND}" == "install" ]] && ! (( AI_SYS_ADMIN_QUIET )); then
   brand_splash "install" "${SCRIPT_VERSION}"
 fi
 
@@ -409,18 +409,18 @@ is_valid_option_flag() {
 }
 
 # Component-specific validation hooks.
-validate_zombie_config() {
+validate_ai_sys_admin_config() {
   if ! is_supported_agent_username "${AGENT_USER}"; then
     die "Invalid agent username '${AGENT_USER}'. Use a non-reserved lowercase Linux username (letters first; then letters, digits, underscore, hyphen; max 32 chars; no trailing punctuation)." 2
   fi
-  if ! is_safe_absolute_path "${ZOMBIE_DIR}"; then
-    die "ZOMBIE_DIR must be an absolute path using only letters, digits, dot, underscore, slash, plus, colon, and hyphen." 2
+  if ! is_safe_absolute_path "${AI_SYS_ADMIN_DIR}"; then
+    die "AI_SYS_ADMIN_DIR must be an absolute path using only letters, digits, dot, underscore, slash, plus, colon, and hyphen." 2
   fi
   if ! is_valid_tcp_port "${CHAT_PORT}"; then
-    die "ZOMBIE_CHAT_PORT must be an integer from 1 to 65535." 2
+    die "AI_SYS_ADMIN_CHAT_PORT must be an integer from 1 to 65535." 2
   fi
   if ! is_valid_ttl_days "${TTL_DAYS}"; then
-    die "ZOMBIE_TTL_DAYS must be an integer number of days from 1 to 36500." 2
+    die "AI_SYS_ADMIN_TTL_DAYS must be an integer number of days from 1 to 36500." 2
   fi
 }
 
@@ -429,13 +429,13 @@ validate_config() {
   if ! is_safe_absolute_path "${LOG_FILE}"; then
     die "LOG_FILE must be an absolute path using only letters, digits, dot, underscore, slash, plus, colon, and hyphen." 2
   fi
-  if ! is_valid_option_flag "${ZOMBIE_RECEIPT}"; then
-    die "ZOMBIE_RECEIPT must be 0 or 1." 2
+  if ! is_valid_option_flag "${AI_SYS_ADMIN_RECEIPT}"; then
+    die "AI_SYS_ADMIN_RECEIPT must be 0 or 1." 2
   fi
-  if [[ "${ZOMBIE_RECEIPT}" == "1" ]] && ! is_safe_absolute_path "${RECEIPT_FILE}"; then
-    die "ZOMBIE_RECEIPT_FILE must be an absolute path using only letters, digits, dot, underscore, slash, plus, colon, and hyphen." 2
+  if [[ "${AI_SYS_ADMIN_RECEIPT}" == "1" ]] && ! is_safe_absolute_path "${RECEIPT_FILE}"; then
+    die "AI_SYS_ADMIN_RECEIPT_FILE must be an absolute path using only letters, digits, dot, underscore, slash, plus, colon, and hyphen." 2
   fi
-  validate_zombie_config
+  validate_ai_sys_admin_config
 }
 
 # Source /etc/os-release into the current shell.
@@ -482,7 +482,7 @@ preflight() {
        warnings=$((warnings + 1)); pf warn "Architecture ${arch}" ;;
   esac
 
-  # The Zombie runtime and its Node/Python toolchain need at least 3 GB.
+  # The AI System Administrator runtime and its Node/Python toolchain need at least 3 GB.
   local avail_kb
   avail_kb="$(df -P / | awk 'NR==2 {print $4}')"
   if [[ "${avail_kb:-0}" -lt "${required_disk_kb}" ]]; then
@@ -535,7 +535,7 @@ preflight() {
   fi
 
   # Render the compact summary table.
-  if ! (( ZOMBIE_QUIET )); then
+  if ! (( AI_SYS_ADMIN_QUIET )); then
     printf '\n%sPreflight summary:%s\n' "${C_BOLD}" "${C_RESET}"
     local i
     for (( i = 0; i < ${#pf_status[@]}; i++ )); do
@@ -564,30 +564,30 @@ preflight() {
 # Subcommand: verify
 # ---------------------------------------------------------------------------
 
-verify_zombie() {
+verify_ai_sys_admin() {
   # Keep lifecycle verification in this script. A deployed verifier may come
   # from an older release and must not be able to break current verify output.
   id "${AGENT_USER}" >/dev/null 2>&1 \
-    && vr ok zombie user "User ${AGENT_USER} exists." \
-    || vr fail zombie user "User ${AGENT_USER} missing. Run 'sudo ./${SCRIPT_NAME} install' first."
-  [[ -f "/etc/sudoers.d/90-${AGENT_USER}-ubuntu-zombie" ]] \
-    && vr ok zombie sudoers "Sudoers drop-in present." \
-    || vr fail zombie sudoers "Sudoers drop-in missing. Run 'sudo ./${SCRIPT_NAME} repair'."
-  [[ -d "${ZOMBIE_DIR}" ]] \
-    && vr ok zombie install_root "${ZOMBIE_DIR} present." \
-    || vr fail zombie install_root "${ZOMBIE_DIR} missing. Run 'sudo ./${SCRIPT_NAME} install' first."
-  [[ -x "${ZOMBIE_DIR}/bin/verify" ]] \
-    && vr ok zombie verify_script "${ZOMBIE_DIR}/bin/verify present." \
-    || vr fail zombie verify_script "${ZOMBIE_DIR}/bin/verify not found. Run 'sudo ./${SCRIPT_NAME} install' first."
-  systemctl is-active --quiet ubuntu-zombie-chat.service 2>/dev/null \
-    && vr ok zombie chat_service "Chat service active." \
-    || vr fail zombie chat_service "Chat service not active. Run: sudo systemctl start ubuntu-zombie-chat"
+    && vr ok ai_system_administrator user "User ${AGENT_USER} exists." \
+    || vr fail ai_system_administrator user "User ${AGENT_USER} missing. Run 'sudo ./${SCRIPT_NAME} install' first."
+  [[ -f "/etc/sudoers.d/90-${AGENT_USER}-ubuntu-ai-system-administrator" ]] \
+    && vr ok ai_system_administrator sudoers "Sudoers drop-in present." \
+    || vr fail ai_system_administrator sudoers "Sudoers drop-in missing. Run 'sudo ./${SCRIPT_NAME} repair'."
+  [[ -d "${AI_SYS_ADMIN_DIR}" ]] \
+    && vr ok ai_system_administrator install_root "${AI_SYS_ADMIN_DIR} present." \
+    || vr fail ai_system_administrator install_root "${AI_SYS_ADMIN_DIR} missing. Run 'sudo ./${SCRIPT_NAME} install' first."
+  [[ -x "${AI_SYS_ADMIN_DIR}/bin/verify" ]] \
+    && vr ok ai_system_administrator verify_script "${AI_SYS_ADMIN_DIR}/bin/verify present." \
+    || vr fail ai_system_administrator verify_script "${AI_SYS_ADMIN_DIR}/bin/verify not found. Run 'sudo ./${SCRIPT_NAME} install' first."
+  systemctl is-active --quiet ubuntu-ai-system-administrator-chat.service 2>/dev/null \
+    && vr ok ai_system_administrator chat_service "Chat service active." \
+    || vr fail ai_system_administrator chat_service "Chat service not active. Run: sudo systemctl start ubuntu-ai-system-administrator-chat"
 }
 
 cmd_verify() {
   local -a v_status=() v_component=() v_id=() v_msg=()
   vr() { v_status+=("$1"); v_component+=("$2"); v_id+=("$3"); v_msg+=("$4"); }
-  verify_zombie
+  verify_ai_sys_admin
 
   local n="${#v_status[@]}" i failed=0 passed=0
   for (( i = 0; i < n; i++ )); do
@@ -606,7 +606,7 @@ cmd_verify() {
     done
     printf ']}\n'
   else
-    printf '%s== ubuntu-zombie verify ==%s\n\n' "${C_BOLD}" "${C_RESET}"
+    printf '%s== ubuntu-ai-system-administrator verify ==%s\n\n' "${C_BOLD}" "${C_RESET}"
     for (( i = 0; i < n; i++ )); do
       if [[ "${v_status[i]}" == "ok" ]]; then
         ok "${v_msg[i]}"
@@ -630,43 +630,43 @@ cmd_doctor() {
   host_arch="$(dpkg --print-architecture 2>/dev/null || uname -m)"
 
   if id "${AGENT_USER}" >/dev/null 2>&1; then
-    dr ok zombie user "User ${AGENT_USER} exists."
+    dr ok ai_system_administrator user "User ${AGENT_USER} exists."
   else
-    dr warn zombie user "User ${AGENT_USER} missing. Fix: sudo ./${SCRIPT_NAME} install"
+    dr warn ai_system_administrator user "User ${AGENT_USER} missing. Fix: sudo ./${SCRIPT_NAME} install"
   fi
-  if [[ -f "/etc/sudoers.d/90-${AGENT_USER}-ubuntu-zombie" ]]; then
-    dr ok zombie sudoers "Sudoers drop-in present."
+  if [[ -f "/etc/sudoers.d/90-${AGENT_USER}-ubuntu-ai-system-administrator" ]]; then
+    dr ok ai_system_administrator sudoers "Sudoers drop-in present."
   else
-    dr warn zombie sudoers "Sudoers drop-in missing. Fix: sudo ./${SCRIPT_NAME} repair"
+    dr warn ai_system_administrator sudoers "Sudoers drop-in missing. Fix: sudo ./${SCRIPT_NAME} repair"
   fi
-  if [[ -d "${ZOMBIE_DIR}" ]]; then
-    dr ok zombie install_root "${ZOMBIE_DIR} present."
+  if [[ -d "${AI_SYS_ADMIN_DIR}" ]]; then
+    dr ok ai_system_administrator install_root "${AI_SYS_ADMIN_DIR} present."
   else
-    dr warn zombie install_root "${ZOMBIE_DIR} missing. Fix: sudo ./${SCRIPT_NAME} install"
+    dr warn ai_system_administrator install_root "${AI_SYS_ADMIN_DIR} missing. Fix: sudo ./${SCRIPT_NAME} install"
   fi
-  if [[ -f "${ZOMBIE_DIR}/secrets/env" ]]; then
-    perms="$(stat -c %a "${ZOMBIE_DIR}/secrets/env" 2>/dev/null || echo ???)"
+  if [[ -f "${AI_SYS_ADMIN_DIR}/secrets/env" ]]; then
+    perms="$(stat -c %a "${AI_SYS_ADMIN_DIR}/secrets/env" 2>/dev/null || echo ???)"
     if [[ "${perms}" == "600" ]]; then
-      dr ok zombie secrets_perms "secrets/env permissions 600."
+      dr ok ai_system_administrator secrets_perms "secrets/env permissions 600."
     else
-      dr warn zombie secrets_perms "secrets/env permissions ${perms} (must be 600). Fix: sudo ./${SCRIPT_NAME} repair"
+      dr warn ai_system_administrator secrets_perms "secrets/env permissions ${perms} (must be 600). Fix: sudo ./${SCRIPT_NAME} repair"
     fi
-    if provider_credential_configured "${ZOMBIE_DIR}/secrets/env"; then
-      dr ok zombie provider_token "Provider credential present."
+    if provider_credential_configured "${AI_SYS_ADMIN_DIR}/secrets/env"; then
+      dr ok ai_system_administrator provider_token "Provider credential present."
     else
-      dr warn zombie provider_token "No provider credential. Fix: sudo ${ZOMBIE_DIR}/bin/secrets-edit"
+      dr warn ai_system_administrator provider_token "No provider credential. Fix: sudo ${AI_SYS_ADMIN_DIR}/bin/secrets-edit"
     fi
   else
-    dr warn zombie secrets_env "secrets/env missing. Fix: sudo ./${SCRIPT_NAME} install"
+    dr warn ai_system_administrator secrets_env "secrets/env missing. Fix: sudo ./${SCRIPT_NAME} install"
   fi
-  if systemctl list-unit-files ubuntu-zombie-chat.service >/dev/null 2>&1; then
-    if systemctl is-active --quiet ubuntu-zombie-chat.service; then
-      dr ok zombie chat_service "Chat service active."
+  if systemctl list-unit-files ubuntu-ai-system-administrator-chat.service >/dev/null 2>&1; then
+    if systemctl is-active --quiet ubuntu-ai-system-administrator-chat.service; then
+      dr ok ai_system_administrator chat_service "Chat service active."
     else
-      dr warn zombie chat_service "Chat service installed but not running. Fix: sudo systemctl start ubuntu-zombie-chat"
+      dr warn ai_system_administrator chat_service "Chat service installed but not running. Fix: sudo systemctl start ubuntu-ai-system-administrator-chat"
     fi
   else
-    dr warn zombie chat_service "Chat service unit missing. Fix: sudo ./${SCRIPT_NAME} install"
+    dr warn ai_system_administrator chat_service "Chat service unit missing. Fix: sudo ./${SCRIPT_NAME} install"
   fi
 
   local n="${#d_status[@]}" i warns=0
@@ -691,7 +691,7 @@ cmd_doctor() {
     return 0
   fi
 
-  printf '%s== ubuntu-zombie doctor ==%s\n\n' "${C_BOLD}" "${C_RESET}"
+  printf '%s== ubuntu-ai-system-administrator doctor ==%s\n\n' "${C_BOLD}" "${C_RESET}"
   printf '%sHost:%s %s %s on %s\n\n' "${C_BOLD}" "${C_RESET}" \
     "${ID:-?}" "${VERSION_ID:-?}" "${host_arch}"
   for (( i = 0; i < n; i++ )); do
@@ -702,7 +702,7 @@ cmd_doctor() {
     esac
   done
   echo
-  info "For a runtime health summary: ${ZOMBIE_DIR}/bin/health-check"
+  info "For a runtime health summary: ${AI_SYS_ADMIN_DIR}/bin/health-check"
 }
 
 # ---------------------------------------------------------------------------
@@ -713,44 +713,44 @@ cmd_repair() {
   section "Repair"
   local _facts f
   if id "${AGENT_USER}" >/dev/null 2>&1; then
-    if [[ -f "${ZOMBIE_DIR}/secrets/env" ]]; then
-      chown "${AGENT_USER}:${AGENT_USER}" "${ZOMBIE_DIR}/secrets/env"
-      chmod 600 "${ZOMBIE_DIR}/secrets/env"
+    if [[ -f "${AI_SYS_ADMIN_DIR}/secrets/env" ]]; then
+      chown "${AGENT_USER}:${AGENT_USER}" "${AI_SYS_ADMIN_DIR}/secrets/env"
+      chmod 600 "${AI_SYS_ADMIN_DIR}/secrets/env"
       ok "Re-asserted secrets/env permissions."
     fi
-    [[ -d "${ZOMBIE_DIR}" ]] && chown -R "${AGENT_USER}:${AGENT_USER}" "${ZOMBIE_DIR}"
+    [[ -d "${AI_SYS_ADMIN_DIR}" ]] && chown -R "${AGENT_USER}:${AGENT_USER}" "${AI_SYS_ADMIN_DIR}"
   fi
-  if systemctl list-unit-files ubuntu-zombie-chat.service >/dev/null 2>&1; then
+  if systemctl list-unit-files ubuntu-ai-system-administrator-chat.service >/dev/null 2>&1; then
     systemctl daemon-reload
-    systemctl restart ubuntu-zombie-chat.service \
-      || warn "Chat service failed to restart; see journalctl -u ubuntu-zombie-chat"
+    systemctl restart ubuntu-ai-system-administrator-chat.service \
+      || warn "Chat service failed to restart; see journalctl -u ubuntu-ai-system-administrator-chat"
     ok "Chat service restarted."
   fi
-  if [[ -d "${ZOMBIE_DIR}/agent/templates" ]]; then
-    install -d -m 755 -o root -g root "${ZOMBIE_DIR}/pi"
+  if [[ -d "${AI_SYS_ADMIN_DIR}/agent/templates" ]]; then
+    install -d -m 755 -o root -g root "${AI_SYS_ADMIN_DIR}/pi"
     install -d -m 750 -o "${AGENT_USER}" -g "${AGENT_USER}" \
-      "${ZOMBIE_DIR}/state/logs" "${ZOMBIE_DIR}/state/pi-mono-sessions" 2>/dev/null || true
-    if [[ -f "${ZOMBIE_DIR}/agent/templates/settings.json.tmpl" ]]; then
-      sed -e "s|__ZOMBIE_DIR__|${ZOMBIE_DIR}|g" \
-        "${ZOMBIE_DIR}/agent/templates/settings.json.tmpl" \
-        | install -m 644 /dev/stdin "${ZOMBIE_DIR}/pi/settings.json"
+      "${AI_SYS_ADMIN_DIR}/state/logs" "${AI_SYS_ADMIN_DIR}/state/pi-mono-sessions" 2>/dev/null || true
+    if [[ -f "${AI_SYS_ADMIN_DIR}/agent/templates/settings.json.tmpl" ]]; then
+      sed -e "s|__AI_SYS_ADMIN_DIR__|${AI_SYS_ADMIN_DIR}|g" \
+        "${AI_SYS_ADMIN_DIR}/agent/templates/settings.json.tmpl" \
+        | install -m 644 /dev/stdin "${AI_SYS_ADMIN_DIR}/pi/settings.json"
     fi
-    if [[ -f "${ZOMBIE_DIR}/agent/templates/APPEND_SYSTEM.md.tmpl" ]]; then
+    if [[ -f "${AI_SYS_ADMIN_DIR}/agent/templates/APPEND_SYSTEM.md.tmpl" ]]; then
       _facts="hostname=$(hostname) os=$(. /etc/os-release 2>/dev/null && echo "${PRETTY_NAME:-Linux}")"
       sed -e "s|__AGENT_USER__|${AGENT_USER}|g" -e "s|__FACTS__|${_facts}|g" \
-        "${ZOMBIE_DIR}/agent/templates/APPEND_SYSTEM.md.tmpl" \
-        | install -m 644 /dev/stdin "${ZOMBIE_DIR}/pi/APPEND_SYSTEM.md"
+        "${AI_SYS_ADMIN_DIR}/agent/templates/APPEND_SYSTEM.md.tmpl" \
+        | install -m 644 /dev/stdin "${AI_SYS_ADMIN_DIR}/pi/APPEND_SYSTEM.md"
     fi
     ok "pi-mono runtime configs re-rendered."
   fi
   if [[ -d "${PAYLOAD_DIR}/agent/skills" ]]; then
-    install -d -m 755 -o root -g root "${ZOMBIE_DIR}/skills"
+    install -d -m 755 -o root -g root "${AI_SYS_ADMIN_DIR}/skills"
     shopt -s nullglob
     for f in "${PAYLOAD_DIR}/agent/skills/"*.md; do
-      install -m 644 -o root -g root "${f}" "${ZOMBIE_DIR}/skills/$(basename "${f}")"
+      install -m 644 -o root -g root "${f}" "${AI_SYS_ADMIN_DIR}/skills/$(basename "${f}")"
     done
     shopt -u nullglob
-    install -d -m 755 -o root -g root "${ZOMBIE_ETC}/skills.d"
+    install -d -m 755 -o root -g root "${AI_SYS_ADMIN_ETC}/skills.d"
     ok "Skill catalogue re-deployed."
   fi
 }
@@ -764,10 +764,10 @@ cmd_uninstall() {
     local -a fwd=()
     (( DRY_RUN ))              && fwd+=(--dry-run)
     (( ASSUME_YES ))           && fwd+=(--yes)
-    (( ZOMBIE_QUIET ))         && fwd+=(--quiet)
+    (( AI_SYS_ADMIN_QUIET ))         && fwd+=(--quiet)
     (( UNINSTALL_ARCHIVE ))    && fwd+=(--archive)
     (( UNINSTALL_KEEP_AGENT )) && fwd+=(--keep-agent)
-    [[ "${ZOMBIE_COLOR:-}" == "never" ]] && fwd+=(--no-color)
+    [[ "${AI_SYS_ADMIN_COLOR:-}" == "never" ]] && fwd+=(--no-color)
     exec "${SCRIPT_DIR}/uninstall.sh" "${fwd[@]}"
   fi
   die "uninstall.sh not found alongside ${SCRIPT_NAME}." 1
@@ -786,9 +786,9 @@ A real install would install Ubuntu AI System Administrator on:
 
   Host:           ${ID:-?} ${VERSION_ID:-?} on $(dpkg --print-architecture 2>/dev/null || uname -m)
   Transcript:     ${LOG_FILE}
-  Receipt:        $([[ "${ZOMBIE_RECEIPT}" == "1" ]] && echo "${RECEIPT_FILE}" || echo "(disabled)")
+  Receipt:        $([[ "${AI_SYS_ADMIN_RECEIPT}" == "1" ]] && echo "${RECEIPT_FILE}" || echo "(disabled)")
 EOF
-  print_zombie_dry_run
+  print_ai_sys_admin_dry_run
   cat <<EOF
 
 Nothing has been changed. To proceed for real:
@@ -799,16 +799,16 @@ See docs/QUICKSTART.md and docs/ARCHITECTURE.md for the full picture.
 EOF
 }
 
-print_zombie_dry_run() {
+print_ai_sys_admin_dry_run() {
   cat <<EOF
 
 Ubuntu AI System Administrator:
   Agent user:     ${AGENT_USER}  (home: ${AGENT_HOME})
-  Install root:   ${ZOMBIE_DIR}
-  Etc dir:        ${ZOMBIE_ETC}
-  Log dir:        ${ZOMBIE_LOG_DIR}
+  Install root:   ${AI_SYS_ADMIN_DIR}
+  Etc dir:        ${AI_SYS_ADMIN_ETC}
+  Log dir:        ${AI_SYS_ADMIN_LOG_DIR}
   Chat port:      ${CHAT_PORT}/tcp (loopback only)
-  Mode:           $([[ "${ZOMBIE_NONINTERACTIVE}" == "1" ]] && echo non-interactive || echo interactive)
+  Mode:           $([[ "${AI_SYS_ADMIN_NONINTERACTIVE}" == "1" ]] && echo non-interactive || echo interactive)
 
 Apt package groups installed:
   base            sudo, curl, git, editors, Python 3/venv, build-essential,
@@ -816,24 +816,24 @@ Apt package groups installed:
   nodejs          Node 22.x from deb.nodesource.com (signed-by keyring)
 
 Files & directories created / re-asserted:
-  /etc/sudoers.d/90-${AGENT_USER}-ubuntu-zombie   (NOPASSWD: ALL for ${AGENT_USER})
-  ${ZOMBIE_DIR}/                                  (755, ${AGENT_USER}:${AGENT_USER})
-  ${ZOMBIE_DIR}/secrets/                          (700, env file 600)
-  ${ZOMBIE_DIR}/bin/                              (verify, health-check, secrets-edit, audit-recent, …)
-  ${ZOMBIE_DIR}/agent/                            (Python package + templates + skills + pi bridge)
-  ${ZOMBIE_DIR}/pi/                               (rendered pi-mono settings + APPEND_SYSTEM.md)
-  ${ZOMBIE_DIR}/skills/                           (built-in markdown skills)
-  ${ZOMBIE_ETC}/skills.d/                         (operator-supplied skills)
-  ${ZOMBIE_LOG_DIR}/                              (750, ${AGENT_USER}:${AGENT_USER}, logrotate'd)
-  /etc/systemd/system/ubuntu-zombie-chat.service
-  /etc/systemd/system/ubuntu-zombie-health.service
-  /etc/systemd/system/ubuntu-zombie-health.timer
-  /etc/logrotate.d/ubuntu-zombie
+  /etc/sudoers.d/90-${AGENT_USER}-ubuntu-ai-system-administrator   (NOPASSWD: ALL for ${AGENT_USER})
+  ${AI_SYS_ADMIN_DIR}/                                  (755, ${AGENT_USER}:${AGENT_USER})
+  ${AI_SYS_ADMIN_DIR}/secrets/                          (700, env file 600)
+  ${AI_SYS_ADMIN_DIR}/bin/                              (verify, health-check, secrets-edit, audit-recent, …)
+  ${AI_SYS_ADMIN_DIR}/agent/                            (Python package + templates + skills + pi bridge)
+  ${AI_SYS_ADMIN_DIR}/pi/                               (rendered pi-mono settings + APPEND_SYSTEM.md)
+  ${AI_SYS_ADMIN_DIR}/skills/                           (built-in markdown skills)
+  ${AI_SYS_ADMIN_ETC}/skills.d/                         (operator-supplied skills)
+  ${AI_SYS_ADMIN_LOG_DIR}/                              (750, ${AGENT_USER}:${AGENT_USER}, logrotate'd)
+  /etc/systemd/system/ubuntu-ai-system-administrator-chat.service
+  /etc/systemd/system/ubuntu-ai-system-administrator-health.service
+  /etc/systemd/system/ubuntu-ai-system-administrator-health.timer
+  /etc/logrotate.d/ubuntu-ai-system-administrator
 EOF
 }
 
 # ---------------------------------------------------------------------------
-# Interactive parameter review (Zombie Orchid setup experience)
+# Interactive parameter review (AI System Administrator Orchid setup experience)
 # ---------------------------------------------------------------------------
 # A branded, editable summary of every install parameter. The operator can
 # tweak any field and re-review until satisfied, then accept. Skipped in
@@ -844,7 +844,7 @@ EOF
 print_parameter_table() {
   load_os_release
   local receipt_state
-  if [[ "${ZOMBIE_RECEIPT}" == "1" ]]; then
+  if [[ "${AI_SYS_ADMIN_RECEIPT}" == "1" ]]; then
     receipt_state="${RECEIPT_FILE}"
   else
     receipt_state="disabled"
@@ -855,11 +855,11 @@ print_parameter_table() {
     "${C_DIM}" "${C_RESET}"
   field "1) Agent user"      "${AGENT_USER}"
   field "   Agent home"      "${AGENT_HOME}" "${C_DIM}"
-  field "2) Install root"    "${ZOMBIE_DIR}"
+  field "2) Install root"    "${AI_SYS_ADMIN_DIR}"
   field "3) Chat port"       "${CHAT_PORT}/tcp (loopback only)"
   field "4) Transcript log"  "${LOG_FILE}"
   field "5) Receipt file"    "${receipt_state}"
-  field "6) Chat password"   "$([[ "${ADMIN_PASSWORD_SET}" == "1" ]] && echo 'set (hidden)' || printf 'default (%s)' "${ZOMBIE_ADMIN_PASSWORD_DEFAULT}")"
+  field "6) Chat password"   "$([[ "${ADMIN_PASSWORD_SET}" == "1" ]] && echo 'set (hidden)' || printf 'default (%s)' "${AI_SYS_ADMIN_ADMIN_PASSWORD_DEFAULT}")"
   field "7) Time to Live"    "${TTL_DAYS} day(s) then permanently disabled"
   if [[ -n "${LOCAL_LLM_MODEL}" ]]; then
     field "8) Local LLM"     "${LOCAL_LLM_MODEL} @ ${LOCAL_LLM_BASE_URL}"
@@ -882,11 +882,11 @@ _edit_agent_user() {
     AGENT_USER="${v}"; AGENT_HOME="/home/${AGENT_USER}"
   fi
 }
-_edit_zombie_dir() {
+_edit_ai_sys_admin_dir() {
   local v
-  if prompt_until_valid "$(printf 'New install root [%s]: ' "${ZOMBIE_DIR}")" \
+  if prompt_until_valid "$(printf 'New install root [%s]: ' "${AI_SYS_ADMIN_DIR}")" \
        is_safe_absolute_path v 1 && [[ -n "${v}" ]]; then
-    ZOMBIE_DIR="${v}"
+    AI_SYS_ADMIN_DIR="${v}"
   fi
 }
 _edit_chat_port() {
@@ -904,7 +904,7 @@ _edit_log_file() {
   fi
 }
 _toggle_receipt() {
-  if [[ "${ZOMBIE_RECEIPT}" == "1" ]]; then
+  if [[ "${AI_SYS_ADMIN_RECEIPT}" == "1" ]]; then
     local v
     printf 'Receipt is ON. Press Enter to turn it OFF, or type a new path: '
     if read -r v && [[ -n "${v}" ]]; then
@@ -914,16 +914,16 @@ _toggle_receipt() {
         warn "Not a safe absolute path; receipt unchanged."
       fi
     else
-      ZOMBIE_RECEIPT=0; info "Receipt disabled."
+      AI_SYS_ADMIN_RECEIPT=0; info "Receipt disabled."
     fi
   else
-    ZOMBIE_RECEIPT=1; info "Receipt enabled: ${RECEIPT_FILE}."
+    AI_SYS_ADMIN_RECEIPT=1; info "Receipt enabled: ${RECEIPT_FILE}."
   fi
 }
 _edit_admin_password() {
   local p1 p2
-  [[ "${ZOMBIE_NONINTERACTIVE}" == "1" || ! -t 0 ]] && return 0
-  if ! read -r -s -p "New chat password (blank to keep the default '${ZOMBIE_ADMIN_PASSWORD_DEFAULT}'): " p1; then
+  [[ "${AI_SYS_ADMIN_NONINTERACTIVE}" == "1" || ! -t 0 ]] && return 0
+  if ! read -r -s -p "New chat password (blank to keep the default '${AI_SYS_ADMIN_ADMIN_PASSWORD_DEFAULT}'): " p1; then
     echo
     warn "No input (EOF); chat password unchanged."
     return 0
@@ -1058,37 +1058,37 @@ admin_password_hash() {
   printf '%s\n' "$1" | python3 "${PAYLOAD_DIR}/agent/auth.py"
 }
 
-# Ensure secrets/env carries a ZOMBIE_ADMIN_PASSWORD_HASH line. The hash is
+# Ensure secrets/env carries a AI_SYS_ADMIN_ADMIN_PASSWORD_HASH line. The hash is
 # (re)written when it is missing, or when the operator explicitly chose a
 # password this run (ADMIN_PASSWORD_SET=1); an existing hash is otherwise
 # preserved so a plain re-install never resets a customised password.
 ensure_admin_password_hash() {
   local file="$1" hash has_line=0
-  grep -q '^ZOMBIE_ADMIN_PASSWORD_HASH=' "${file}" 2>/dev/null && has_line=1
+  grep -q '^AI_SYS_ADMIN_ADMIN_PASSWORD_HASH=' "${file}" 2>/dev/null && has_line=1
   if [[ "${has_line}" -eq 1 && "${ADMIN_PASSWORD_SET}" != "1" ]]; then
     return 0
   fi
-  if ! hash="$(admin_password_hash "${ADMIN_PASSWORD:-${ZOMBIE_ADMIN_PASSWORD_DEFAULT}}")"; then
+  if ! hash="$(admin_password_hash "${ADMIN_PASSWORD:-${AI_SYS_ADMIN_ADMIN_PASSWORD_DEFAULT}}")"; then
     die "Failed to hash the chat password." 1
   fi
   if [[ "${has_line}" -eq 1 ]]; then
-    sed -i -E '/^ZOMBIE_ADMIN_PASSWORD_HASH=/d' "${file}"
+    sed -i -E '/^AI_SYS_ADMIN_ADMIN_PASSWORD_HASH=/d' "${file}"
   fi
   [[ -s "${file}" ]] && [[ "$(tail -c1 "${file}" 2>/dev/null)" != $'\n' ]] && printf '\n' >> "${file}"
-  printf 'ZOMBIE_ADMIN_PASSWORD_HASH=%s\n' "${hash}" >> "${file}"
+  printf 'AI_SYS_ADMIN_ADMIN_PASSWORD_HASH=%s\n' "${hash}" >> "${file}"
 }
 
 # Initialise the Time-to-Live kill switch on first install. Reinstalls preserve
 # valid lifecycle state, including extensions and tombstones, so an upgrade
 # cannot silently change an operator's existing TTL decision.
 init_lifecycle_state() {
-  local state="${ZOMBIE_DIR}/state/lifecycle.json" current
+  local state="${AI_SYS_ADMIN_DIR}/state/lifecycle.json" current
   if [[ -s "${state}" ]]; then
     chown "${AGENT_USER}:${AGENT_USER}" "${state}"
     chmod 600 "${state}"
     if current="$(runuser -u "${AGENT_USER}" -- env \
-          ZOMBIE_LIFECYCLE_STATE="${state}" \
-          python3 "${ZOMBIE_DIR}/agent/lifecycle.py" status 2>/dev/null)" \
+          AI_SYS_ADMIN_LIFECYCLE_STATE="${state}" \
+          python3 "${AI_SYS_ADMIN_DIR}/agent/lifecycle.py" status 2>/dev/null)" \
         && grep -Eq '"configured":[[:space:]]*true' <<<"${current}"; then
       ok "Preserving existing Time to Live state."
       return 0
@@ -1096,13 +1096,13 @@ init_lifecycle_state() {
     warn "Existing Time-to-Live state is invalid; creating a fresh countdown."
   fi
   if ! runuser -u "${AGENT_USER}" -- env \
-        ZOMBIE_LIFECYCLE_STATE="${state}" \
-        python3 "${ZOMBIE_DIR}/agent/lifecycle.py" init --days "${TTL_DAYS}" >/dev/null; then
+        AI_SYS_ADMIN_LIFECYCLE_STATE="${state}" \
+        python3 "${AI_SYS_ADMIN_DIR}/agent/lifecycle.py" init --days "${TTL_DAYS}" >/dev/null; then
     die "Failed to initialise the Time-to-Live state." 1
   fi
   chown "${AGENT_USER}:${AGENT_USER}" "${state}"
   chmod 600 "${state}"
-  ok "Time to Live set: ${TTL_DAYS} day(s) until the zombie is disabled."
+  ok "Time to Live set: ${TTL_DAYS} day(s) until the AI System Administrator is disabled."
 }
 # DISCOVERED_MODELS (parallel index) with every advertised model.
 DISCOVERED_ENDPOINTS=()
@@ -1116,9 +1116,9 @@ scan_local_llms() {
   fi
   local prefix port
   prefix="$(_local_ipv4_prefix)"
-  port="${ZOMBIE_LLM_SCAN_PORT}"
+  port="${AI_SYS_ADMIN_LLM_SCAN_PORT}"
   if ! is_valid_tcp_port "${port}"; then
-    warn "ZOMBIE_LLM_SCAN_PORT='${port}' is not a valid TCP port (1-65535); skipping LLM discovery."
+    warn "AI_SYS_ADMIN_LLM_SCAN_PORT='${port}' is not a valid TCP port (1-65535); skipping LLM discovery."
     return 1
   fi
   if [[ -z "${prefix}" ]]; then
@@ -1158,13 +1158,13 @@ scan_local_llms() {
 # Interactive picker: scan, present the discovered models, and record the
 # operator's choice in LOCAL_LLM_ENDPOINT / LOCAL_LLM_BASE_URL /
 # LOCAL_LLM_MODEL. Skipped on non-interactive / --yes / non-TTY runs and when
-# ZOMBIE_SKIP_LLM_SCAN=1.
+# AI_SYS_ADMIN_SKIP_LLM_SCAN=1.
 discover_local_llms() {
   local force="${1:-0}"
-  [[ "${ZOMBIE_NONINTERACTIVE}" == "1" ]] && return 0
+  [[ "${AI_SYS_ADMIN_NONINTERACTIVE}" == "1" ]] && return 0
   (( ASSUME_YES )) && return 0
   [[ -t 0 ]] || return 0
-  [[ "${ZOMBIE_SKIP_LLM_SCAN}" == "1" ]] && return 0
+  [[ "${AI_SYS_ADMIN_SKIP_LLM_SCAN}" == "1" ]] && return 0
   if [[ "${force}" != "1" ]] && model_selection_configured; then
     info "A model is already configured; preserving it and skipping local LLM discovery."
     return 0
@@ -1176,7 +1176,7 @@ discover_local_llms() {
   while true; do
     brand_banner "Local LLM servers discovered on your network"
     printf '  %sPick a model to use as the starting model, or skip to configure a%s\n' "${C_DIM}" "${C_RESET}"
-    printf '  %scloud provider later in %s/secrets/env.%s\n\n' "${C_DIM}" "${ZOMBIE_DIR}" "${C_RESET}"
+    printf '  %scloud provider later in %s/secrets/env.%s\n\n' "${C_DIM}" "${AI_SYS_ADMIN_DIR}" "${C_RESET}"
     for i in "${!DISCOVERED_MODELS[@]}"; do
       printf '  %s%2d)%s %s%s  @  http://%s/v1%s\n' \
         "${C_BRAND2}" "$((i + 1))" "${C_RESET}" "${C_ACCENT}" \
@@ -1215,7 +1215,7 @@ _edit_local_llm() {
 
 review_parameters() {
   # Automated paths skip the review entirely.
-  [[ "${ZOMBIE_NONINTERACTIVE}" == "1" ]] && return 0
+  [[ "${AI_SYS_ADMIN_NONINTERACTIVE}" == "1" ]] && return 0
   (( ASSUME_YES )) && return 0
   [[ -t 0 ]] || return 0
 
@@ -1238,7 +1238,7 @@ review_parameters() {
       q|quit|cancel|n|no)
         info "Cancelled."; exit 0 ;;
       1)  _edit_agent_user ;;
-      2)  _edit_zombie_dir ;;
+      2)  _edit_ai_sys_admin_dir ;;
       3)  _edit_chat_port ;;
       4)  _edit_log_file ;;
       5)  _toggle_receipt ;;
@@ -1257,35 +1257,35 @@ review_parameters() {
 # (every non-secret parameter) and finalised with the outcome when it ends.
 # The file is root-only (mode 600), but credentials are never written to it.
 
-receipt_start_zombie() {
+receipt_start_ai_sys_admin() {
   printf 'Agent user       : %s\n' "${AGENT_USER}"
   printf 'Agent home       : %s\n' "${AGENT_HOME}"
-  printf 'Install root     : %s\n' "${ZOMBIE_DIR}"
-  printf 'Etc dir          : %s\n' "${ZOMBIE_ETC}"
-  printf 'Log dir          : %s\n' "${ZOMBIE_LOG_DIR}"
+  printf 'Install root     : %s\n' "${AI_SYS_ADMIN_DIR}"
+  printf 'Etc dir          : %s\n' "${AI_SYS_ADMIN_ETC}"
+  printf 'Log dir          : %s\n' "${AI_SYS_ADMIN_LOG_DIR}"
   printf 'Chat port        : %s/tcp (loopback only)\n' "${CHAT_PORT}"
   printf 'Local LLM        : %s\n' \
     "$([[ -n "${LOCAL_LLM_MODEL}" ]] && printf '%s @ %s' "${LOCAL_LLM_MODEL}" "${LOCAL_LLM_BASE_URL}" || echo 'none')"
 }
 
-receipt_finish_zombie() {
+receipt_finish_ai_sys_admin() {
   printf 'Provider token   : %s\n' "$([[ "${PROVIDER_OK:-0}" == "1" ]] && echo present || echo missing)"
   printf 'Chat service     : %s\n' "$([[ "${CHAT_OK:-0}" == "1" ]] && echo running || echo 'not running')"
 }
 
 write_receipt_start() {
-  [[ "${ZOMBIE_RECEIPT}" == "1" ]] || return 0
+  [[ "${AI_SYS_ADMIN_RECEIPT}" == "1" ]] || return 0
   load_os_release
   if ! mkdir -p "$(dirname "${RECEIPT_FILE}")" 2>/dev/null; then
     warn "Could not create receipt directory; receipt disabled for this run."
-    ZOMBIE_RECEIPT=0
+    AI_SYS_ADMIN_RECEIPT=0
     return 0
   fi
   if [[ -f "${RECEIPT_FILE}" ]]; then
     chmod 600 "${RECEIPT_FILE}" 2>/dev/null || true
   elif ! install -m 600 /dev/null "${RECEIPT_FILE}" 2>/dev/null; then
     warn "Could not create the install receipt at ${RECEIPT_FILE}."
-    ZOMBIE_RECEIPT=0
+    AI_SYS_ADMIN_RECEIPT=0
     return 0
   fi
 
@@ -1300,15 +1300,15 @@ write_receipt_start() {
       "$(dpkg --print-architecture 2>/dev/null || uname -m)"
     printf 'Invoked by       : %s (uid %s)\n' "${SUDO_USER:-$(id -un)}" "$(id -u)"
     printf 'Mode             : %s\n' \
-      "$([[ "${ZOMBIE_NONINTERACTIVE}" == "1" ]] && echo non-interactive || echo interactive)"
+      "$([[ "${AI_SYS_ADMIN_NONINTERACTIVE}" == "1" ]] && echo non-interactive || echo interactive)"
     printf '\n-- Parameters --\n'
-    receipt_start_zombie
+    receipt_start_ai_sys_admin
     printf 'Transcript log   : %s\n' "${LOG_FILE}"
     printf 'Receipt file     : %s\n' "${RECEIPT_FILE}"
     printf '============================================================\n'
   } >> "${RECEIPT_FILE}" 2>/dev/null; then
     warn "Could not write the install receipt to ${RECEIPT_FILE}."
-    ZOMBIE_RECEIPT=0
+    AI_SYS_ADMIN_RECEIPT=0
     return 0
   fi
   chmod 600 "${RECEIPT_FILE}" 2>/dev/null || true
@@ -1316,7 +1316,7 @@ write_receipt_start() {
 }
 
 write_receipt_finish() {
-  [[ "${ZOMBIE_RECEIPT}" == "1" ]] || return 0
+  [[ "${AI_SYS_ADMIN_RECEIPT}" == "1" ]] || return 0
   [[ -f "${RECEIPT_FILE}" ]] || return 0
   {
     printf '\n-- Finish --\n'
@@ -1326,7 +1326,7 @@ write_receipt_finish() {
     if [[ -n "${INSTALL_T0:-}" ]]; then
       printf 'Duration         : %s\n' "$(fmt_duration "$(( $(date +%s) - INSTALL_T0 ))")"
     fi
-    receipt_finish_zombie
+    receipt_finish_ai_sys_admin
     printf 'Steps satisfied  : %s\n' "${STEPS_SATISFIED}"
     printf 'Steps applied    : %s\n' "${STEPS_CHANGED}"
     [[ -n "${NEXT_STEP:-}" ]] && printf 'Next step        : %s\n' "${NEXT_STEP}"
@@ -1340,7 +1340,7 @@ write_receipt_finish() {
 
 # Append a short failure record to the receipt from the error trap.
 write_receipt_fail() {
-  [[ "${ZOMBIE_RECEIPT}" == "1" ]] || return 0
+  [[ "${AI_SYS_ADMIN_RECEIPT}" == "1" ]] || return 0
   [[ -f "${RECEIPT_FILE}" ]] || return 0
   {
     printf '\n-- Finish --\n'
@@ -1410,7 +1410,7 @@ bootstrap_prerequisites
 # Local LLM discovery: scan the host's IPv4 /24 for an OpenAI-compatible LLM
 # server and offer the models it advertises as the starting model. Runs before
 # the parameter review so the choice shows up in the table. No-op for
-# --yes / non-interactive / non-TTY runs, when ZOMBIE_SKIP_LLM_SCAN=1, or when
+# --yes / non-interactive / non-TTY runs, when AI_SYS_ADMIN_SKIP_LLM_SCAN=1, or when
 # an environment or installed secrets file already selects a model.
 discover_local_llms
 review_parameters
@@ -1439,15 +1439,15 @@ if (( VERBOSE )); then
   set -x
 fi
 
-# Phase counter: count the Zombie install sections so phase numbering remains
+# Phase counter: count the AI System Administrator install sections so phase numbering remains
 # accurate as the installer evolves.
-ZOMBIE_PHASE=0
+AI_SYS_ADMIN_PHASE=0
 SECTION_RULE_WIDTH=60
-count_zombie_phases() {
+count_ai_sys_admin_phases() {
   awk '/^# install — the rest of the file/{f=1} f && /^section "/{c++} END{print c+0}' \
     "${BASH_SOURCE[0]}" 2>/dev/null || echo 0
 }
-ZOMBIE_PHASE_TOTAL="$(count_zombie_phases)"
+AI_SYS_ADMIN_PHASE_TOTAL="$(count_ai_sys_admin_phases)"
 _SECTION_T0=""
 
 # Re-define section() to record a breadcrumb, number each phase, and report
@@ -1456,18 +1456,18 @@ _SECTION_T0=""
 section() {
   local now; now="$(date +%s)"
   if [[ -n "${_SECTION_T0}" ]]; then
-    (( ZOMBIE_QUIET )) || printf '%s    Completed in %s%s\n' \
+    (( AI_SYS_ADMIN_QUIET )) || printf '%s    Completed in %s%s\n' \
       "${C_DIM}" "$(fmt_duration "$(( now - _SECTION_T0 ))")" "${C_RESET}"
   fi
   _SECTION_T0="${now}"
-  ZOMBIE_PHASE=$(( ZOMBIE_PHASE + 1 ))
+  AI_SYS_ADMIN_PHASE=$(( AI_SYS_ADMIN_PHASE + 1 ))
   printf '%s\t%s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$*" >> "${STEP_LOG}" || true
-  (( ZOMBIE_QUIET )) && return 0
+  (( AI_SYS_ADMIN_QUIET )) && return 0
   local counter
-  if (( ZOMBIE_PHASE_TOTAL > 0 )); then
-    counter="[${ZOMBIE_PHASE}/${ZOMBIE_PHASE_TOTAL}]"
+  if (( AI_SYS_ADMIN_PHASE_TOTAL > 0 )); then
+    counter="[${AI_SYS_ADMIN_PHASE}/${AI_SYS_ADMIN_PHASE_TOTAL}]"
   else
-    counter="[${ZOMBIE_PHASE}]"
+    counter="[${AI_SYS_ADMIN_PHASE}]"
   fi
   printf '\n%s%sPhase %s%s  %s\n' \
     "${C_BRAND}" "${C_BOLD}" "${counter}" "${C_RESET}" "$*"
@@ -1504,16 +1504,16 @@ INSTALL_T0="$(date +%s)"
 
 info "Log file: ${LOG_FILE}"
 info "Agent user: ${AGENT_USER}"
-info "Install root: ${ZOMBIE_DIR}"
+info "Install root: ${AI_SYS_ADMIN_DIR}"
 info "Chat port: ${CHAT_PORT} (loopback only)"
-info "Mode: $([[ "${ZOMBIE_NONINTERACTIVE}" == "1" ]] && echo non-interactive || echo interactive)"
-info "Phases: ${ZOMBIE_PHASE_TOTAL}. Typical run takes ~10–20 min depending on network speed."
+info "Mode: $([[ "${AI_SYS_ADMIN_NONINTERACTIVE}" == "1" ]] && echo non-interactive || echo interactive)"
+info "Phases: ${AI_SYS_ADMIN_PHASE_TOTAL}. Typical run takes ~10–20 min depending on network speed."
 cat <<EOF
 
 This installer will:
   - Create the ${AGENT_USER} user (operating identity of the AI Systems Administrator) with passwordless sudo
   - Install Python and Node agent runtimes
-  - Install the loopback chat service (ubuntu-zombie-chat.service)
+  - Install the loopback chat service (ubuntu-ai-system-administrator-chat.service)
   - Install policy, audit log, and helper scripts
   - Enable automatic security updates
 
@@ -1521,7 +1521,7 @@ Run this from the physical Ubuntu machine, not over public SSH.
 
 EOF
 
-if [[ "${ZOMBIE_NONINTERACTIVE}" == "1" ]]; then
+if [[ "${AI_SYS_ADMIN_NONINTERACTIVE}" == "1" ]]; then
   info "Non-interactive mode: proceeding without confirmation."
 elif (( ASSUME_YES )); then
   info "--yes: proceeding without confirmation."
@@ -1540,7 +1540,7 @@ write_receipt_start
 # System packages
 # ---------------------------------------------------------------------------
 
-install_zombie_base() {
+install_ai_sys_admin_base() {
 section "Update the operating system"
 
 apt_get update
@@ -1596,7 +1596,7 @@ fi
 
 usermod -aG sudo "${AGENT_USER}"
 
-SUDOERS_FILE="/etc/sudoers.d/90-${AGENT_USER}-ubuntu-zombie"
+SUDOERS_FILE="/etc/sudoers.d/90-${AGENT_USER}-ubuntu-ai-system-administrator"
 SUDOERS_TMP="$(mktemp "${SUDOERS_FILE}.XXXXXX")"
 cat > "${SUDOERS_TMP}" <<EOF
 # Managed by ${SCRIPT_NAME}. Grants ${AGENT_USER} passwordless root.
@@ -1640,22 +1640,22 @@ systemctl mask sleep.target suspend.target hibernate.target hybrid-sleep.target 
 ok "Sleep and suspend targets masked."
 
 # ---------------------------------------------------------------------------
-# Workspace at ${ZOMBIE_DIR}
+# Workspace at ${AI_SYS_ADMIN_DIR}
 # ---------------------------------------------------------------------------
 
 section "Prepare application state"
 
-install -d -m 755 -o "${AGENT_USER}" -g "${AGENT_USER}" "${ZOMBIE_DIR}" \
-  "${ZOMBIE_DIR}/bin" "${ZOMBIE_DIR}/logs" "${ZOMBIE_DIR}/state" \
-  "${ZOMBIE_DIR}/scripts" "${ZOMBIE_DIR}/tools" "${ZOMBIE_DIR}/agent" \
-  "${ZOMBIE_DIR}/agent/templates"
-install -d -m 700 -o "${AGENT_USER}" -g "${AGENT_USER}" "${ZOMBIE_DIR}/secrets"
-install -d -m 755 "${ZOMBIE_ETC}"
-install -d -m 750 -o "${AGENT_USER}" -g "${AGENT_USER}" "${ZOMBIE_LOG_DIR}"
+install -d -m 755 -o "${AGENT_USER}" -g "${AGENT_USER}" "${AI_SYS_ADMIN_DIR}" \
+  "${AI_SYS_ADMIN_DIR}/bin" "${AI_SYS_ADMIN_DIR}/logs" "${AI_SYS_ADMIN_DIR}/state" \
+  "${AI_SYS_ADMIN_DIR}/scripts" "${AI_SYS_ADMIN_DIR}/tools" "${AI_SYS_ADMIN_DIR}/agent" \
+  "${AI_SYS_ADMIN_DIR}/agent/templates"
+install -d -m 700 -o "${AGENT_USER}" -g "${AGENT_USER}" "${AI_SYS_ADMIN_DIR}/secrets"
+install -d -m 755 "${AI_SYS_ADMIN_ETC}"
+install -d -m 750 -o "${AGENT_USER}" -g "${AGENT_USER}" "${AI_SYS_ADMIN_LOG_DIR}"
 
-if [[ ! -f "${ZOMBIE_DIR}/secrets/env" ]]; then
-  install -m 600 -o "${AGENT_USER}" -g "${AGENT_USER}" /dev/null "${ZOMBIE_DIR}/secrets/env"
-  cat > "${ZOMBIE_DIR}/secrets/env" <<EOF
+if [[ ! -f "${AI_SYS_ADMIN_DIR}/secrets/env" ]]; then
+  install -m 600 -o "${AGENT_USER}" -g "${AGENT_USER}" /dev/null "${AI_SYS_ADMIN_DIR}/secrets/env"
+  cat > "${AI_SYS_ADMIN_DIR}/secrets/env" <<EOF
 # Token provider credentials and runtime environment for the AI Systems Administrator.
 # Pick ONE provider line and paste the key. The same provider + model
 # selection drives BOTH the agent loop (pi-mono / the actual chat
@@ -1669,47 +1669,47 @@ if [[ ! -f "${ZOMBIE_DIR}/secrets/env" ]]; then
 #   GROQ_API_KEY=...
 #
 # Optional:
-#   ZOMBIE_PROVIDER=openai      # openai|anthropic|gemini|xai|openrouter|mistral|groq|lmstudio
-#   ZOMBIE_MODEL=gpt-4o-mini    # model for the agent loop + chat (required for openrouter/lmstudio)
+#   AI_SYS_ADMIN_PROVIDER=openai      # openai|anthropic|gemini|xai|openrouter|mistral|groq|lmstudio
+#   AI_SYS_ADMIN_MODEL=gpt-4o-mini    # model for the agent loop + chat (required for openrouter/lmstudio)
 #   LMSTUDIO_API_KEY=local      # local OpenAI-compatible server (LM Studio, Ollama,
-#                               # llama.cpp). Pair with ZOMBIE_PROVIDER=lmstudio; the
+#                               # llama.cpp). Pair with AI_SYS_ADMIN_PROVIDER=lmstudio; the
 #                               # server URL lives in ~/.pi/agent/models.json.
-#   ZOMBIE_CHAT_PORT=${CHAT_PORT}
+#   AI_SYS_ADMIN_CHAT_PORT=${CHAT_PORT}
 
 DISPLAY=:0
-ZOMBIE_DIR=${ZOMBIE_DIR}
+AI_SYS_ADMIN_DIR=${AI_SYS_ADMIN_DIR}
 AGENT_USER=${AGENT_USER}
 AGENT_HOME=${AGENT_HOME}
-ZOMBIE_CHAT_PORT=${CHAT_PORT}
+AI_SYS_ADMIN_CHAT_PORT=${CHAT_PORT}
 EOF
   if [[ -n "${LOCAL_LLM_MODEL}" ]]; then
-    cat >> "${ZOMBIE_DIR}/secrets/env" <<EOF
+    cat >> "${AI_SYS_ADMIN_DIR}/secrets/env" <<EOF
 
 # Local LLM auto-discovered on the LAN during install: an OpenAI-compatible
 # server at ${LOCAL_LLM_BASE_URL}. The agent loop (pi-mono / the actual chat
 # answers) reaches it through the custom 'lmstudio' provider defined in
 # ${AGENT_HOME}/.pi/agent/models.json, which carries the server URL. Most local
 # servers ignore the API key; replace it if yours requires one.
-ZOMBIE_PROVIDER=lmstudio
-ZOMBIE_MODEL=${LOCAL_LLM_MODEL}
-LMSTUDIO_API_KEY=${ZOMBIE_LOCAL_LLM_API_KEY}
+AI_SYS_ADMIN_PROVIDER=lmstudio
+AI_SYS_ADMIN_MODEL=${LOCAL_LLM_MODEL}
+LMSTUDIO_API_KEY=${AI_SYS_ADMIN_LOCAL_LLM_API_KEY}
 EOF
   fi
-  chown "${AGENT_USER}:${AGENT_USER}" "${ZOMBIE_DIR}/secrets/env"
-  chmod 600 "${ZOMBIE_DIR}/secrets/env"
+  chown "${AGENT_USER}:${AGENT_USER}" "${AI_SYS_ADMIN_DIR}/secrets/env"
+  chmod 600 "${AI_SYS_ADMIN_DIR}/secrets/env"
   if [[ -n "${LOCAL_LLM_MODEL}" ]]; then
     write_pi_models_json "${LOCAL_LLM_BASE_URL}" "${LOCAL_LLM_MODEL}"
-    ok "Created ${ZOMBIE_DIR}/secrets/env with local LLM ${LOCAL_LLM_MODEL} at ${LOCAL_LLM_BASE_URL}."
+    ok "Created ${AI_SYS_ADMIN_DIR}/secrets/env with local LLM ${LOCAL_LLM_MODEL} at ${LOCAL_LLM_BASE_URL}."
   else
-    ok "Created ${ZOMBIE_DIR}/secrets/env (edit with: sudo ${ZOMBIE_DIR}/bin/secrets-edit)."
+    ok "Created ${AI_SYS_ADMIN_DIR}/secrets/env (edit with: sudo ${AI_SYS_ADMIN_DIR}/bin/secrets-edit)."
   fi
 else
-  info "Preserving existing ${ZOMBIE_DIR}/secrets/env."
-  if grep -q '^ZOMBIE_CHAT_PORT=' "${ZOMBIE_DIR}/secrets/env"; then
-    sed -i -E "s|^ZOMBIE_CHAT_PORT=.*$|ZOMBIE_CHAT_PORT=${CHAT_PORT}|" "${ZOMBIE_DIR}/secrets/env"
+  info "Preserving existing ${AI_SYS_ADMIN_DIR}/secrets/env."
+  if grep -q '^AI_SYS_ADMIN_CHAT_PORT=' "${AI_SYS_ADMIN_DIR}/secrets/env"; then
+    sed -i -E "s|^AI_SYS_ADMIN_CHAT_PORT=.*$|AI_SYS_ADMIN_CHAT_PORT=${CHAT_PORT}|" "${AI_SYS_ADMIN_DIR}/secrets/env"
   else
-    [[ -s "${ZOMBIE_DIR}/secrets/env" ]] && [[ "$(tail -c1 "${ZOMBIE_DIR}/secrets/env" 2>/dev/null)" != $'\n' ]] && printf '\n' >> "${ZOMBIE_DIR}/secrets/env"
-    printf 'ZOMBIE_CHAT_PORT=%s\n' "${CHAT_PORT}" >> "${ZOMBIE_DIR}/secrets/env"
+    [[ -s "${AI_SYS_ADMIN_DIR}/secrets/env" ]] && [[ "$(tail -c1 "${AI_SYS_ADMIN_DIR}/secrets/env" 2>/dev/null)" != $'\n' ]] && printf '\n' >> "${AI_SYS_ADMIN_DIR}/secrets/env"
+    printf 'AI_SYS_ADMIN_CHAT_PORT=%s\n' "${CHAT_PORT}" >> "${AI_SYS_ADMIN_DIR}/secrets/env"
   fi
   # When a local LLM was discovered during this run, also apply the
   # lmstudio provider settings to the existing secrets/env so a
@@ -1722,48 +1722,48 @@ else
     # values without sed-escaping the operator-supplied key (which may
     # contain characters that would otherwise terminate the s|||
     # expression).
-    sed -i -E '/^(ZOMBIE_PROVIDER|ZOMBIE_MODEL|LMSTUDIO_API_KEY)=/d' \
-      "${ZOMBIE_DIR}/secrets/env"
-    [[ -s "${ZOMBIE_DIR}/secrets/env" ]] && [[ "$(tail -c1 "${ZOMBIE_DIR}/secrets/env" 2>/dev/null)" != $'\n' ]] && printf '\n' >> "${ZOMBIE_DIR}/secrets/env"
+    sed -i -E '/^(AI_SYS_ADMIN_PROVIDER|AI_SYS_ADMIN_MODEL|LMSTUDIO_API_KEY)=/d' \
+      "${AI_SYS_ADMIN_DIR}/secrets/env"
+    [[ -s "${AI_SYS_ADMIN_DIR}/secrets/env" ]] && [[ "$(tail -c1 "${AI_SYS_ADMIN_DIR}/secrets/env" 2>/dev/null)" != $'\n' ]] && printf '\n' >> "${AI_SYS_ADMIN_DIR}/secrets/env"
     {
-      printf 'ZOMBIE_PROVIDER=lmstudio\n'
-      printf 'ZOMBIE_MODEL=%s\n' "${LOCAL_LLM_MODEL}"
-      printf 'LMSTUDIO_API_KEY=%s\n' "${ZOMBIE_LOCAL_LLM_API_KEY}"
-    } >> "${ZOMBIE_DIR}/secrets/env"
+      printf 'AI_SYS_ADMIN_PROVIDER=lmstudio\n'
+      printf 'AI_SYS_ADMIN_MODEL=%s\n' "${LOCAL_LLM_MODEL}"
+      printf 'LMSTUDIO_API_KEY=%s\n' "${AI_SYS_ADMIN_LOCAL_LLM_API_KEY}"
+    } >> "${AI_SYS_ADMIN_DIR}/secrets/env"
     write_pi_models_json "${LOCAL_LLM_BASE_URL}" "${LOCAL_LLM_MODEL}"
     ok "Applied local LLM ${LOCAL_LLM_MODEL} at ${LOCAL_LLM_BASE_URL} to existing secrets/env."
   fi
-  chown "${AGENT_USER}:${AGENT_USER}" "${ZOMBIE_DIR}/secrets/env"
-  chmod 600 "${ZOMBIE_DIR}/secrets/env"
+  chown "${AGENT_USER}:${AGENT_USER}" "${AI_SYS_ADMIN_DIR}/secrets/env"
+  chmod 600 "${AI_SYS_ADMIN_DIR}/secrets/env"
 fi
 
 # Stamp the chat-UI password hash into secrets/env (idempotent: keeps an
 # existing hash unless the operator chose a new password this run).
-ensure_admin_password_hash "${ZOMBIE_DIR}/secrets/env"
-chown "${AGENT_USER}:${AGENT_USER}" "${ZOMBIE_DIR}/secrets/env"
-chmod 600 "${ZOMBIE_DIR}/secrets/env"
+ensure_admin_password_hash "${AI_SYS_ADMIN_DIR}/secrets/env"
+chown "${AGENT_USER}:${AGENT_USER}" "${AI_SYS_ADMIN_DIR}/secrets/env"
+chmod 600 "${AI_SYS_ADMIN_DIR}/secrets/env"
 # ---------------------------------------------------------------------------
 # Python cloud-agent runtime
 # ---------------------------------------------------------------------------
 
 section "Build the Python runtime"
 
-# Stage the venv setup helper into ${ZOMBIE_DIR}/bin early so the
+# Stage the venv setup helper into ${AI_SYS_ADMIN_DIR}/bin early so the
 # unprivileged setup below can exec it. The rest of the operator
 # helpers are installed in the "Deploy chat service" section below.
 # Extracted in FIX-1-12 so the body is lintable by ShellCheck.
 install -m 755 -o "${AGENT_USER}" -g "${AGENT_USER}" \
-  "${PAYLOAD_DIR}/bin/setup-agent-venv" "${ZOMBIE_DIR}/bin/setup-agent-venv"
+  "${PAYLOAD_DIR}/bin/setup-agent-venv" "${AI_SYS_ADMIN_DIR}/bin/setup-agent-venv"
 
 # Build the venv and install Python packages as the agent user. On an
 # interactive TTY show a heartbeat spinner and route the detail to the
 # transcript, while non-interactive/CI runs keep the full output streaming.
-if [[ -t 2 ]] && ! (( ZOMBIE_QUIET )); then
+if [[ -t 2 ]] && ! (( AI_SYS_ADMIN_QUIET )); then
   run_step "Building Python venv" -- \
     bash -c 'runuser -l "$1" -- "$2" >>"$3" 2>&1' \
-    _ "${AGENT_USER}" "${ZOMBIE_DIR}/bin/setup-agent-venv" "${LOG_FILE}"
+    _ "${AGENT_USER}" "${AI_SYS_ADMIN_DIR}/bin/setup-agent-venv" "${LOG_FILE}"
 else
-  runuser -l "${AGENT_USER}" -- "${ZOMBIE_DIR}/bin/setup-agent-venv"
+  runuser -l "${AGENT_USER}" -- "${AI_SYS_ADMIN_DIR}/bin/setup-agent-venv"
 fi
 
 ok "Python venv ready at ${AGENT_HOME}/agent-env."
@@ -2018,7 +2018,7 @@ retry 4 5 -- install_latest_node_bridge \
 # Deploy payload: chat service, helpers, policy, systemd, logrotate.
 # ---------------------------------------------------------------------------
 
-install_zombie_runtime() {
+install_ai_sys_admin_runtime() {
 section "Deploy the agent runtime"
 
 if [[ ! -d "${PAYLOAD_DIR}" ]]; then
@@ -2027,126 +2027,126 @@ fi
 
 # Chat service source.
 install -d -m 755 -o "${AGENT_USER}" -g "${AGENT_USER}" \
-  "${ZOMBIE_DIR}/agent" "${ZOMBIE_DIR}/agent/templates"
+  "${AI_SYS_ADMIN_DIR}/agent" "${AI_SYS_ADMIN_DIR}/agent/templates"
 for f in server.py providers.py policy.py audit.py runner.py history.py tools.py pi_mono.py skill_loader.py auth.py lifecycle.py examples.md; do
   install -m 644 -o "${AGENT_USER}" -g "${AGENT_USER}" \
-    "${PAYLOAD_DIR}/agent/${f}" "${ZOMBIE_DIR}/agent/${f}"
+    "${PAYLOAD_DIR}/agent/${f}" "${AI_SYS_ADMIN_DIR}/agent/${f}"
 done
 # The pi-ai bridge and its version pin travel with the Python sources
 # so providers.py can find them at the default path. Bridge is
 # read-only; only root mutates the agent tree.
 install -m 644 -o "${AGENT_USER}" -g "${AGENT_USER}" \
-  "${PAYLOAD_DIR}/agent/pi-ai-bridge.mjs" "${ZOMBIE_DIR}/agent/pi-ai-bridge.mjs"
-printf '%s\n' "${PI_AI_VERSION}" > "${ZOMBIE_DIR}/agent/pi-ai.version"
-chown "${AGENT_USER}:${AGENT_USER}" "${ZOMBIE_DIR}/agent/pi-ai.version"
-chmod 644 "${ZOMBIE_DIR}/agent/pi-ai.version"
+  "${PAYLOAD_DIR}/agent/pi-ai-bridge.mjs" "${AI_SYS_ADMIN_DIR}/agent/pi-ai-bridge.mjs"
+printf '%s\n' "${PI_AI_VERSION}" > "${AI_SYS_ADMIN_DIR}/agent/pi-ai.version"
+chown "${AGENT_USER}:${AGENT_USER}" "${AI_SYS_ADMIN_DIR}/agent/pi-ai.version"
+chmod 644 "${AI_SYS_ADMIN_DIR}/agent/pi-ai.version"
 # Deploy the payload VERSION alongside the agent tree so the chat
 # service can report it via /api/version (the /version chat command).
 if [[ -f "${REPO_ROOT}/VERSION" ]]; then
   install -m 644 -o "${AGENT_USER}" -g "${AGENT_USER}" \
-    "${REPO_ROOT}/VERSION" "${ZOMBIE_DIR}/VERSION"
+    "${REPO_ROOT}/VERSION" "${AI_SYS_ADMIN_DIR}/VERSION"
 fi
 # pi-mono bridge + version pin live alongside the pi-ai ones for the
 # same reasons.
 install -m 644 -o "${AGENT_USER}" -g "${AGENT_USER}" \
-  "${PAYLOAD_DIR}/agent/pi-mono-bridge.mjs" "${ZOMBIE_DIR}/agent/pi-mono-bridge.mjs"
-printf '%s\n' "${PI_MONO_VERSION}" > "${ZOMBIE_DIR}/agent/pi-mono.version"
-chown "${AGENT_USER}:${AGENT_USER}" "${ZOMBIE_DIR}/agent/pi-mono.version"
-chmod 644 "${ZOMBIE_DIR}/agent/pi-mono.version"
+  "${PAYLOAD_DIR}/agent/pi-mono-bridge.mjs" "${AI_SYS_ADMIN_DIR}/agent/pi-mono-bridge.mjs"
+printf '%s\n' "${PI_MONO_VERSION}" > "${AI_SYS_ADMIN_DIR}/agent/pi-mono.version"
+chown "${AGENT_USER}:${AGENT_USER}" "${AI_SYS_ADMIN_DIR}/agent/pi-mono.version"
+chmod 644 "${AI_SYS_ADMIN_DIR}/agent/pi-mono.version"
 install -m 644 -o "${AGENT_USER}" -g "${AGENT_USER}" \
-  "${PAYLOAD_DIR}/agent/templates/index.html" "${ZOMBIE_DIR}/agent/templates/index.html"
+  "${PAYLOAD_DIR}/agent/templates/index.html" "${AI_SYS_ADMIN_DIR}/agent/templates/index.html"
 install -m 644 -o "${AGENT_USER}" -g "${AGENT_USER}" \
-  "${PAYLOAD_DIR}/agent/templates/settings.json.tmpl" "${ZOMBIE_DIR}/agent/templates/settings.json.tmpl"
+  "${PAYLOAD_DIR}/agent/templates/settings.json.tmpl" "${AI_SYS_ADMIN_DIR}/agent/templates/settings.json.tmpl"
 install -m 644 -o "${AGENT_USER}" -g "${AGENT_USER}" \
-  "${PAYLOAD_DIR}/agent/templates/APPEND_SYSTEM.md.tmpl" "${ZOMBIE_DIR}/agent/templates/APPEND_SYSTEM.md.tmpl"
+  "${PAYLOAD_DIR}/agent/templates/APPEND_SYSTEM.md.tmpl" "${AI_SYS_ADMIN_DIR}/agent/templates/APPEND_SYSTEM.md.tmpl"
 
 # Initialise the Time-to-Live kill switch now that lifecycle.py is deployed,
 # preserving valid state from an existing installation.
 init_lifecycle_state
 
-# Render pi-mono runtime configs into ${ZOMBIE_DIR}/pi/. Root-owned,
+# Render pi-mono runtime configs into ${AI_SYS_ADMIN_DIR}/pi/. Root-owned,
 # world-readable; the chat service reads them but does not need to
 # mutate them.
-install -d -m 755 -o root -g root "${ZOMBIE_DIR}/pi"
+install -d -m 755 -o root -g root "${AI_SYS_ADMIN_DIR}/pi"
 install -d -m 750 -o "${AGENT_USER}" -g "${AGENT_USER}" \
-  "${ZOMBIE_DIR}/state/logs" "${ZOMBIE_DIR}/state/pi-mono-sessions"
-sed -e "s|__ZOMBIE_DIR__|${ZOMBIE_DIR}|g" \
+  "${AI_SYS_ADMIN_DIR}/state/logs" "${AI_SYS_ADMIN_DIR}/state/pi-mono-sessions"
+sed -e "s|__AI_SYS_ADMIN_DIR__|${AI_SYS_ADMIN_DIR}|g" \
   "${PAYLOAD_DIR}/agent/templates/settings.json.tmpl" \
-  | install -m 644 /dev/stdin "${ZOMBIE_DIR}/pi/settings.json"
+  | install -m 644 /dev/stdin "${AI_SYS_ADMIN_DIR}/pi/settings.json"
 # Render APPEND_SYSTEM.md via the chat-service helper so a single
 # implementation is the source of truth for the rendered text.
 if (cd "${PAYLOAD_DIR}/agent" && python3 server.py --render-append-system) \
-       > "${ZOMBIE_DIR}/pi/APPEND_SYSTEM.md.tmp" 2>/dev/null; then
-  install -m 644 "${ZOMBIE_DIR}/pi/APPEND_SYSTEM.md.tmp" \
-    "${ZOMBIE_DIR}/pi/APPEND_SYSTEM.md"
-  rm -f "${ZOMBIE_DIR}/pi/APPEND_SYSTEM.md.tmp"
+       > "${AI_SYS_ADMIN_DIR}/pi/APPEND_SYSTEM.md.tmp" 2>/dev/null; then
+  install -m 644 "${AI_SYS_ADMIN_DIR}/pi/APPEND_SYSTEM.md.tmp" \
+    "${AI_SYS_ADMIN_DIR}/pi/APPEND_SYSTEM.md"
+  rm -f "${AI_SYS_ADMIN_DIR}/pi/APPEND_SYSTEM.md.tmp"
 else
   # Fallback: substitute placeholders from the template directly.
-  rm -f "${ZOMBIE_DIR}/pi/APPEND_SYSTEM.md.tmp"
+  rm -f "${AI_SYS_ADMIN_DIR}/pi/APPEND_SYSTEM.md.tmp"
   sed -e "s|__AGENT_USER__|${AGENT_USER}|g" \
       -e "s|__FACTS__|hostname=$(hostname) os=$(. /etc/os-release && echo "${PRETTY_NAME}")|g" \
       "${PAYLOAD_DIR}/agent/templates/APPEND_SYSTEM.md.tmpl" \
-    | install -m 644 /dev/stdin "${ZOMBIE_DIR}/pi/APPEND_SYSTEM.md"
+    | install -m 644 /dev/stdin "${AI_SYS_ADMIN_DIR}/pi/APPEND_SYSTEM.md"
 fi
 
 # Snapshot the conversations DB *before* the chat-service binary runs
 # the schema migration. The migration is additive (forward-only,
 # behind PRAGMA user_version) but a snapshot lets operators roll back
 # without losing history. The bak file name embeds the timestamp.
-if [[ -f "${ZOMBIE_DIR}/state/conversations.db" ]]; then
+if [[ -f "${AI_SYS_ADMIN_DIR}/state/conversations.db" ]]; then
   _ts="$(date -u +%Y%m%dT%H%M%SZ)"
-  cp -a "${ZOMBIE_DIR}/state/conversations.db" \
-        "${ZOMBIE_DIR}/state/conversations.db.bak.${_ts}" \
+  cp -a "${AI_SYS_ADMIN_DIR}/state/conversations.db" \
+        "${AI_SYS_ADMIN_DIR}/state/conversations.db.bak.${_ts}" \
     || warn "Could not snapshot conversations.db (continuing)."
 fi
 
 section "Install policy and operator tools"
 
 # Operator helpers.
-for f in audit-recent health-check collect-diagnostics secrets-edit zombie-chat setup-agent-venv verify-release; do
+for f in audit-recent health-check collect-diagnostics secrets-edit chat setup-agent-venv verify-release; do
   install -m 755 -o "${AGENT_USER}" -g "${AGENT_USER}" \
-    "${PAYLOAD_DIR}/bin/${f}" "${ZOMBIE_DIR}/bin/${f}"
+    "${PAYLOAD_DIR}/bin/${f}" "${AI_SYS_ADMIN_DIR}/bin/${f}"
 done
 # Also make secrets-edit and audit-recent reachable on PATH.
-ln -sf "${ZOMBIE_DIR}/bin/zombie-chat"          /usr/local/bin/zombie-chat
-ln -sf "${ZOMBIE_DIR}/bin/audit-recent"         /usr/local/bin/audit-recent
-ln -sf "${ZOMBIE_DIR}/bin/secrets-edit"         /usr/local/bin/secrets-edit
-ln -sf "${ZOMBIE_DIR}/bin/health-check"         /usr/local/bin/zombie-health
-ln -sf "${ZOMBIE_DIR}/bin/collect-diagnostics"  /usr/local/bin/zombie-diagnostics
+ln -sf "${AI_SYS_ADMIN_DIR}/bin/chat"          /usr/local/bin/chat
+ln -sf "${AI_SYS_ADMIN_DIR}/bin/audit-recent"         /usr/local/bin/audit-recent
+ln -sf "${AI_SYS_ADMIN_DIR}/bin/secrets-edit"         /usr/local/bin/secrets-edit
+ln -sf "${AI_SYS_ADMIN_DIR}/bin/health-check"         /usr/local/bin/ai-system-administrator-health
+ln -sf "${AI_SYS_ADMIN_DIR}/bin/collect-diagnostics"  /usr/local/bin/ai-system-administrator-diagnostics
 
 # Policy.
-if [[ ! -f "${ZOMBIE_ETC}/policy.yaml" ]]; then
-  install -m 644 "${PAYLOAD_DIR}/etc/policy.yaml" "${ZOMBIE_ETC}/policy.yaml"
-  ok "Installed default policy at ${ZOMBIE_ETC}/policy.yaml."
+if [[ ! -f "${AI_SYS_ADMIN_ETC}/policy.yaml" ]]; then
+  install -m 644 "${PAYLOAD_DIR}/etc/policy.yaml" "${AI_SYS_ADMIN_ETC}/policy.yaml"
+  ok "Installed default policy at ${AI_SYS_ADMIN_ETC}/policy.yaml."
 else
-  info "Preserving existing ${ZOMBIE_ETC}/policy.yaml."
+  info "Preserving existing ${AI_SYS_ADMIN_ETC}/policy.yaml."
 fi
 
-# Ship the built-in skill catalogue to ${ZOMBIE_DIR}/skills/
+# Ship the built-in skill catalogue to ${AI_SYS_ADMIN_DIR}/skills/
 # (root-owned, world-readable) and provision the operator-extensible
-# /etc/ubuntu-zombie/skills.d/ tree with the same mode/owner contract
+# /etc/ubuntu-ai-system-administrator/skills.d/ tree with the same mode/owner contract
 # as policy.yaml. Skills are static markdown read at chat-turn time;
 # the loader never mutates them.
-install -d -m 755 -o root -g root "${ZOMBIE_DIR}/skills"
+install -d -m 755 -o root -g root "${AI_SYS_ADMIN_DIR}/skills"
 if [[ -d "${PAYLOAD_DIR}/agent/skills" ]]; then
   shopt -s nullglob
   for f in "${PAYLOAD_DIR}/agent/skills/"*.md; do
-    install -m 644 -o root -g root "${f}" "${ZOMBIE_DIR}/skills/$(basename "${f}")"
+    install -m 644 -o root -g root "${f}" "${AI_SYS_ADMIN_DIR}/skills/$(basename "${f}")"
   done
   shopt -u nullglob
-  ok "Installed built-in skills to ${ZOMBIE_DIR}/skills/."
+  ok "Installed built-in skills to ${AI_SYS_ADMIN_DIR}/skills/."
 fi
-install -d -m 755 -o root -g root "${ZOMBIE_ETC}/skills.d"
+install -d -m 755 -o root -g root "${AI_SYS_ADMIN_ETC}/skills.d"
 
 # logrotate. Render the chosen account and install root.
 sed -e "s|__AGENT_USER__|${AGENT_USER}|g" \
-    -e "s|__ZOMBIE_DIR__|${ZOMBIE_DIR}|g" \
-    "${PAYLOAD_DIR}/logrotate/ubuntu-zombie" \
-    | install -m 644 /dev/stdin /etc/logrotate.d/ubuntu-zombie
+    -e "s|__AI_SYS_ADMIN_DIR__|${AI_SYS_ADMIN_DIR}|g" \
+    "${PAYLOAD_DIR}/logrotate/ubuntu-ai-system-administrator" \
+    | install -m 644 /dev/stdin /etc/logrotate.d/ubuntu-ai-system-administrator
 
 # Audit log seed file (so chat service can open it without race).
-if [[ ! -f "${ZOMBIE_LOG_DIR}/audit.log" ]]; then
-  install -m 640 -o "${AGENT_USER}" -g "${AGENT_USER}" /dev/null "${ZOMBIE_LOG_DIR}/audit.log"
+if [[ ! -f "${AI_SYS_ADMIN_LOG_DIR}/audit.log" ]]; then
+  install -m 640 -o "${AGENT_USER}" -g "${AGENT_USER}" /dev/null "${AI_SYS_ADMIN_LOG_DIR}/audit.log"
 fi
 
 section "Enable background services"
@@ -2154,7 +2154,7 @@ section "Enable background services"
 # systemd units. The shipped unit files use the literal placeholders
 # `__AGENT_USER__` and `__AGENT_HOME__` so the chosen account name is
 # substituted in at install time. This keeps the units valid for the
-# default `zombie` account and any operator-chosen override.
+# default `ai-sys-admin` account and any operator-chosen override.
 render_unit() {
   local src="$1" dest="$2"
   # NOTE (FIX-1-17): The `s|…|${AGENT_USER}|g` substitution is only safe
@@ -2163,24 +2163,24 @@ render_unit() {
   # validator is ever relaxed, escape AGENT_USER/AGENT_HOME for sed here.
   sed -e "s|__AGENT_USER__|${AGENT_USER}|g" \
       -e "s|__AGENT_HOME__|${AGENT_HOME}|g" \
-      -e "s|__ZOMBIE_DIR__|${ZOMBIE_DIR}|g" \
+      -e "s|__AI_SYS_ADMIN_DIR__|${AI_SYS_ADMIN_DIR}|g" \
       "${src}" | install -m 644 /dev/stdin "${dest}"
 }
-render_unit "${PAYLOAD_DIR}/systemd/ubuntu-zombie-chat.service"   /etc/systemd/system/ubuntu-zombie-chat.service
-render_unit "${PAYLOAD_DIR}/systemd/ubuntu-zombie-health.service" /etc/systemd/system/ubuntu-zombie-health.service
-install -m 644 "${PAYLOAD_DIR}/systemd/ubuntu-zombie-health.timer"   /etc/systemd/system/ubuntu-zombie-health.timer
+render_unit "${PAYLOAD_DIR}/systemd/ubuntu-ai-system-administrator-chat.service"   /etc/systemd/system/ubuntu-ai-system-administrator-chat.service
+render_unit "${PAYLOAD_DIR}/systemd/ubuntu-ai-system-administrator-health.service" /etc/systemd/system/ubuntu-ai-system-administrator-health.service
+install -m 644 "${PAYLOAD_DIR}/systemd/ubuntu-ai-system-administrator-health.timer"   /etc/systemd/system/ubuntu-ai-system-administrator-health.timer
 systemctl daemon-reload
-systemctl enable ubuntu-zombie-chat.service >/dev/null 2>&1 \
-  || warn "Could not enable the chat service; see journalctl -u ubuntu-zombie-chat"
+systemctl enable ubuntu-ai-system-administrator-chat.service >/dev/null 2>&1 \
+  || warn "Could not enable the chat service; see journalctl -u ubuntu-ai-system-administrator-chat"
 # Use restart, not just start: on an in-place upgrade the agent tree
 # (server.py, templates/index.html, VERSION) has just been overwritten,
 # but `enable --now` would leave an already-running unit untouched, so
 # the old process would keep serving the new template — rendering a
 # literal "v{{VERSION}}" footer and a UI that no longer matches its API.
 # Restart is idempotent: it starts the unit if it is stopped.
-systemctl restart ubuntu-zombie-chat.service \
-  || warn "Chat service did not start; see journalctl -u ubuntu-zombie-chat"
-systemctl enable --now ubuntu-zombie-health.timer || true
+systemctl restart ubuntu-ai-system-administrator-chat.service \
+  || warn "Chat service did not start; see journalctl -u ubuntu-ai-system-administrator-chat"
+systemctl enable --now ubuntu-ai-system-administrator-health.timer || true
 ok "Chat service installed and enabled."
 
 # ---------------------------------------------------------------------------
@@ -2189,17 +2189,17 @@ ok "Chat service installed and enabled."
 
 section "Install health checks"
 
-cat > "${ZOMBIE_DIR}/bin/verify" <<EOF
+cat > "${AI_SYS_ADMIN_DIR}/bin/verify" <<EOF
 #!/usr/bin/env bash
 set -uo pipefail
 
-ZOMBIE_DIR="${ZOMBIE_DIR}"
+AI_SYS_ADMIN_DIR="${AI_SYS_ADMIN_DIR}"
 AGENT_USER="${AGENT_USER}"
 AGENT_HOME="${AGENT_HOME}"
 PI_AI_VERSION="${PI_AI_VERSION}"
 PI_MONO_VERSION="${PI_MONO_VERSION}"
 
-JSON="\${ZOMBIE_JSON:-0}"
+JSON="\${AI_SYS_ADMIN_JSON:-0}"
 
 if [[ -t 1 && "\${JSON}" != "1" ]]; then
   C_RESET=\$'\\033[0m'; C_RED=\$'\\033[31m'; C_GREEN=\$'\\033[32m'; C_BOLD=\$'\\033[1m'; C_YEL=\$'\\033[33m'
@@ -2243,7 +2243,7 @@ check() {
   fi
 }
 
-[[ "\${JSON}" == "1" ]] || printf '\\n%s== ubuntu-zombie verify ==%s\\n' "\${C_BOLD}" "\${C_RESET}"
+[[ "\${JSON}" == "1" ]] || printf '\\n%s== ubuntu-ai-system-administrator verify ==%s\\n' "\${C_BOLD}" "\${C_RESET}"
 [[ "\${JSON}" == "1" ]] || echo
 
 hd "User and sudo:"
@@ -2252,42 +2252,42 @@ check "passwordless sudo"                  sudo -n true
 [[ "\${JSON}" == "1" ]] || echo
 
 hd "Network and services:"
-check "loopback chat port configured"         test -n "${ZOMBIE_CHAT_PORT:-${CHAT_PORT}}"
+check "loopback chat port configured"         test -n "${AI_SYS_ADMIN_CHAT_PORT:-${CHAT_PORT}}"
 [[ "\${JSON}" == "1" ]] || echo
 
 hd "Runtime:"
 check "Python venv exists"                 test -x \${AGENT_HOME}/agent-env/bin/python
 check "node and tsc present"               bash -c "command -v node && command -v tsc"
-check "pi-ai bridge deployed"              test -r \${ZOMBIE_DIR}/agent/pi-ai-bridge.mjs
+check "pi-ai bridge deployed"              test -r \${AI_SYS_ADMIN_DIR}/agent/pi-ai-bridge.mjs
 check "pi-ai installed (any version)"      bash -c "npm ls -g --depth=0 @earendil-works/pi-ai >/dev/null"
 check "pi-ai pinned to \${PI_AI_VERSION}"     bash -c "npm ls -g --depth=0 @earendil-works/pi-ai 2>/dev/null | grep -q '@earendil-works/pi-ai@\${PI_AI_VERSION}'"
-check "pi-mono bridge deployed"            test -r \${ZOMBIE_DIR}/agent/pi-mono-bridge.mjs
+check "pi-mono bridge deployed"            test -r \${AI_SYS_ADMIN_DIR}/agent/pi-mono-bridge.mjs
 check "pi-mono installed (any version)"    bash -c "npm ls -g --depth=0 @earendil-works/pi-coding-agent >/dev/null"
 check "pi-mono pinned to \${PI_MONO_VERSION}" bash -c "npm ls -g --depth=0 @earendil-works/pi-coding-agent 2>/dev/null | grep -q '@earendil-works/pi-coding-agent@\${PI_MONO_VERSION}'"
-check "pi-mono settings rendered"          test -r \${ZOMBIE_DIR}/pi/settings.json
-check "pi-mono APPEND_SYSTEM rendered"     test -r \${ZOMBIE_DIR}/pi/APPEND_SYSTEM.md
-check "pi-mono log dir present"            test -d \${ZOMBIE_DIR}/state/logs
-check "built-in skills directory present"  test -d \${ZOMBIE_DIR}/skills
+check "pi-mono settings rendered"          test -r \${AI_SYS_ADMIN_DIR}/pi/settings.json
+check "pi-mono APPEND_SYSTEM rendered"     test -r \${AI_SYS_ADMIN_DIR}/pi/APPEND_SYSTEM.md
+check "pi-mono log dir present"            test -d \${AI_SYS_ADMIN_DIR}/state/logs
+check "built-in skills directory present"  test -d \${AI_SYS_ADMIN_DIR}/skills
 for skill in ai-agents apt backup certificates containers css database \
              desktop dev disk files git hardware hermes-agent html \
              journal json kernel llm locale network obsidian openclaw-agent \
              packages performance pi-mono-agent process reactivation \
              scheduling secrets security services snap sql systemd \
-             troubleshoot ubuntu users virtualization web zombie zram; do
-  check "skill \${skill}.md deployed"        test -r \${ZOMBIE_DIR}/skills/\${skill}.md
+             troubleshoot ubuntu users virtualization web ai-system-administrator zram; do
+  check "skill \${skill}.md deployed"        test -r \${AI_SYS_ADMIN_DIR}/skills/\${skill}.md
 done
-check "operator skills.d/ present"         test -d /etc/ubuntu-zombie/skills.d
-check "agent tools.py compiles"            \${AGENT_HOME}/agent-env/bin/python -m py_compile \${ZOMBIE_DIR}/agent/tools.py
-check "agent pi_mono.py compiles"          \${AGENT_HOME}/agent-env/bin/python -m py_compile \${ZOMBIE_DIR}/agent/pi_mono.py
-check "agent skill_loader.py compiles"     \${AGENT_HOME}/agent-env/bin/python -m py_compile \${ZOMBIE_DIR}/agent/skill_loader.py
+check "operator skills.d/ present"         test -d /etc/ubuntu-ai-system-administrator/skills.d
+check "agent tools.py compiles"            \${AGENT_HOME}/agent-env/bin/python -m py_compile \${AI_SYS_ADMIN_DIR}/agent/tools.py
+check "agent pi_mono.py compiles"          \${AGENT_HOME}/agent-env/bin/python -m py_compile \${AI_SYS_ADMIN_DIR}/agent/pi_mono.py
+check "agent skill_loader.py compiles"     \${AGENT_HOME}/agent-env/bin/python -m py_compile \${AI_SYS_ADMIN_DIR}/agent/skill_loader.py
 [[ "\${JSON}" == "1" ]] || echo
 
 hd "Chat service and policy:"
-check "policy.yaml present"                test -r /etc/ubuntu-zombie/policy.yaml
-check "audit log writable for ${AGENT_USER}"  bash -c "test -w /var/log/ubuntu-zombie/audit.log || sudo -n test -w /var/log/ubuntu-zombie/audit.log"
-check "ubuntu-zombie-chat.service active"  systemctl is-active ubuntu-zombie-chat.service
+check "policy.yaml present"                test -r /etc/ubuntu-ai-system-administrator/policy.yaml
+check "audit log writable for ${AGENT_USER}"  bash -c "test -w /var/log/ubuntu-ai-system-administrator/audit.log || sudo -n test -w /var/log/ubuntu-ai-system-administrator/audit.log"
+check "ubuntu-ai-system-administrator-chat.service active"  systemctl is-active ubuntu-ai-system-administrator-chat.service
 check "chat listening on 127.0.0.1:${CHAT_PORT}" bash -c "ss -ltn 'sport = :${CHAT_PORT}' | grep -q 127.0.0.1"
-check "agent server.py compiles"           \${AGENT_HOME}/agent-env/bin/python -m py_compile \${ZOMBIE_DIR}/agent/server.py
+check "agent server.py compiles"           \${AGENT_HOME}/agent-env/bin/python -m py_compile \${AI_SYS_ADMIN_DIR}/agent/server.py
 [[ "\${JSON}" == "1" ]] || echo
 
 if [[ "\${JSON}" == "1" ]]; then
@@ -2302,14 +2302,14 @@ printf '%sResult:%s %d passed, %d failed.\\n' "\${C_BOLD}" "\${C_RESET}" "\$PASS
 if [[ \$FAIL -gt 0 ]]; then
   echo
   echo "Tips:"
-  echo "  - If the chat service is not active: sudo systemctl status ubuntu-zombie-chat"
+  echo "  - If the chat service is not active: sudo systemctl status ubuntu-ai-system-administrator-chat"
   exit 1
 fi
 EOF
 
-chmod +x "${ZOMBIE_DIR}/bin/verify"
-chown "${AGENT_USER}:${AGENT_USER}" "${ZOMBIE_DIR}/bin/verify"
-ln -sf "${ZOMBIE_DIR}/bin/verify" /usr/local/bin/zombie-verify
+chmod +x "${AI_SYS_ADMIN_DIR}/bin/verify"
+chown "${AGENT_USER}:${AGENT_USER}" "${AI_SYS_ADMIN_DIR}/bin/verify"
+ln -sf "${AI_SYS_ADMIN_DIR}/bin/verify" /usr/local/bin/ai-system-administrator-verify
 
 # ---------------------------------------------------------------------------
 # First-run status summary
@@ -2318,12 +2318,12 @@ ln -sf "${ZOMBIE_DIR}/bin/verify" /usr/local/bin/zombie-verify
 section "Verify the installation"
 
 PROVIDER_OK=0
-if provider_credential_configured "${ZOMBIE_DIR}/secrets/env"; then
+if provider_credential_configured "${AI_SYS_ADMIN_DIR}/secrets/env"; then
   PROVIDER_OK=1
 fi
 
 CHAT_OK=0
-if systemctl is-active --quiet ubuntu-zombie-chat.service; then
+if systemctl is-active --quiet ubuntu-ai-system-administrator-chat.service; then
   CHAT_OK=1
 fi
 
@@ -2340,35 +2340,35 @@ bullet "${PROVIDER_OK}"  "Provider credential present in secrets/env"
 bullet "${CHAT_OK}"      "Chat service running on 127.0.0.1:${CHAT_PORT}"
 }
 
-install_zombie() {
-  install_zombie_base
-  install_zombie_runtime
+install_ai_sys_admin() {
+  install_ai_sys_admin_base
+  install_ai_sys_admin_runtime
 }
 
-final_zombie_summary() {
+final_ai_sys_admin_summary() {
   if [[ "${PROVIDER_OK}" != "1" ]]; then
-    NEXT_STEP="sudo ${ZOMBIE_DIR}/bin/secrets-edit   # paste a supported provider API key"
+    NEXT_STEP="sudo ${AI_SYS_ADMIN_DIR}/bin/secrets-edit   # paste a supported provider API key"
   elif [[ "${CHAT_OK}" != "1" ]]; then
-    NEXT_STEP="sudo systemctl start ubuntu-zombie-chat.service"
+    NEXT_STEP="sudo systemctl start ubuntu-ai-system-administrator-chat.service"
   else
     NEXT_STEP="sudo reboot"
   fi
   printf 'Chat:    http://127.0.0.1:%s/ (localhost only, after reboot)\n' "${CHAT_PORT}"
-  printf 'Check:   %s/bin/verify  ·  %s/bin/audit-recent\n' "${ZOMBIE_DIR}" "${ZOMBIE_DIR}"
+  printf 'Check:   %s/bin/verify  ·  %s/bin/audit-recent\n' "${AI_SYS_ADMIN_DIR}" "${AI_SYS_ADMIN_DIR}"
 }
 
-install_zombie
+install_ai_sys_admin
 echo
 
 NEXT_STEP=""
 INSTALL_DURATION="$(fmt_duration "$(( $(date +%s) - INSTALL_T0 ))")"
 printf '\n%s%sInstall complete in %s.%s\n' \
   "${C_GREEN}" "${C_BOLD}" "${INSTALL_DURATION}" "${C_RESET}"
-final_zombie_summary
+final_ai_sys_admin_summary
 cat <<EOF
 Next:    ${C_BOLD}${NEXT_STEP}${C_RESET}
 Records: ${LOG_FILE}
-         $([[ "${ZOMBIE_RECEIPT}" == "1" ]] && echo "${RECEIPT_FILE}" || echo "receipt disabled")
+         $([[ "${AI_SYS_ADMIN_RECEIPT}" == "1" ]] && echo "${RECEIPT_FILE}" || echo "receipt disabled")
 Remove:  sudo ${SCRIPT_DIR}/uninstall.sh --dry-run
 EOF
 

@@ -62,11 +62,11 @@ import pi_mono  # noqa: E402
 import skill_loader  # noqa: E402
 import tools as tools_mod  # noqa: E402
 
-_INSTALL_ROOT = Path(os.environ.get("ZOMBIE_DIR", "/opt/ai-zombie"))
+_INSTALL_ROOT = Path(os.environ.get("AI_SYS_ADMIN_DIR", "/opt/ai-system-administrator"))
 SECRETS_FILE = Path(os.environ.get(
-    "ZOMBIE_SECRETS", str(_INSTALL_ROOT / "secrets" / "env")
+    "AI_SYS_ADMIN_SECRETS", str(_INSTALL_ROOT / "secrets" / "env")
 ))
-DEFAULT_PORT = int(os.environ.get("ZOMBIE_CHAT_PORT", "7878"))
+DEFAULT_PORT = int(os.environ.get("AI_SYS_ADMIN_CHAT_PORT", "57878"))
 DEFAULT_HOST = "127.0.0.1"
 # Streaming is per active operator turn. A thousand queued frames is
 # enough for very chatty token streams without letting a disconnected
@@ -83,10 +83,10 @@ REACTIVATION_HARD_MIN_SECONDS = 5
 REACTIVATION_HARD_MAX_SECONDS = 3600
 REACTIVATION_PROMPT_MAX_CHARS = 2000
 REACTIVATION_REASON_MAX_CHARS = 160
-AGENT_REACTIVATION_OPEN = "<ubuntu-zombie-reactivation>"
-AGENT_REACTIVATION_CLOSE = "</ubuntu-zombie-reactivation>"
+AGENT_REACTIVATION_OPEN = "<ubuntu-ai-system-administrator-reactivation>"
+AGENT_REACTIVATION_CLOSE = "</ubuntu-ai-system-administrator-reactivation>"
 _VERSION_SOURCES = {
-    "ubuntu-zombie": (
+    "ubuntu-ai-system-administrator": (
         "https://api.github.com/repos/japer-technology/"
         "ubuntu-ai-system-administrator/releases/latest",
         "tag_name",
@@ -129,13 +129,13 @@ class TurnStream:
 
 def _agent_account() -> str:
     """Return the local Linux account the chat service runs as."""
-    value = os.environ.get("ZOMBIE_USER")
+    value = os.environ.get("AI_SYS_ADMIN_USER")
     if value:
         return value
     try:
         return getpass.getuser()
     except Exception:  # pragma: no cover - extremely defensive
-        return "zombie"
+        return "ai-sys-admin"
 
 
 AGENT_USER = _agent_account()
@@ -164,7 +164,7 @@ the tool call in text — for example, to list the home directory call the
 
 If useful work must continue in a later model turn, you can reactivate
 yourself. Include a structured request anywhere in your reply:
-<ubuntu-zombie-reactivation>{{"delay_seconds":{reactivation_minimum_seconds},"prompt":"Continue the prior task.","reason":"More work remains.","replace_existing":false}}</ubuntu-zombie-reactivation>
+<ubuntu-ai-system-administrator-reactivation>{{"delay_seconds":{reactivation_minimum_seconds},"prompt":"Continue the prior task.","reason":"More work remains.","replace_existing":false}}</ubuntu-ai-system-administrator-reactivation>
 The runtime removes this block from the visible reply and schedules an
 ordinary future turn in the same conversation. If more than one request
 appears, the last one is used. Use it only when another turn is genuinely
@@ -223,7 +223,7 @@ def _agent_reactivation_request(
 ) -> tuple[str, dict[str, Any] | None, str | None]:
     """Remove agent reactivation request blocks and decode the last one.
 
-    Every well-formed ``<ubuntu-zombie-reactivation>`` block is stripped
+    Every well-formed ``<ubuntu-ai-system-administrator-reactivation>`` block is stripped
     from the visible reply wherever it appears and the last one wins.
     Minor model-generated JSON mistakes (a surrounding fence, trailing
     commas, or single quotes) are accepted. When a model forgets the
@@ -627,7 +627,7 @@ def app_version() -> str:
     """Best-effort payload version.
 
     Read from a ``VERSION`` file deployed alongside the agent tree
-    (``/opt/ai-zombie/VERSION`` in production) or the repository root
+    (``/opt/ai-system-administrator/VERSION`` in production) or the repository root
     when running from a checkout. Falls back to ``"unknown"`` so the
     ``/version`` chat command never errors.
     """
@@ -664,7 +664,7 @@ def _latest_component_versions() -> dict[str, str]:
             url,
             headers={
                 "Accept": "application/json",
-                "User-Agent": f"ubuntu-zombie/{app_version()}",
+                "User-Agent": f"ubuntu-ai-system-administrator/{app_version()}",
             },
         )
         try:
@@ -701,9 +701,9 @@ def version_info(check_latest: bool = False) -> dict[str, Any]:
     latest = _latest_component_versions() if check_latest else {}
     components = [
         {
-            "name": "ubuntu-zombie",
+            "name": "ubuntu-ai-system-administrator",
             "installed": info["version"],
-            "latest": latest.get("ubuntu-zombie"),
+            "latest": latest.get("ubuntu-ai-system-administrator"),
             "source": "GitHub releases",
         },
         {
@@ -821,11 +821,11 @@ class App:
         return lifecycle.status()
 
     def ttl_set(self, days: float) -> dict[str, Any]:
-        """Extend the Time to Live; refuse if the zombie is already dead."""
+        """Extend the Time to Live unless the administrator is disabled."""
         return self.ttl_set_seconds(days * lifecycle.DAY_SECONDS)
 
     def ttl_set_seconds(self, seconds: float) -> dict[str, Any]:
-        """Extend the Time to Live; refuse if the zombie is already dead."""
+        """Extend the Time to Live unless the administrator is disabled."""
         current = lifecycle.status()
         if current["dead"]:
             return {"error": "Ubuntu AI System Administrator is permanently disabled.",
@@ -841,7 +841,7 @@ class App:
     def ttl_reset_seconds(
         self, seconds: float = lifecycle.DEFAULT_TTL_SECONDS
     ) -> dict[str, Any]:
-        """Reset the Time to Live; refuse if the zombie is already dead."""
+        """Reset the Time to Live unless the administrator is disabled."""
         current = lifecycle.status()
         if current["dead"]:
             return {"error": "Ubuntu AI System Administrator is permanently disabled.",
@@ -2231,7 +2231,7 @@ class App:
             "agent_user": AGENT_USER,
             "host": DEFAULT_HOST,
             "port": DEFAULT_PORT,
-            "zombie_dir": os.environ.get("ZOMBIE_DIR", "/opt/ai-zombie"),
+            "ai_sys_admin_dir": os.environ.get("AI_SYS_ADMIN_DIR", "/opt/ai-system-administrator"),
             "provider": provider,
             "provider_status": status,
             "policy_path": str(POLICY_PATH),
@@ -2243,7 +2243,7 @@ class App:
 
     def profile_info(self) -> dict[str, Any]:
         facts = machine_facts()
-        zombie_dir = os.environ.get("ZOMBIE_DIR", "/opt/ai-zombie")
+        ai_sys_admin_dir = os.environ.get("AI_SYS_ADMIN_DIR", "/opt/ai-system-administrator")
         return {
             "agent_user": AGENT_USER,
             "hostname": facts.get("hostname", socket.gethostname()),
@@ -2252,7 +2252,7 @@ class App:
             "arch": facts.get("arch", ""),
             "loopback_only": True,
             "chat_url": f"http://{DEFAULT_HOST}:{DEFAULT_PORT}/",
-            "zombie_dir": zombie_dir,
+            "ai_sys_admin_dir": ai_sys_admin_dir,
             "history_db": str(self.history.path),
         }
 
@@ -2488,7 +2488,7 @@ def _summarize(args: Any) -> dict[str, Any]:
 
 
 def _write_password_hash(password: str | None) -> str | None:
-    """Update ``ZOMBIE_ADMIN_PASSWORD_HASH`` in the secrets file."""
+    """Update ``AI_SYS_ADMIN_ADMIN_PASSWORD_HASH`` in the secrets file."""
     existing: list[str] = []
     try:
         existing = SECRETS_FILE.read_text(encoding="utf-8").splitlines()
@@ -2657,7 +2657,7 @@ class Handler(BaseHTTPRequestHandler):
         return jar
 
     def _session_token(self) -> str | None:
-        return self._cookies().get("zombie_session")
+        return self._cookies().get("ai_sys_admin_session")
 
     def _authenticated(self) -> bool:
         return self.app.session_valid(self._session_token())
@@ -2845,14 +2845,14 @@ class Handler(BaseHTTPRequestHandler):
                 self._send_json({"error": "Incorrect password."}, 401)
                 return
             cookie = (
-                f"zombie_session={result['token']}; HttpOnly; "
+                f"ai_sys_admin_session={result['token']}; HttpOnly; "
                 "SameSite=Strict; Path=/"
             )
             self._send_json({"ok": True}, extra_headers=[("Set-Cookie", cookie)])
             return
         if self.path == "/api/logout":
             self.app.logout(self._session_token())
-            expired = ("zombie_session=; HttpOnly; SameSite=Strict; Path=/; "
+            expired = ("ai_sys_admin_session=; HttpOnly; SameSite=Strict; Path=/; "
                        "Max-Age=0")
             self._send_json({"ok": True}, extra_headers=[("Set-Cookie", expired)])
             return
@@ -3060,7 +3060,7 @@ def main(argv: list[str] | None = None) -> int:
     server = ThreadingHTTPServer((args.host, args.port), make_handler(app))
     log_event("service_start", host=args.host, port=args.port,
               pid=os.getpid())
-    print(f"ubuntu-zombie chat listening on http://{args.host}:{args.port}/",
+    print(f"ubuntu-ai-system-administrator chat listening on http://{args.host}:{args.port}/",
           flush=True)
     try:
         server.serve_forever()

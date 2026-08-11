@@ -8,10 +8,10 @@ body:
       value: |
         Thanks for taking the time to file a bug.
 
-        Before filing, please run `sudo /opt/ai-zombie/bin/collect-diagnostics`
+        Before filing, please run `sudo /opt/ai-system-administrator/bin/collect-diagnostics`
         (or `sudo ./scripts/install.sh doctor` on a failed install) and
         attach the redacted output. **Do not paste API keys, the chat password,
-        host-identifying secrets, or the contents of `/opt/ai-zombie/secrets/`.**
+        host-identifying secrets, or the contents of `/opt/ai-system-administrator/secrets/`.**
   - type: input
     id: ubuntu-version
     attributes:
@@ -70,9 +70,9 @@ body:
     attributes:
       label: Relevant log excerpts
       description: |
-        Redacted excerpts from `/var/log/ubuntu-zombie-install.log`,
-        `/var/log/ubuntu-zombie/audit.log`, or
-        `journalctl -u ubuntu-zombie-chat.service`.
+        Redacted excerpts from `/var/log/ubuntu-ai-system-administrator-install.log`,
+        `/var/log/ubuntu-ai-system-administrator/audit.log`, or
+        `journalctl -u ubuntu-ai-system-administrator-chat.service`.
       render: text
   - type: checkboxes
     id: confirmations

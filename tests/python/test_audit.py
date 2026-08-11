@@ -12,7 +12,7 @@ def _read_jsonl(path: Path) -> list[dict]:
 
 def test_default_mode_redacts_and_carries_metadata(tmp_path, monkeypatch) -> None:
     audit_path = tmp_path / "audit.log"
-    monkeypatch.setenv("ZOMBIE_AUDIT_LOG", str(audit_path))
+    monkeypatch.setenv("AI_SYS_ADMIN_AUDIT_LOG", str(audit_path))
 
     # Force a re-import so the module picks up the patched env var.
     import importlib
@@ -49,8 +49,8 @@ def test_default_mode_redacts_and_carries_metadata(tmp_path, monkeypatch) -> Non
 
 def test_verbose_mode_attaches_redacted_previews(tmp_path, monkeypatch) -> None:
     audit_path = tmp_path / "audit.log"
-    monkeypatch.setenv("ZOMBIE_AUDIT_LOG", str(audit_path))
-    monkeypatch.setenv("ZOMBIE_AUDIT_VERBOSE", "1")
+    monkeypatch.setenv("AI_SYS_ADMIN_AUDIT_LOG", str(audit_path))
+    monkeypatch.setenv("AI_SYS_ADMIN_AUDIT_VERBOSE", "1")
 
     import importlib
 

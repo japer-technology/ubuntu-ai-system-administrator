@@ -25,7 +25,7 @@ Operating rules:
 - Do not edit `/etc/fstab` blind. Read it with `fs.read` first, explain
   the change, and remind the operator that a bad entry can leave the
   machine unbootable. `fs.write` cannot reach `/etc` anyway — it only
-  writes under `/tmp` and the zombie state directory — so the operator
+  writes under `/tmp` and the AI System Administrator state directory — so the operator
   must land the edit deliberately.
 - Before proposing a mount or unmount, check what is using the path
   (`findmnt`, `lsof +f -- <path>`). Unmounting a filesystem out from

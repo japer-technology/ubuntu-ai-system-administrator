@@ -34,6 +34,6 @@ Operating rules:
   the lines that support the diagnosis and do not echo whole blocks of
   authentication or environment output back into the chat.
 - Ubuntu AI System Administrator's own audit log lives at
-  `/var/log/ubuntu-zombie/audit.log` and records every tool call. When
+  `/var/log/ubuntu-ai-system-administrator/audit.log` and records every tool call. When
   the operator asks "what did you do?", read that rather than
   reconstructing the answer from memory.

@@ -2,7 +2,7 @@
 # audit-recent — pretty-print recent JSON-lines audit entries.
 set -euo pipefail
 
-AUDIT_LOG="${ZOMBIE_AUDIT_LOG:-/var/log/ubuntu-zombie/audit.log}"
+AUDIT_LOG="${AI_SYS_ADMIN_AUDIT_LOG:-/var/log/ubuntu-ai-system-administrator/audit.log}"
 
 usage() {
   cat <<EOF
@@ -17,7 +17,7 @@ Options:
   -t, --type T    Only show entries whose 'type' field equals T (repeatable).
                   Example: -t tool_call -t provider_error
   -f, --follow    Tail the log and stream new entries as they appear.
-                  Set ZOMBIE_AUDIT_VERBOSE=1 on the chat service to also
+                  Set AI_SYS_ADMIN_AUDIT_VERBOSE=1 on the chat service to also
                   see redacted stdout/stderr previews in tool_call entries.
   -h, --help      Show this help.
 EOF
@@ -65,7 +65,7 @@ fi
 
 # Build the jq filter once. If --type was supplied, drop everything
 # that does not match. Then format each entry for human eyes. When
-# stdout_preview / stderr_preview is present (ZOMBIE_AUDIT_VERBOSE=1
+# stdout_preview / stderr_preview is present (AI_SYS_ADMIN_AUDIT_VERBOSE=1
 # on the writer side), show a trimmed first line so testers see what
 # the AI actually ran without grepping by SHA-256.
 build_jq_filter() {

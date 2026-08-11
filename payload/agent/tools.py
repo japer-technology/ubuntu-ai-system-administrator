@@ -113,7 +113,7 @@ def validate_args(name: str, args: dict[str, Any] | None) -> dict[str, Any]:
 # ---------------------------------------------------------------------------
 
 def _state_dir() -> Path:
-    return Path(os.environ.get("ZOMBIE_DIR", "/opt/ai-zombie")) / "state"
+    return Path(os.environ.get("AI_SYS_ADMIN_DIR", "/opt/ai-system-administrator")) / "state"
 
 
 def _read_allowed_prefixes() -> tuple[Path, ...]:
@@ -348,16 +348,16 @@ def _shim_net_status(args: dict[str, Any]) -> dict[str, Any]:
 
 
 def _skills_dirs() -> list[Path]:
-    install_root = Path(os.environ.get("ZOMBIE_DIR", "/opt/ai-zombie"))
+    install_root = Path(os.environ.get("AI_SYS_ADMIN_DIR", "/opt/ai-system-administrator"))
     dirs = [
         install_root / "skills",
-        Path("/etc/ubuntu-zombie/skills.d"),
+        Path("/etc/ubuntu-ai-system-administrator/skills.d"),
     ]
-    # Honour ``ZOMBIE_SKILLS_DIR`` only when it is a non-empty value. An
+    # Honour ``AI_SYS_ADMIN_SKILLS_DIR`` only when it is a non-empty value. An
     # empty string would otherwise become ``Path("")``/``Path(".")`` and
     # silently add the chat service's working directory to the skills
     # search path, bypassing the root-owned trees above.
-    extra = os.environ.get("ZOMBIE_SKILLS_DIR", "").strip()
+    extra = os.environ.get("AI_SYS_ADMIN_SKILLS_DIR", "").strip()
     if extra:
         dirs.append(Path(extra))
     return dirs
@@ -397,7 +397,7 @@ WEB_FETCH_DEFAULT_BYTES = 64 * 1024
 WEB_FETCH_MAX_BYTES = 1024 * 1024
 WEB_FETCH_TIMEOUT_SECONDS = 20
 WEB_FETCH_MAX_REDIRECTS = 5
-WEB_FETCH_USER_AGENT = "ubuntu-zombie/web.fetch (+read-only)"
+WEB_FETCH_USER_AGENT = "ubuntu-ai-system-administrator/web.fetch (+read-only)"
 
 
 def _assert_public_url(url: str) -> str:
@@ -650,7 +650,7 @@ TOOL_REGISTRY: dict[str, dict[str, Any]] = {
     ),
     "skill.list": _t(
         classification="read_only",
-        description="Enumerate skills from the install root and /etc/ubuntu-zombie/skills.d.",
+        description="Enumerate skills from the install root and /etc/ubuntu-ai-system-administrator/skills.d.",
         schema={"type": "object", "properties": {}, "required": [],
                 "additionalProperties": False},
         shim=_shim_skill_list,

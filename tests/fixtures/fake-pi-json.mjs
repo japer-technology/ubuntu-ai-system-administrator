@@ -10,7 +10,7 @@
 // (session / agent_start / turn_start / message_* / tool_execution_* /
 // turn_end / agent_end) — then exits 0.
 //
-// ZOMBIE_FAKE_PI_MODE selects the scenario:
+// AI_SYS_ADMIN_FAKE_PI_MODE selects the scenario:
 //   "text"  (default) — a normal streamed assistant answer.
 //   "error"           — a provider/connection error with no answer.
 //   "echo"            — answer with the exact -p prompt received, so a
@@ -30,7 +30,7 @@
 function out(o) { process.stdout.write(JSON.stringify(o) + "\n"); }
 
 const ANSWER = "Hello from the local model!";
-const mode = process.env.ZOMBIE_FAKE_PI_MODE || "text";
+const mode = process.env.AI_SYS_ADMIN_FAKE_PI_MODE || "text";
 
 // In "echo" mode the fake pi answers with the exact prompt it received
 // via -p. The bridge renders the prior conversation into that prompt,

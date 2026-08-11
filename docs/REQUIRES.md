@@ -19,14 +19,14 @@ installs may set these environment variables:
 
 | Variable | Purpose |
 | -------- | ------- |
-| `ZOMBIE_USER` | Agent account name; default `zombie`. |
-| `ZOMBIE_DIR` | Install root; default `/opt/ai-zombie`. |
-| `ZOMBIE_CHAT_PORT` | Loopback chat port; default `7878`. |
-| `ZOMBIE_ADMIN_PASSWORD` | Chat password; default `braaaains`. |
-| `ZOMBIE_TTL_DAYS` | Initial Time to Live; default `7`. |
+| `AI_SYS_ADMIN_USER` | Agent account name; default `ai-sys-admin`. |
+| `AI_SYS_ADMIN_DIR` | Install root; default `/opt/ai-system-administrator`. |
+| `AI_SYS_ADMIN_CHAT_PORT` | Loopback chat port; default `57878`. |
+| `AI_SYS_ADMIN_ADMIN_PASSWORD` | Chat password; default `change-me-now`. |
+| `AI_SYS_ADMIN_TTL_DAYS` | Initial Time to Live; default `7`. |
 
 Provider API keys are added after installation with
-`/opt/ai-zombie/bin/secrets-edit`.
+`/opt/ai-system-administrator/bin/secrets-edit`.
 
 ## Installed package families
 

@@ -4,7 +4,7 @@
 
 ```bash
 sudo ./scripts/install.sh doctor
-/opt/ai-zombie/bin/health-check
+/opt/ai-system-administrator/bin/health-check
 ```
 
 `doctor` explains installer/runtime drift. `health-check` gives a local
@@ -16,12 +16,12 @@ secrets file permissions, agent venv, and pi binaries.
 Check the service:
 
 ```bash
-sudo systemctl status ubuntu-zombie-chat.service
-sudo journalctl -u ubuntu-zombie-chat.service -n 100 --no-pager
+sudo systemctl status ubuntu-ai-system-administrator-chat.service
+sudo journalctl -u ubuntu-ai-system-administrator-chat.service -n 100 --no-pager
 ```
 
 The chat service intentionally binds to `127.0.0.1` only. Open it from
-the Ubuntu AI System Administrator machine at `http://127.0.0.1:7878/`, or
+the Ubuntu AI System Administrator machine at `http://127.0.0.1:57878/`, or
 use your own remote-access mechanism outside Ubuntu AI System Administrator.
 
 ## Provider errors
@@ -29,14 +29,14 @@ use your own remote-access mechanism outside Ubuntu AI System Administrator.
 Edit provider secrets and restart the chat service:
 
 ```bash
-sudo /opt/ai-zombie/bin/secrets-edit
-sudo systemctl restart ubuntu-zombie-chat.service
+sudo /opt/ai-system-administrator/bin/secrets-edit
+sudo systemctl restart ubuntu-ai-system-administrator-chat.service
 ```
 
 Then inspect recent audit/provider records:
 
 ```bash
-/opt/ai-zombie/bin/audit-recent -t provider_error -t tool_call
+/opt/ai-system-administrator/bin/audit-recent -t provider_error -t tool_call
 ```
 
 ## Installer drift
@@ -53,7 +53,7 @@ redeploys built-in skills, and restarts the chat service.
 ## Collect diagnostics
 
 ```bash
-/opt/ai-zombie/bin/collect-diagnostics
+/opt/ai-system-administrator/bin/collect-diagnostics
 ```
 
 The bundle redacts provider keys, token-shaped strings, private keys,

@@ -14,9 +14,9 @@ trigger marker, for example::
 
 The loader scans two directories:
 
-* ``$ZOMBIE_DIR/skills/``           — root-owned, ships with the package.
-* ``/etc/ubuntu-zombie/skills.d/``  — operator-extensible, same
-  mode/owner contract as ``/etc/ubuntu-zombie/policy.yaml``.
+* ``$AI_SYS_ADMIN_DIR/skills/``           — root-owned, ships with the package.
+* ``/etc/ubuntu-ai-system-administrator/skills.d/``  — operator-extensible, same
+  mode/owner contract as ``/etc/ubuntu-ai-system-administrator/policy.yaml``.
 
 When a chat turn starts, :func:`select_skills` returns the skills whose
 trigger words appear in the last *N* user messages.
@@ -72,20 +72,20 @@ class Skill:
 def default_skill_dirs() -> list[Path]:
     """Return the ordered list of directories to scan for skills.
 
-    The override env var ``ZOMBIE_SKILLS_DIR`` is honoured first so
+    The override env var ``AI_SYS_ADMIN_SKILLS_DIR`` is honoured first so
     tests and ``make package`` smoke runs can point at the in-tree
     ``payload/agent/skills/`` directory without root-owned paths.
     """
     dirs: list[Path] = []
-    env = os.environ.get("ZOMBIE_SKILLS_DIR")
+    env = os.environ.get("AI_SYS_ADMIN_SKILLS_DIR")
     if env:
         for chunk in env.split(os.pathsep):
             chunk = chunk.strip()
             if chunk:
                 dirs.append(Path(chunk))
-    install_root = Path(os.environ.get("ZOMBIE_DIR", "/opt/ai-zombie"))
+    install_root = Path(os.environ.get("AI_SYS_ADMIN_DIR", "/opt/ai-system-administrator"))
     dirs.append(install_root / "skills")
-    dirs.append(Path("/etc/ubuntu-zombie/skills.d"))
+    dirs.append(Path("/etc/ubuntu-ai-system-administrator/skills.d"))
     return dirs
 
 
@@ -110,7 +110,7 @@ def load_skills(dirs: Iterable[Path] | None = None) -> list[Skill]:
     """Discover all ``*.md`` skills under ``dirs``.
 
     The earliest directory wins on name collision so an operator file
-    in ``/etc/ubuntu-zombie/skills.d/`` cannot quietly shadow the
+    in ``/etc/ubuntu-ai-system-administrator/skills.d/`` cannot quietly shadow the
     shipped skill of the same name (and vice versa, depending on
     ordering). Files whose stem is not a valid skill name (per
     ``_NAME_RE``) are skipped — the same constraint ``skill.load``

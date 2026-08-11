@@ -4,7 +4,7 @@ These scripts run on the *operator's* side of the trust boundary: they
 deliver, verify, package, and remove the product that lives in
 [`../payload/`](../payload/). Nothing here stays on the target after
 install — the running system uses only what the installer copies to
-`/opt/ai-zombie/`.
+`/opt/ai-system-administrator/`.
 
 > **Warning:** `install.sh install` and `uninstall.sh` mutate users,
 > sudoers, and systemd units on the machine they run on. Only run them
@@ -16,7 +16,7 @@ install — the running system uses only what the installer copies to
 - [`install.sh`](install.sh) — the main installer. Idempotent, with
   subcommands `install` (default), `verify`, `doctor`, `repair`, and
   `uninstall`, plus `--dry-run`, `--help`, and a fully unattended
-  `ZOMBIE_NONINTERACTIVE=1` mode. Run
+  `AI_SYS_ADMIN_NONINTERACTIVE=1` mode. Run
   `./scripts/install.sh --help` for the complete flag and
   environment-variable reference.
 - [`uninstall.sh`](uninstall.sh) — removes everything the installer

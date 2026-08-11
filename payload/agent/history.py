@@ -17,9 +17,9 @@ import uuid
 from pathlib import Path
 from typing import Any, Iterable
 
-_INSTALL_ROOT = Path(os.environ.get("ZOMBIE_DIR", "/opt/ai-zombie"))
+_INSTALL_ROOT = Path(os.environ.get("AI_SYS_ADMIN_DIR", "/opt/ai-system-administrator"))
 DB_PATH = Path(os.environ.get(
-    "ZOMBIE_HISTORY_DB", str(_INSTALL_ROOT / "state" / "conversations.db")
+    "AI_SYS_ADMIN_HISTORY_DB", str(_INSTALL_ROOT / "state" / "conversations.db")
 ))
 
 # Version 2 added durable reactivation. Version 3 narrowed its supported delay

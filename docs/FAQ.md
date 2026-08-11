@@ -9,7 +9,7 @@ automation stacks.
 
 ## How do I access it?
 
-Open `http://127.0.0.1:7878/` on the Ubuntu AI System Administrator machine. The service
+Open `http://127.0.0.1:57878/` on the Ubuntu AI System Administrator machine. The service
 binds to loopback only. If you need remote access, provide it outside
 Ubuntu AI System Administrator.
 
@@ -23,8 +23,8 @@ approval flow, TTL, and audit log are the safety controls.
 Use:
 
 ```bash
-sudo /opt/ai-zombie/bin/secrets-edit
-sudo systemctl restart ubuntu-zombie-chat.service
+sudo /opt/ai-system-administrator/bin/secrets-edit
+sudo systemctl restart ubuntu-ai-system-administrator-chat.service
 ```
 
 The secrets file is mode `0600`; diagnostics and audit logging redact
@@ -32,7 +32,7 @@ provider keys and token-shaped values.
 
 ## Can I add more skills?
 
-Yes. Place Markdown skill briefs in `/etc/ubuntu-zombie/skills.d/`.
+Yes. Place Markdown skill briefs in `/etc/ubuntu-ai-system-administrator/skills.d/`.
 Skills can guide the model but cannot add tools; the closed registry is
 implemented in `payload/agent/tools.py`.
 

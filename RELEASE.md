@@ -41,7 +41,7 @@ therefore sort chronologically and are never reused.
    version.
 
    ```
-   ubuntu-zombie (2026.06.02.03.59.05) UNRELEASED; urgency=medium
+   ubuntu-ai-system-administrator (2026.06.02.03.59.05) UNRELEASED; urgency=medium
 
      * See /CHANGELOG.md.
 
@@ -89,9 +89,9 @@ therefore sort chronologically and are never reused.
    - Download the assets into one directory, unpack the tarball, then run:
 
      ```bash
-     mkdir ubuntu-zombie-<version>
-     tar -xzf ubuntu-zombie-<version>.tar.gz -C ubuntu-zombie-<version>
-     bash ubuntu-zombie-<version>/payload/bin/verify-release .
+     mkdir ubuntu-ai-system-administrator-<version>
+     tar -xzf ubuntu-ai-system-administrator-<version>.tar.gz -C ubuntu-ai-system-administrator-<version>
+     bash ubuntu-ai-system-administrator-<version>/payload/bin/verify-release .
      ```
 
    - Release notes should contain the relevant CHANGELOG section and

@@ -2,9 +2,9 @@
 # Verify a downloaded Ubuntu AI System Administrator release directory.
 set -Eeuo pipefail
 
-REPO="${ZOMBIE_RELEASE_REPO:-japer-technology/ubuntu-ai-system-administrator}"
-CERT_IDENTITY_REGEXP="${ZOMBIE_RELEASE_CERT_IDENTITY_REGEXP:-https://github.com/${REPO}/.+}"
-CERT_OIDC_ISSUER="${ZOMBIE_RELEASE_CERT_OIDC_ISSUER:-https://token.actions.githubusercontent.com}"
+REPO="${AI_SYS_ADMIN_RELEASE_REPO:-japer-technology/ubuntu-ai-system-administrator}"
+CERT_IDENTITY_REGEXP="${AI_SYS_ADMIN_RELEASE_CERT_IDENTITY_REGEXP:-https://github.com/${REPO}/.+}"
+CERT_OIDC_ISSUER="${AI_SYS_ADMIN_RELEASE_CERT_OIDC_ISSUER:-https://token.actions.githubusercontent.com}"
 
 usage() {
   cat <<EOF
@@ -14,9 +14,9 @@ Verifies a downloaded Ubuntu AI System Administrator release directory by checki
 cosign signatures, and the local SLSA provenance attestation bundle.
 
 Environment:
-  ZOMBIE_RELEASE_REPO                    GitHub repository (${REPO})
-  ZOMBIE_RELEASE_CERT_IDENTITY_REGEXP    Expected signing identity regexp
-  ZOMBIE_RELEASE_CERT_OIDC_ISSUER        Expected OIDC issuer
+  AI_SYS_ADMIN_RELEASE_REPO                    GitHub repository (${REPO})
+  AI_SYS_ADMIN_RELEASE_CERT_IDENTITY_REGEXP    Expected signing identity regexp
+  AI_SYS_ADMIN_RELEASE_CERT_OIDC_ISSUER        Expected OIDC issuer
 EOF
 }
 

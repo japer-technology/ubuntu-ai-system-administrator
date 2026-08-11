@@ -7,7 +7,7 @@ the bits an autonomous agent is most likely to get wrong.
 
 ## What this repository is
 
-Ubuntu Zombie is a Bash + Python installer that adds a private,
+This is a Bash + Python installer that adds a private,
 root-capable AI Systems Administrator account (`zombie` by default) to an Ubuntu
 Desktop LTS machine. The whole product ships as shell scripts and a
 small Python service. There is no compiled artifact and no package

@@ -86,6 +86,18 @@ cp -a "${ROOT}/debian/copyright" "${DOC_ROOT}/copyright"
 cp -a "${ROOT}/debian/changelog" "${DOC_ROOT}/changelog.Debian"
 gzip -9n "${DOC_ROOT}/changelog.Debian"
 
+# Normalize archive permissions instead of inheriting the clone's umask.
+# Re-apply executable bits only to tracked entrypoints.
+find "${STAGE}" -type d -exec chmod 0755 {} +
+find "${INSTALL_ROOT}" "${DOC_ROOT}" -type f -exec chmod 0644 {} +
+while IFS= read -r -d '' source; do
+  target="${INSTALL_ROOT}/${source#"${ROOT}/"}"
+  chmod 0755 "${target}"
+done < <(
+  find "${ROOT}/scripts" "${ROOT}/payload" "${ROOT}/tests" \
+    -type f -perm /111 -print0
+)
+
 # Wrapper that dispatches to the installer's CLI.
 cat > "${SBIN}/${PKG}" <<EOF
 #!/usr/bin/env bash

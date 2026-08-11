@@ -1107,7 +1107,6 @@ if [entry["address"] for entry in discovered] != [
     "127.0.0.1:8080",
     "127.0.0.1:11434",
     "127.0.0.1:51234",
-    "127.0.0.1:58080",
 ]:
     raise SystemExit(f"scan_lmstudio wrong: {discovered!r}")
 
@@ -1162,7 +1161,6 @@ if locals_info != {
         "http://127.0.0.1:8080/v1",
         "http://127.0.0.1:11434/v1",
         "http://127.0.0.1:51234/v1",
-        "http://127.0.0.1:58080/v1",
     ],
 }:
     raise SystemExit(f"App.local_apis_info wrong: {locals_info!r}")

@@ -15,6 +15,23 @@ with its UTC release time as `yyyy.mm.dd.hh.nn.ss`.
   `ubuntu-zombie-*` services, paths, package names, and protocol identifiers
   remain unchanged for compatibility with installed systems.
 
+### Fixed
+
+- **Release artifacts are installable again:** restored the Debian package
+  metadata, executable modes for shipped entrypoints and test fixtures, and
+  normalized archive permissions. Tarball and `.deb` builds now complete from
+  a fresh clone.
+- **Custom install roots are complete:** runtime state, pi-mono settings and
+  logs, built-in skills, log rotation, diagnostics, and provider guidance now
+  consistently follow `ZOMBIE_DIR`. Installed helpers auto-detect their root
+  through `/usr/local/bin`.
+- **Credential editing uses the installed account:** `secrets-edit` now
+  honours `ZOMBIE_USER` and detects the install-root owner instead of
+  defaulting to the obsolete `agent` account.
+- **Cutdown smoke tests match local-model discovery:** removed stale
+  expectations for the deleted managed llama port so the documented lint and
+  test commands pass.
+
 ### Removed
 
 - **Alternate products and installer modes:** Ubuntu AI System Administrator is now the only

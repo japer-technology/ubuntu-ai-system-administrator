@@ -1,7 +1,7 @@
 name: Dependency Review
 
 # Flags PRs that introduce dependencies with known vulnerabilities or
-# incompatible licenses. Ubuntu Zombie has very few build-time
+# incompatible licenses. Ubuntu AI System Administrator has very few build-time
 # dependencies, but the agent payload pulls in npm and pip packages at
 # install-time, and dependency review covers any manifests that land in
 # the repo (e.g. `package.json`, `requirements*.txt`, `pyproject.toml`).

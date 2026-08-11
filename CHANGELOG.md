@@ -1,6 +1,6 @@
 # Changelog
 
-All notable changes to Ubuntu Zombie are documented in this file.
+All notable changes to Ubuntu AI System Administrator are documented in this file.
 
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 and the project uses **date-time versioning**: each release is stamped
@@ -8,14 +8,21 @@ with its UTC release time as `yyyy.mm.dd.hh.nn.ss`.
 
 ## [Unreleased]
 
+### Changed
+
+- **Project rename:** all user-facing branding and repository links now use
+  Ubuntu AI System Administrator. Existing `ZOMBIE_*` environment variables,
+  `ubuntu-zombie-*` services, paths, package names, and protocol identifiers
+  remain unchanged for compatibility with installed systems.
+
 ### Removed
 
-- **Alternate products and installer modes:** Ubuntu Zombie is now the only
+- **Alternate products and installer modes:** Ubuntu AI System Administrator is now the only
   installable product in this repository. The component-target grammar,
   Forgejo and standalone llama.cpp lifecycles, Forgejo runner payload, family
   contracts, product release workflows, compatibility environment flags, and
   their tests and documentation have been removed. Lifecycle commands now
-  operate on Ubuntu Zombie only.
+  operate on Ubuntu AI System Administrator only.
 
 ### Installer setting preservation
 
@@ -136,7 +143,7 @@ with its UTC release time as `yyyy.mm.dd.hh.nn.ss`.
   brief.
 - **Management catalogue expansion:** new focused briefs cover coordinated
   Ubuntu maintenance, general AI-agent orchestration, and safe operation of
-  Hermes, OpenClaw and Ubuntu Zombie's embedded pi-mono runtime. The existing
+  Hermes, OpenClaw and the embedded pi-mono runtime. The existing
   `dev` and `files` briefs now add repository-aware programming workflows,
   metadata-preserving atomic file changes and safer bulk operations. Smoke
   tests verify discovery, unique triggers, representative selection and
@@ -350,12 +357,12 @@ with its UTC release time as `yyyy.mm.dd.hh.nn.ss`.
   conversation/tool totals, and browser-session activity.
 - **Browser-local rebranding:** `/rebrand <title>` rebrands the browser title,
   header, wordmark, login prompt, and tombstone label; `/rebrand` resets them
-  to Ubuntu Zombie.
+  to the project.
 - **Browser-local prompt text:** `/reprompt <placeholder>` replaces and
   remembers the composer placeholder; `/reprompt` restores the default.
 - **Compact model status:** the chat header now shows only the active model,
   with its IP address appended when the model server is local.
-- **Visible installed version:** the chat footer now shows the Ubuntu Zombie
+- **Visible installed version:** the chat footer now shows the installed
   version beneath the composer buttons, and the decorative green header dot
   has been removed.
 - **Reliable exact slash commands:** exact command names such as
@@ -635,12 +642,12 @@ with its UTC release time as `yyyy.mm.dd.hh.nn.ss`.
 
 ### Changed
 - Expanded the in-chat example prompt library with richer inspection,
-  recovery, maintenance, security, and Ubuntu Zombie self-operation
+  recovery, maintenance, security, and self-operation
   requests.
 - The chat interface now includes a top-centre **Logoff** control, a
   `/logout` slash command that reopens the password gate, and a grouped,
   alphabetised `/help` command list.
-- The installer now shows the Ubuntu Zombie logo as soon as install mode
+- The installer now shows the product logo as soon as install mode
   starts, the uninstaller shows the same logo, the default TTL is 7 days,
   and the default chat password is `braaaains`.
 - **Zombie Zero default footprint.** Removed the legacy installer/runtime
@@ -680,7 +687,7 @@ with its UTC release time as `yyyy.mm.dd.hh.nn.ss`.
   `payload/agent/pi-mono.version`) and degrade to `unknown` if a pin file
   is missing rather than aborting.
 - Clarified provider/model setup in `README.md`, `docs/QUICKSTART.md`,
-  and `docs/CONFIGURATION.md`: Ubuntu Zombie reads
+  and `docs/CONFIGURATION.md`: the agent reads
   `/opt/ai-zombie/secrets/env`, maps `ZOMBIE_PROVIDER=gemini` to pi-ai's
   `google` provider internally, passes the resolved provider/model to
   `pi` on each turn, and treats `ZOMBIE_MODEL` as taking precedence over
@@ -702,7 +709,7 @@ with its UTC release time as `yyyy.mm.dd.hh.nn.ss`.
 
 ### Added
 - The installer, `zombie-chat` helper, and browser chat UI now start with
-  the full ANSI Shadow `UBUNTU ZOMBIE` wordmark.
+  the full ANSI Shadow product wordmark.
 - **`payload/README.md`** — a world-class tour of the payload tree: what
   each file is, where the installer deploys it, and the four runtime
   invariants (loopback-only, closed tool surface, policy gate +

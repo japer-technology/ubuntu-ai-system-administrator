@@ -188,7 +188,7 @@ jobs:
               found {print}
             ' CHANGELOG.md > release-notes.md
           else
-            printf '%s\n' "Ubuntu Zombie ${version}." > release-notes.md
+            printf '%s\n' "Ubuntu AI System Administrator ${version}." > release-notes.md
           fi
           {
             echo
@@ -207,7 +207,7 @@ jobs:
         uses: softprops/action-gh-release@3d0d9888cb7fd7b750713d6e236d1fcb99157228  # v3.0.2
         with:
           tag_name: ${{ needs.build.outputs.tag }}
-          name: Ubuntu Zombie ${{ needs.build.outputs.version }}
+          name: Ubuntu AI System Administrator ${{ needs.build.outputs.version }}
           body_path: release-notes.md
           draft: false
           prerelease: false

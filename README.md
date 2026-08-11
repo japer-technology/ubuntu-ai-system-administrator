@@ -1,7 +1,8 @@
 # Ubuntu Zombie
 
-> **Under development.** Install only on a disposable Ubuntu Desktop LTS
-> machine.
+> [!WARNING]
+> This is pre-alpha. It is not yet conformant or safe for real execution.
+> Install only on a disposable Ubuntu Desktop LTS machine.
 
 Ubuntu Zombie installs a private, root-capable AI Systems Administrator
 account with a loopback-only chat service, an explicit approval gate, and an

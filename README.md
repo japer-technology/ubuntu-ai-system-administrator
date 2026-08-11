@@ -1,2 +1,4 @@
 # ubuntu-ai-system-administrator
-⚠️UNDER DEVELOPMENT 🟠Installer of an AI System Administrator
+
+> [!WARNING]
+> This is pre-alpha. It is not yet conformant or safe for real execution.

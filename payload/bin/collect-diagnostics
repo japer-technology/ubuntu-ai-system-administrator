@@ -3,6 +3,24 @@
 # Secrets are redacted before write.
 set -euo pipefail
 
+resolve_install_root() {
+  if [[ -n "${ZOMBIE_DIR:-}" ]]; then
+    printf '%s\n' "${ZOMBIE_DIR}"
+    return
+  fi
+  local script_path candidate
+  script_path="$(readlink -f -- "${BASH_SOURCE[0]}" 2>/dev/null \
+    || printf '%s' "${BASH_SOURCE[0]}")"
+  if candidate="$(cd -- "$(dirname -- "${script_path}")/.." 2>/dev/null && pwd)" \
+      && [[ -f "${candidate}/VERSION" && -d "${candidate}/agent" ]]; then
+    printf '%s\n' "${candidate}"
+  else
+    printf '%s\n' "/opt/ai-zombie"
+  fi
+}
+
+ZOMBIE_DIR="$(resolve_install_root)"
+
 usage() {
   cat <<EOF
 collect-diagnostics — bundle redacted logs and state for a bug report.
@@ -17,7 +35,8 @@ SSH keys, KEY/TOKEN/PASSWORD/SECRET assignments) are redacted before
 write.
 
 Environment:
-  TMPDIR    Output directory for the bundle (default /tmp).
+  TMPDIR       Output directory for the bundle (default /tmp).
+  ZOMBIE_DIR   Install root (auto-detected; default /opt/ai-zombie).
 
 Review the bundle before sharing it.
 EOF
@@ -72,8 +91,8 @@ capture free.txt                free -h
 capture systemctl-failed.txt    systemctl --failed --no-pager
 capture systemctl-zombie.txt    systemctl status ubuntu-zombie-chat.service ubuntu-zombie-health.timer --no-pager
 capture journal-zombie.txt      journalctl -u ubuntu-zombie-chat.service -n 400 --no-pager
-capture verify.txt              /opt/ai-zombie/bin/verify
-capture health.txt              /opt/ai-zombie/bin/health-check
+capture verify.txt              "${ZOMBIE_DIR}/bin/verify"
+capture health.txt              "${ZOMBIE_DIR}/bin/health-check"
 
 # Installer log
 if [[ -r /var/log/ubuntu-zombie-install.log ]]; then

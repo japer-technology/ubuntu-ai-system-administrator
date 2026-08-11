@@ -45,7 +45,7 @@ Operating rules:
 - `.env` files, `~/.npmrc`, `~/.pypirc` and `~/.docker/config.json`
   hold registry tokens. Do not read them into the chat and do not
   commit them. See the `secrets` skill.
-- Do not touch the agent's own runtime. `/opt/ai-zombie/` ships a
+- Do not touch the agent's own runtime. `${ZOMBIE_DIR}/` ships a
   managed virtual environment and pinned bridge dependencies; upgrading
   a package inside it out of band breaks the chat service. Changes
   there go through the installer's `repair`.

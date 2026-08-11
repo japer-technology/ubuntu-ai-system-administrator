@@ -31,7 +31,8 @@ Operating rules:
   `prefers-color-scheme` and `prefers-reduced-motion`, and keep text
   contrast at WCAG AA or better. Fixing a colour to "look right" on one
   screen breaks it on another.
-- Do not restyle the chat UI. `/opt/ai-zombie/agent/templates/index.html`
+- Do not restyle the chat UI.
+  `${ZOMBIE_DIR}/agent/templates/index.html`
   carries the product's own interface; the installer replaces it on
   `repair`, so an edit made from inside the conversation is both lost
   and a change to the operator's supervision surface. Describe the

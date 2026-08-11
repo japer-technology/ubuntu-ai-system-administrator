@@ -57,6 +57,56 @@ run_python() {
   # Importability of policy.py without 3rd-party deps.
   echo "  import policy"
   PYTHONPATH=payload/agent python3 -c 'import policy; p = policy.load_policy(); print("classes:", list(p.classes))'
+  echo "  custom install-root defaults"
+  ZOMBIE_DIR="/tmp/ubuntu-zombie-custom-root" \
+    PYTHONPATH=payload/agent python3 - <<'PY'
+import json
+import os
+from pathlib import Path
+
+import audit
+import history
+import lifecycle
+import pi_mono
+import providers
+import server
+import skill_loader
+import tools
+
+root = Path(os.environ["ZOMBIE_DIR"])
+expected = {
+    "history": root / "state" / "conversations.db",
+    "lifecycle": root / "state" / "lifecycle.json",
+    "logs": root / "state" / "logs",
+    "settings": root / "pi" / "settings.json",
+    "secrets": root / "secrets" / "env",
+}
+actual = {
+    "history": history.DB_PATH,
+    "lifecycle": lifecycle.STATE_PATH,
+    "logs": pi_mono.DEFAULT_LOG_DIR,
+    "settings": pi_mono.DEFAULT_SETTINGS_PATH,
+    "secrets": server.SECRETS_FILE,
+}
+if actual != expected:
+    raise SystemExit(f"custom install-root defaults wrong: {actual!r}")
+if providers._secrets_file() != expected["secrets"]:
+    raise SystemExit("provider errors must point at the custom secrets file")
+if skill_loader.default_skill_dirs()[-2] != root / "skills":
+    raise SystemExit("skill loader must use the custom install root")
+if tools._skills_dirs()[0] != root / "skills":
+    raise SystemExit("skill tools must use the custom install root")
+redacted = audit.redact(f"read {expected['secrets']}")
+if str(expected["secrets"]) in redacted:
+    raise SystemExit("audit redaction must cover the custom secrets path")
+
+template = Path("payload/agent/templates/settings.json.tmpl").read_text()
+settings = json.loads(template.replace("__ZOMBIE_DIR__", str(root)))
+if settings["sessionDir"] != str(root / "state" / "pi-mono-sessions"):
+    raise SystemExit("pi-mono sessionDir did not render under custom root")
+if settings["appendSystemPromptFile"] != str(root / "pi" / "APPEND_SYSTEM.md"):
+    raise SystemExit("pi-mono prompt path did not render under custom root")
+PY
   echo "  policy payload regressions"
   PYTHONPATH=payload/agent ZOMBIE_POLICY=payload/etc/policy.yaml python3 - <<'PY'
 import platform
@@ -2796,6 +2846,22 @@ run_standards() {
     [[ -s "$f" ]] || { echo "missing required repository file: $f" >&2; exit 1; }
   done
 
+  local entrypoints=(
+    scripts/build-deb.sh
+    scripts/install.sh
+    scripts/uninstall.sh
+    scripts/verify-bridge-pins.sh
+    tests/smoke.sh
+    tests/fixtures/*.mjs
+    payload/bin/*
+    debian/postinst
+    debian/prerm
+  )
+  for f in "${entrypoints[@]}"; do
+    [[ -x "$f" ]] \
+      || { echo "entrypoint is not executable: $f" >&2; exit 1; }
+  done
+
   local removed=(
     .github/workflows/beep-release.yml
     .github/workflows/forgejo-release.yml
@@ -2847,10 +2913,53 @@ run_standards() {
 
   grep -q "__ZOMBIE_DIR__" payload/systemd/ubuntu-zombie-chat.service \
     || { echo "chat systemd template must keep __ZOMBIE_DIR__ placeholder" >&2; exit 1; }
+  grep -q "Environment=ZOMBIE_DIR=__ZOMBIE_DIR__" \
+    payload/systemd/ubuntu-zombie-chat.service \
+    || { echo "chat service must export its rendered install root" >&2; exit 1; }
   grep -q "ExecStart=__ZOMBIE_DIR__/bin/health-check" payload/systemd/ubuntu-zombie-health.service \
     || { echo "health systemd template must use __ZOMBIE_DIR__ placeholder" >&2; exit 1; }
   grep -q "ZOMBIE_HEALTH_WARN_ONLY=1" payload/systemd/ubuntu-zombie-health.service \
     || { echo "health timer must not leave a failed unit after reporting unhealthy state" >&2; exit 1; }
+  grep -q "__ZOMBIE_DIR__/state/logs" payload/logrotate/ubuntu-zombie \
+    || { echo "logrotate template must use the install-root placeholder" >&2; exit 1; }
+  grep -q '"sessionDir": "__ZOMBIE_DIR__/state/' \
+    payload/agent/templates/settings.json.tmpl \
+    || { echo "pi-mono settings must use the install-root placeholder" >&2; exit 1; }
+
+  local helper_root helper_output username_functions detected_owner expected_owner
+  helper_root="$(mktemp -d)"
+  mkdir -p "${helper_root}/agent" "${helper_root}/bin"
+  cp VERSION "${helper_root}/VERSION"
+  install -m 755 payload/bin/secrets-edit "${helper_root}/bin/secrets-edit"
+  install -m 755 payload/bin/zombie-chat "${helper_root}/bin/zombie-chat"
+  helper_output="$("${helper_root}/bin/secrets-edit" --help)"
+  grep -Fq "${helper_root}/secrets/env" <<<"${helper_output}" \
+    || { rm -rf "${helper_root}"; echo "secrets-edit must auto-detect its install root" >&2; exit 1; }
+  helper_output="$("${helper_root}/bin/zombie-chat")"
+  grep -Fq "${helper_root}/bin/secrets-edit" <<<"${helper_output}" \
+    || { rm -rf "${helper_root}"; echo "zombie-chat must auto-detect its install root" >&2; exit 1; }
+
+  username_functions="$(
+    sed -n '/^is_supported_agent_username() {/,/^}/p' payload/bin/secrets-edit
+    sed -n '/^resolve_agent_user() {/,/^}/p' payload/bin/secrets-edit
+  )"
+  detected_owner="$(
+    env -u ZOMBIE_USER -u AGENT_USER ZOMBIE_DIR="${helper_root}" \
+      bash -c "${username_functions}"$'\n''resolve_agent_user'
+  )"
+  expected_owner="$(id -un)"
+  [[ "${expected_owner}" != "root" && "${expected_owner}" != "nobody" ]] \
+    || expected_owner="zombie"
+  [[ "${detected_owner}" == "${expected_owner}" ]] \
+    || { rm -rf "${helper_root}"; echo "secrets-edit must detect the installed account owner" >&2; exit 1; }
+  [[ "$(
+    ZOMBIE_USER=customadmin AGENT_USER=legacy ZOMBIE_DIR="${helper_root}" \
+      bash -c "${username_functions}"$'\n''resolve_agent_user'
+  )" == "customadmin" ]] \
+    || { rm -rf "${helper_root}"; echo "secrets-edit must prefer ZOMBIE_USER" >&2; exit 1; }
+  expect_exit_code 2 env ZOMBIE_USER=root payload/bin/secrets-edit
+  rm -rf "${helper_root}"
+
   local provider_helper provider_test_file
   provider_helper="$(install_function provider_credential_configured)"
   provider_test_file="$(mktemp)"

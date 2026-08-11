@@ -14,8 +14,8 @@ Operating rules:
   Supported providers are `openai`, `anthropic`, `gemini`, `xai`,
   `mistral`, `groq`, `openrouter` and `lmstudio` (any local,
   OpenAI-compatible server).
-- API keys live in the root-owned secrets file
-  (`/opt/ai-zombie/secrets/env`, mode `0600`) and are edited with the
+- API keys live in the agent-owned secrets file
+  (`${ZOMBIE_DIR}/secrets/env`, mode `0600`) and are edited with the
   `secrets-edit` helper by the operator. Never read that file into the
   chat, never echo a key, and never write one into a unit file, a
   script or a shell history. See the `secrets` skill.

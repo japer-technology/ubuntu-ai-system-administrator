@@ -14,7 +14,7 @@ trigger marker, for example::
 
 The loader scans two directories:
 
-* ``/opt/ai-zombie/skills/``        — root-owned, ships with the package.
+* ``$ZOMBIE_DIR/skills/``           — root-owned, ships with the package.
 * ``/etc/ubuntu-zombie/skills.d/``  — operator-extensible, same
   mode/owner contract as ``/etc/ubuntu-zombie/policy.yaml``.
 
@@ -83,7 +83,8 @@ def default_skill_dirs() -> list[Path]:
             chunk = chunk.strip()
             if chunk:
                 dirs.append(Path(chunk))
-    dirs.append(Path("/opt/ai-zombie/skills"))
+    install_root = Path(os.environ.get("ZOMBIE_DIR", "/opt/ai-zombie"))
+    dirs.append(install_root / "skills")
     dirs.append(Path("/etc/ubuntu-zombie/skills.d"))
     return dirs
 

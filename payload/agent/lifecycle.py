@@ -13,8 +13,9 @@ disk and never cleared at runtime, so a restart of the chat service
 cannot revive the zombie. Routine reinstalls preserve the tombstone;
 only an explicit ``initialize`` call resets the lifecycle.
 
-State lives in a small JSON file (``/opt/ai-zombie/state/lifecycle.json``
-by default, overridable with ``ZOMBIE_LIFECYCLE_STATE``)::
+State lives in a small JSON file
+(``$ZOMBIE_DIR/state/lifecycle.json`` by default, overridable with
+``ZOMBIE_LIFECYCLE_STATE``)::
 
     {
       "created_at": 1700000000.0,
@@ -36,9 +37,11 @@ import time
 from pathlib import Path
 from typing import Any
 
-STATE_PATH = Path(
-    os.environ.get("ZOMBIE_LIFECYCLE_STATE", "/opt/ai-zombie/state/lifecycle.json")
-)
+_INSTALL_ROOT = Path(os.environ.get("ZOMBIE_DIR", "/opt/ai-zombie"))
+STATE_PATH = Path(os.environ.get(
+    "ZOMBIE_LIFECYCLE_STATE",
+    str(_INSTALL_ROOT / "state" / "lifecycle.json"),
+))
 
 DAY_SECONDS = 86_400
 DEFAULT_TTL_SECONDS = 7 * DAY_SECONDS

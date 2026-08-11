@@ -62,7 +62,10 @@ import pi_mono  # noqa: E402
 import skill_loader  # noqa: E402
 import tools as tools_mod  # noqa: E402
 
-SECRETS_FILE = Path(os.environ.get("ZOMBIE_SECRETS", "/opt/ai-zombie/secrets/env"))
+_INSTALL_ROOT = Path(os.environ.get("ZOMBIE_DIR", "/opt/ai-zombie"))
+SECRETS_FILE = Path(os.environ.get(
+    "ZOMBIE_SECRETS", str(_INSTALL_ROOT / "secrets" / "env")
+))
 DEFAULT_PORT = int(os.environ.get("ZOMBIE_CHAT_PORT", "7878"))
 DEFAULT_HOST = "127.0.0.1"
 # Streaming is per active operator turn. A thousand queued frames is

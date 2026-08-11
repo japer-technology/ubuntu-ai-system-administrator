@@ -31,7 +31,7 @@ _ubuntu_zombie_install() {
     '--json[Machine-readable output for verify/doctor]'
   )
   uninstall_flags=(
-    '--archive[Archive /opt/ai-zombie before removing it]'
+    '--archive[Archive the install root before removing it]'
     '--keep-agent[Do not remove the agent user account]'
   )
 

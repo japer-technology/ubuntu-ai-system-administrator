@@ -348,8 +348,9 @@ def _shim_net_status(args: dict[str, Any]) -> dict[str, Any]:
 
 
 def _skills_dirs() -> list[Path]:
+    install_root = Path(os.environ.get("ZOMBIE_DIR", "/opt/ai-zombie"))
     dirs = [
-        Path("/opt/ai-zombie/skills"),
+        install_root / "skills",
         Path("/etc/ubuntu-zombie/skills.d"),
     ]
     # Honour ``ZOMBIE_SKILLS_DIR`` only when it is a non-empty value. An
@@ -649,7 +650,7 @@ TOOL_REGISTRY: dict[str, dict[str, Any]] = {
     ),
     "skill.list": _t(
         classification="read_only",
-        description="Enumerate available skills from /opt/ai-zombie/skills and /etc/ubuntu-zombie/skills.d.",
+        description="Enumerate skills from the install root and /etc/ubuntu-zombie/skills.d.",
         schema={"type": "object", "properties": {}, "required": [],
                 "additionalProperties": False},
         shim=_shim_skill_list,

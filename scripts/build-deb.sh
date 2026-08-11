@@ -123,6 +123,7 @@ sed "s/__VERSION__/${VERSION}/g" "${ROOT}/debian/control.in" > "${DEBIAN}/contro
 # Compute Installed-Size (KiB) per Debian policy.
 SIZE_KB="$(du -ks "${INSTALL_ROOT}" "${DOC_ROOT}" "${SBIN}" | awk '{s+=$1} END {print s}')"
 printf 'Installed-Size: %s\n' "${SIZE_KB}" >> "${DEBIAN}/control"
+chmod 0644 "${DEBIAN}/control"
 
 cp -a "${ROOT}/debian/postinst" "${DEBIAN}/postinst"
 cp -a "${ROOT}/debian/prerm"   "${DEBIAN}/prerm"
@@ -130,6 +131,7 @@ chmod 0755 "${DEBIAN}/postinst" "${DEBIAN}/prerm"
 
 # md5sums for `dpkg --verify`.
 ( cd "${STAGE}" && find usr -type f -exec md5sum {} + > "${DEBIAN}/md5sums" )
+chmod 0644 "${DEBIAN}/md5sums"
 
 # ---------------------------------------------------------------------------
 # Build

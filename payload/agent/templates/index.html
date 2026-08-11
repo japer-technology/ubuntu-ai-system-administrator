@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<title>Ubuntu Zombie</title>
+<title>Ubuntu AI System Administrator</title>
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <style>
   /*
@@ -301,8 +301,8 @@
 </head>
 <body>
 <header>
-  <h1 id="brand-heading" aria-label="Ubuntu Zombie on {{HOSTNAME}}">
-    Ubuntu Zombie <span class="host">{{HOSTNAME}}</span>
+  <h1 id="brand-heading" aria-label="Ubuntu AI System Administrator on {{HOSTNAME}}">
+    Ubuntu AI System Administrator <span class="host">{{HOSTNAME}}</span>
   </h1>
   <div class="header-actions">
     <!-- Session control is hidden unless the password gate is active and
@@ -364,7 +364,7 @@
       <div class="composer-feedback">
         <div id="status" class="turn-status" role="status" aria-live="polite"></div>
         <div id="app-version" class="app-version"
-             aria-label="Ubuntu Zombie version {{VERSION}}">v{{VERSION}}</div>
+             aria-label="Ubuntu AI System Administrator version {{VERSION}}">v{{VERSION}}</div>
       </div>
     </div>
   </div>
@@ -375,7 +375,7 @@
      to decide whether the Logoff control exists. -->
 <div id="login-overlay" class="overlay" hidden>
   <div class="panel">
-    <h2 id="login-brand-title">Ubuntu Zombie</h2>
+    <h2 id="login-brand-title">Ubuntu AI System Administrator</h2>
     <form id="login-form">
       <input type="password" id="login-password" autocomplete="current-password"
              placeholder="Password" aria-label="Password" required>
@@ -389,10 +389,10 @@
      terminal and must disable the chat controls rather than prompt again. -->
 <div id="tomb-overlay" class="overlay tomb" hidden>
   <div class="panel">
-    <h2 id="tomb-brand-title">This Ubuntu Zombie is dead</h2>
-    <p id="tomb-message">The Ubuntu Zombie Systems Administrator has reached
+    <h2 id="tomb-brand-title">This Ubuntu AI System Administrator is dead</h2>
+    <p id="tomb-message">Ubuntu AI System Administrator has reached
       the end of its time to live and is permanently disabled. Reinstall
-      Ubuntu Zombie to bring it back.</p>
+      Ubuntu AI System Administrator to bring it back.</p>
   </div>
 </div>
 <script>
@@ -418,7 +418,7 @@ let visibleMessages = [];
 let authRequired = false;
 let chatDisabled = false;
 let fullWidthMode = false;
-let brandTitle = "Ubuntu Zombie";
+let brandTitle = "Ubuntu AI System Administrator";
 let activeReactivation = null;
 let pendingReactivation = null;
 // turn_id of the fired reactivation continuation currently being streamed
@@ -1261,7 +1261,7 @@ const SLASH_COMMANDS = [
   ["/purpose", "Show the starter purpose buttons inline in this chat.", "Help"],
   ["/redraw", "Reload the current conversation from SQLite.", "Conversation"],
   ["/reactivation [on|off|cancel|reset|minimum <duration>|maximum <duration>]", "Show, reset, or configure agent reactivation (alias: /reactivate).", "Session"],
-  ["/rebrand [title]", "Rebrand this browser's Ubuntu Zombie UI; omit title to reset.", "Configuration"],
+  ["/rebrand [title]", "Rebrand this browser's Ubuntu AI System Administrator UI; omit title to reset.", "Configuration"],
   ["/reprompt [placeholder]", "Replace this browser's prompt placeholder; omit text to reset.", "Configuration"],
   ["/retry", "Retry the last user turn in a new branch.", "Conversation"],
   ["/shortcuts", "Show keyboard shortcuts.", "Help"],
@@ -1273,7 +1273,7 @@ const SLASH_COMMANDS = [
   ["/ttl [duration|reset [duration]|--die]", "Show, extend, reset, or trip the Time to Live.", "Session"],
   ["/undo [n]", "Rewind n user turns in a new branch.", "Conversation"],
   ["/verbose [on|off|none|api]", "Toggle background-activity detail: tool calls, bytes moved. \"api\" toggles API-call display; \"none\" also suppresses tool info in statuses. Off by default; resets on reload.", "Diagnostics"],
-  ["/version", "Show Ubuntu Zombie and bridge versions.", "Diagnostics"],
+  ["/version", "Show Ubuntu AI System Administrator and bridge versions.", "Diagnostics"],
   ["/whoami", "Show the active agent identity.", "Configuration"]
 ];
 
@@ -1306,7 +1306,7 @@ const COMMAND_DETAILS = {
   "/purpose": "Shows the starter purpose buttons inline so more prompts can be picked in the same conversation.",
   "/redraw": "Reloads the active conversation and tool events from local storage.",
   "/reactivation": "Shows the single upcoming agent continuation, enables or disables scheduling, cancels it, resets the mechanism to a clean default state, or configures bounded minimum and maximum delays. Alias: /reactivate.",
-  "/rebrand": "Changes this browser's interface branding or resets it to Ubuntu Zombie.",
+  "/rebrand": "Changes this browser's interface branding or resets it to Ubuntu AI System Administrator.",
   "/reprompt": "Changes the prompt placeholder for this browser or resets it to the default.",
   "/retry": "Branches before the latest user turn and submits that prompt again.",
   "/shortcuts": "Lists keyboard shortcuts for sending, queueing, line breaks, and stopping.",
@@ -1830,7 +1830,7 @@ function uzSafeName(value) {
 }
 
 const BRAND_STORAGE_KEY = "ubuntu-zombie.brandTitle";
-const DEFAULT_BRAND_TITLE = "Ubuntu Zombie";
+const DEFAULT_BRAND_TITLE = "Ubuntu AI System Administrator";
 const PROMPT_STORAGE_KEY = "ubuntu-zombie.promptPlaceholder";
 const DEFAULT_PROMPT_PLACEHOLDER = "AI System Administrator";
 const FULLWIDTH_STORAGE_KEY = "ubuntu-zombie.fullWidth";
@@ -2577,7 +2577,7 @@ async function handleSlashCommand(input) {
       const requested = cleanBrandTitle(arg);
       if (!requested) {
         applyBrandTitle(DEFAULT_BRAND_TITLE);
-        addMessage("system", "Title reset to Ubuntu Zombie.");
+        addMessage("system", "Title reset to Ubuntu AI System Administrator.");
       } else {
         applyBrandTitle(requested);
         addMessage("system", `Title set to ${brandTitle}.`);
@@ -2732,7 +2732,7 @@ async function handleSlashCommand(input) {
         const memoryUsed = Number(resources.memory_total_bytes || 0) -
                            Number(resources.memory_available_bytes || 0);
         const lines = [
-          "Ubuntu Zombie proof of life",
+          "Ubuntu AI System Administrator proof of life",
           `Checked: ${timestamp(data.checked_at) || "now"}`,
           "",
           "Provider",
@@ -2924,7 +2924,7 @@ async function handleSlashCommand(input) {
           if (data.dead) {
             showTombstone(data);
             addMessage("system",
-              `The Ubuntu Zombie is permanently disabled (${data.dead_reason || "expired"}).`,
+              `Ubuntu AI System Administrator is permanently disabled (${data.dead_reason || "expired"}).`,
               { error: true });
           } else {
             addMessage("system", `Time to Live: ${data.remaining_human}.`);
@@ -2933,7 +2933,7 @@ async function handleSlashCommand(input) {
         }
         if (arg === "--die" || arg.toLowerCase() === "die") {
           const data = await uzPostJson("/api/ttl", { die: true });
-          addMessage("system", "The Ubuntu Zombie has been killed. It is now " +
+          addMessage("system", "Ubuntu AI System Administrator has been killed. It is now " +
             "permanently disabled until a reinstall.", { error: true });
           showTombstone(data);
           return true;

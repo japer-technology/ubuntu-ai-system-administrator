@@ -1,6 +1,6 @@
 # Code of Conduct
 
-Ubuntu Zombie is a project about powerful local administration tools. That
+Ubuntu AI System Administrator is a project about powerful local administration tools. That
 work requires clear, respectful collaboration and careful handling of safety
 concerns.
 

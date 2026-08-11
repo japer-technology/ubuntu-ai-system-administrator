@@ -1,4 +1,4 @@
-"""Ubuntu Zombie chat service.
+"""Ubuntu AI System Administrator chat service.
 
 A small loopback-only HTTP server that:
 
@@ -85,7 +85,7 @@ AGENT_REACTIVATION_CLOSE = "</ubuntu-zombie-reactivation>"
 _VERSION_SOURCES = {
     "ubuntu-zombie": (
         "https://api.github.com/repos/japer-technology/"
-        "ubuntu-zombie/releases/latest",
+        "ubuntu-ai-system-administrator/releases/latest",
         "tag_name",
     ),
     "pi-mono": (
@@ -725,7 +725,7 @@ def version_info(check_latest: bool = False) -> dict[str, Any]:
             "name": "node",
             "installed": _runtime_version(["node", "--version"]) or "not installed",
             "latest": None,
-            "source": "Ubuntu Zombie runtime",
+            "source": "Ubuntu AI System Administrator runtime",
         },
         {
             "name": "sqlite",
@@ -825,7 +825,7 @@ class App:
         """Extend the Time to Live; refuse if the zombie is already dead."""
         current = lifecycle.status()
         if current["dead"]:
-            return {"error": "The Ubuntu Zombie is permanently disabled.",
+            return {"error": "Ubuntu AI System Administrator is permanently disabled.",
                     "dead": True, **current}
         try:
             result = lifecycle.set_ttl_seconds(seconds)
@@ -841,7 +841,7 @@ class App:
         """Reset the Time to Live; refuse if the zombie is already dead."""
         current = lifecycle.status()
         if current["dead"]:
-            return {"error": "The Ubuntu Zombie is permanently disabled.",
+            return {"error": "Ubuntu AI System Administrator is permanently disabled.",
                     "dead": True, **current}
         try:
             result = lifecycle.reset_ttl_seconds(seconds)
@@ -937,7 +937,7 @@ class App:
         if life["dead"]:
             return {
                 "error": (
-                    "The Ubuntu Zombie has been permanently disabled "
+                    "Ubuntu AI System Administrator has been permanently disabled "
                     f"({life['dead_reason'] or 'expired'}). It is unusable "
                     "until a reinstall."
                 ),
@@ -1069,7 +1069,7 @@ class App:
         if life["dead"]:
             payload = {
                 "error": (
-                    "The Ubuntu Zombie has been permanently disabled "
+                    "Ubuntu AI System Administrator has been permanently disabled "
                     f"({life['dead_reason'] or 'expired'}). It is unusable "
                     "until a reinstall."
                 ),
@@ -3027,7 +3027,7 @@ def make_handler(app: App) -> type[Handler]:
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description="Ubuntu Zombie chat service")
+    parser = argparse.ArgumentParser(description="Ubuntu AI System Administrator chat service")
     parser.add_argument("--host", default=DEFAULT_HOST,
                         help="bind address (default: %(default)s)")
     parser.add_argument("--port", type=int, default=DEFAULT_PORT,

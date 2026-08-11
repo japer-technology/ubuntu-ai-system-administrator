@@ -1,7 +1,7 @@
 # Raising the OpenSSF Scorecard
 
-This note theorises how Ubuntu Zombie could earn a higher aggregate
-[OpenSSF Scorecard](https://securityscorecards.dev/viewer/?uri=github.com/japer-technology/ubuntu-zombie)
+This note theorises how Ubuntu AI System Administrator could earn a higher aggregate
+[OpenSSF Scorecard](https://securityscorecards.dev/viewer/?uri=github.com/japer-technology/ubuntu-ai-system-administrator)
 than 6. It is written from the repository's own intention outward: the
 project ships a *privileged, root-capable AI Systems Administrator* onto
 people's Ubuntu desktops. For software like this, supply-chain trust is

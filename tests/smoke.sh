@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# tests/smoke.sh — non-root smoke tests for Ubuntu Zombie.
+# tests/smoke.sh — non-root smoke tests for Ubuntu AI System Administrator.
 #
 # Subcommands:
 #   syntax        bash -n on every shell script we ship
@@ -1896,7 +1896,7 @@ server.provider_status = lambda: ("none", "not configured")
 rendered = server._render_index(None).decode()
 footer = rendered[rendered.index("<footer>"):rendered.index("</footer>")]
 assert 'id="app-version"' in footer, footer
-assert f'aria-label="Ubuntu Zombie version {server.app_version()}"' in footer, footer
+assert f'aria-label="Ubuntu AI System Administrator version {server.app_version()}"' in footer, footer
 assert footer.index('id="prompt-help"') < footer.index('id="app-version"'), footer
 assert f'v{server.app_version()}' in footer, footer
 assert "{{VERSION}}" not in rendered, rendered
@@ -2442,7 +2442,7 @@ run_branding() {
   local first_line
   first_line='╭──────────────────────────────────╮'
   grep -Fq "$first_line" scripts/lib.sh
-  grep -Fq 'Ubuntu Zombie' payload/bin/zombie-chat
+  grep -Fq 'Ubuntu AI System Administrator' payload/bin/zombie-chat
   grep -Fq 'function brandWordmark' payload/agent/templates/index.html
   PYTHONPATH=payload/agent python3 - <<'PY'
 import server
@@ -2490,7 +2490,7 @@ run_subcommands() {
   done
   ./scripts/install.sh doctor >/dev/null || true
 
-  # Ubuntu Zombie is the only install plan. Legacy product-selection
+  # Ubuntu AI System Administrator is the only install plan. Legacy product-selection
   # environment variables must be inert.
   local default_out legacy_env_out
   default_out="$(ZOMBIE_COLOR=never ./scripts/install.sh install --dry-run)"
@@ -3563,7 +3563,7 @@ if (cleanBrandTitle("  New    Name  ") !== "New Name") {
 if (cleanBrandTitle("x".repeat(90)).length !== 80) {
   throw new Error("brand title was not clipped to 80 chars");
 }
-if (!brandWordmark("").includes("UBUNTU ZOMBIE")) {
+if (!brandWordmark("").includes("UBUNTU AI SYSTEM ADMINISTRATOR")) {
   throw new Error("empty wordmark did not fall back to default");
 }
 applyBrandTitle("  New    Name  ");

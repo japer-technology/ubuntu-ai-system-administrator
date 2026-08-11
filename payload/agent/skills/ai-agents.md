@@ -14,7 +14,7 @@ Operating rules:
   approval model, persistence and audit trail before enabling it.
 - Keep agents isolated under dedicated unprivileged users or containers.
   Grant only the directories and tools required for the task; do not share
-  Ubuntu Zombie's account, sudoers entry, secrets file or writable state.
+  Ubuntu AI System Administrator's account, sudoers entry, secrets file or writable state.
 - A skill, MCP server, extension or plugin is code from another trust domain.
   Pin its source and version, inspect its requested capabilities, and require
   explicit operator approval before installation or activation.
@@ -31,7 +31,7 @@ Operating rules:
 - Use native status, doctor and dry-run commands before manual repair. Back up
   configuration and state, make one reversible change at a time, then inspect
   logs and run a bounded health check.
-- Ubuntu Zombie can inspect or manage another runtime only through its closed
+- Ubuntu AI System Administrator can inspect or manage another runtime only through its closed
   tools and policy gate. A skill cannot add a tool or delegate approval.
 - Report the exact instance affected, actions and approvals used, residual
   listeners/processes, and where the runtime records its own audit history.

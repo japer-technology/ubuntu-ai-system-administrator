@@ -4,7 +4,7 @@ This directory is **the product**. Everything outside it
 (`scripts/install.sh`, the `Makefile`, the tests, the docs) exists to
 *deliver*, *verify*, or *explain* what lives here. The payload is the
 set of files that `scripts/install.sh` copies onto a target Ubuntu
-Desktop LTS machine to turn it into an Ubuntu Zombie: a private,
+Desktop LTS machine to turn it into an Ubuntu AI System Administrator: a private,
 loopback-only AI Systems Administrator that can act as `root` through a
 classify → propose → approve → run → log gate.
 

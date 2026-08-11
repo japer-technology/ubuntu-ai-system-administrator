@@ -1,5 +1,5 @@
 [Unit]
-Description=Ubuntu Zombie chat service (loopback-only AI Systems Administrator)
+Description=Ubuntu AI System Administrator chat service (loopback-only)
 After=network-online.target
 Wants=network-online.target
 

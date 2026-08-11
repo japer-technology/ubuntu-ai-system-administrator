@@ -11,11 +11,11 @@ _ubuntu_zombie_install() {
   local -a verbs common_flags uninstall_flags flags
   local seen_verb word
   verbs=(
-    'install:Install and harden Ubuntu Zombie'
-    'verify:Check that Ubuntu Zombie is healthy'
-    'doctor:Diagnose Ubuntu Zombie host and configuration problems'
-    'repair:Re-apply idempotent Ubuntu Zombie fixes'
-    'uninstall:Remove Ubuntu Zombie configuration'
+    'install:Install and harden Ubuntu AI System Administrator'
+    'verify:Check that Ubuntu AI System Administrator is healthy'
+    'doctor:Diagnose Ubuntu AI System Administrator host and configuration problems'
+    'repair:Re-apply idempotent Ubuntu AI System Administrator fixes'
+    'uninstall:Remove Ubuntu AI System Administrator configuration'
   )
   common_flags=(
     '(-h --help)'{-h,--help}'[Show help and exit]'

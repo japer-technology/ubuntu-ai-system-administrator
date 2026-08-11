@@ -6,7 +6,7 @@ AUDIT_LOG="${ZOMBIE_AUDIT_LOG:-/var/log/ubuntu-zombie/audit.log}"
 
 usage() {
   cat <<EOF
-audit-recent — show recent Ubuntu Zombie audit entries.
+audit-recent — show recent Ubuntu AI System Administrator audit entries.
 
 Usage:
   audit-recent [-n N] [--all] [-t TYPE] [-f|--follow]

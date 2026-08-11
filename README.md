@@ -1,4 +1,4 @@
-# Ubuntu AI Systems Admninistrator
+# Ubuntu AI System Administrator
 
 Installs a private, root-capable AI Systems Administrator
 account with a loopback-only chat service, an explicit approval gate, and an

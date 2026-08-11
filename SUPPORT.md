@@ -22,7 +22,7 @@ Many issues are answered directly in:
 ## I have a question
 
 Open a **GitHub Discussion**:
-<https://github.com/japer-technology/ubuntu-zombie/discussions>
+<https://github.com/japer-technology/ubuntu-ai-system-administrator/discussions>
 
 Discussions are the right place for:
 
@@ -34,7 +34,7 @@ Discussions are the right place for:
 ## I found a bug
 
 Open a **GitHub Issue** using the
-[Bug report template](https://github.com/japer-technology/ubuntu-zombie/issues/new?template=bug_report.yml).
+[Bug report template](https://github.com/japer-technology/ubuntu-ai-system-administrator/issues/new?template=bug_report.yml).
 
 Include:
 
@@ -47,7 +47,7 @@ Include:
 ## I want a new feature
 
 Open a **GitHub Issue** using the
-[Feature request template](https://github.com/japer-technology/ubuntu-zombie/issues/new?template=feature_request.yml).
+[Feature request template](https://github.com/japer-technology/ubuntu-ai-system-administrator/issues/new?template=feature_request.yml).
 Explain the use case before the implementation.
 
 ## I want to report a security vulnerability
@@ -57,7 +57,7 @@ Explain the use case before the implementation.
 
 ## Response expectations
 
-Ubuntu Zombie is maintained on a best-effort basis. We aim to:
+Ubuntu AI System Administrator is maintained on a best-effort basis. We aim to:
 
 - Triage new issues within **one week**.
 - Acknowledge security reports within **48 hours**.

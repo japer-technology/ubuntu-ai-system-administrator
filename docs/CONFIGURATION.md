@@ -152,7 +152,7 @@ usage and side-effect information for one command, aliases included;
 shows every full help page. `/fullwidth [on|off]` changes and remembers the
 transcript width for the current browser. `/rebrand <title>` changes the
 browser title, header, wordmark, login prompt, and tombstone label for the
-current browser; `/rebrand` resets those labels to Ubuntu Zombie.
+current browser; `/rebrand` resets those labels to Ubuntu AI System Administrator.
 `/reprompt <placeholder>` changes and remembers the composer placeholder for
 the current browser; `/reprompt` resets it to `AI System Administrator`. The
 browser stores `/fullwidth`, `/rebrand`, and `/reprompt` preferences in local
@@ -166,7 +166,7 @@ provider cost. It also reports the provider and model, primary host IP, OS and
 resource facts, system and service uptime, lifecycle state, active work,
 conversation/message totals, tool totals, and browser-session transfer
 counters. `/version` checks
-fixed GitHub and npm metadata endpoints for current Ubuntu Zombie, `pi-mono`,
+fixed GitHub and npm metadata endpoints for current Ubuntu AI System Administrator, `pi-mono`,
 and `pi-ai` releases and also reports the installed Python, Node, and SQLite
 runtimes. Both commands degrade cleanly when an upstream service is offline.
 
@@ -561,11 +561,11 @@ documented above.
 
 | Verb        | Effect                                                                |
 | ----------- | --------------------------------------------------------------------- |
-| `install`   | Install Ubuntu Zombie. Safe to re-run.                               |
+| `install`   | Install Ubuntu AI System Administrator. Safe to re-run.               |
 | `verify`    | Read-only state check. Does not change state.                         |
 | `doctor`    | Explain failures and likely fixes.                                    |
 | `repair`    | Apply known-safe fixes (re-assert permissions, re-render `pi/` tree). |
-| `uninstall` | Remove Ubuntu Zombie (delegates to `scripts/uninstall.sh`).            |
+| `uninstall` | Remove Ubuntu AI System Administrator (delegates to `scripts/uninstall.sh`). |
 
 Examples:
 
@@ -621,7 +621,7 @@ Skill files are short markdown briefs the agent loads via `skill.list`
 
 | Path                         | Purpose                                                         |
 | ---------------------------- | --------------------------------------------------------------- |
-| `/opt/ai-zombie/skills/`     | Root-owned Ubuntu system-administration and Ubuntu Zombie built-ins. |
+| `/opt/ai-zombie/skills/`     | Root-owned Ubuntu system-administration and Ubuntu AI System Administrator built-ins. |
 | `/etc/ubuntu-zombie/skills.d/` | Operator-extensible. Same mode/owner contract as `policy.yaml`. |
 
 Drop additional `*.md` files into `/etc/ubuntu-zombie/skills.d/` to

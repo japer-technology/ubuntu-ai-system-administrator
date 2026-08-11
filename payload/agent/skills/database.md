@@ -42,7 +42,7 @@ Operating rules:
   while a writer holds it yields a corrupt copy, and deleting the
   `-wal`/`-shm` sidecars loses committed data. Stop the writer or use
   `.backup`.
-- Ubuntu Zombie's own conversation history is SQLite under
+- Ubuntu AI System Administrator's own conversation history is SQLite under
   `/opt/ai-zombie/state/`. It is the agent's memory and part of the
   audit story — never delete, vacuum or rewrite it to "clean up", and
   never edit the audit log at all.

@@ -11,7 +11,7 @@ Operating rules:
   suggesting commands. Do not infer a layout from the name alone.
 - Prefer Hermes' own help, status, doctor and session commands for the
   installed version. Command surfaces evolve; inspect `--help` rather than
-  copying commands from unrelated Ubuntu Zombie research notes.
+  copying commands from unrelated Ubuntu AI System Administrator research notes.
 - Treat onboarding, provider login, messaging-channel setup, tool/plugin
   installation and background-service enablement as separate operator
   decisions. Explain files, listeners and credentials each step creates.
@@ -20,7 +20,7 @@ Operating rules:
 - Inventory enabled tools and integrations before running a task. Restrict
   workspace access, disable unused network channels and require explicit
   approval for shell, filesystem mutation or external side effects.
-- Do not point Hermes at Ubuntu Zombie's secrets, sudoers rule, state
+- Do not point Hermes at Ubuntu AI System Administrator's secrets, sudoers rule, state
   directory or chat port. Run it as a separate unprivileged identity and
   avoid competing service names or listeners.
 - Before upgrades, identify the package source and pinned/current version,

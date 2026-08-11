@@ -1,6 +1,6 @@
 # Architecture
 
-Ubuntu Zombie is a local-only AI Systems Administrator for Ubuntu
+Ubuntu AI System Administrator is a local-only AI Systems Administrator for Ubuntu
 Desktop LTS. The installer creates a dedicated Linux account, installs a
 small Python chat service, renders pi-mono runtime configuration, and
 runs everything behind a local policy gate and audit log.
@@ -98,14 +98,14 @@ Action classes are:
 
 Built-in skills ship under `/opt/ai-zombie/skills/` and cover Ubuntu system
 administration, diagnostics, development, data, networking, security, and
-Ubuntu Zombie itself. Each brief steers the model toward the correct typed
+Ubuntu AI System Administrator itself. Each brief steers the model toward the correct typed
 tool and names the policy class the operator is about to be asked to approve;
 skills never expand the tool registry. Trigger words are unique across the
 built-in catalogue so a prompt loads only the briefs that apply. Operators may
 add local skill briefs under `/etc/ubuntu-zombie/skills.d/`.
 
 Chat `/locals` discovery can find existing OpenAI-compatible LLM servers on
-loopback and the local network. Discovery only configures Ubuntu Zombie to use
+loopback and the local network. Discovery only configures Ubuntu AI System Administrator to use
 a server; the installer does not provision a model server.
 
 ## Agent reactivation
@@ -144,11 +144,11 @@ scripts/install.sh [verb] [flags]
 
 | Verb | Behaviour |
 | ---- | --------- |
-| `install` | Idempotently install Ubuntu Zombie. |
+| `install` | Idempotently install Ubuntu AI System Administrator. |
 | `verify` | Read-only state check. |
 | `doctor` | Explain failures and likely fixes. |
 | `repair` | Re-assert permissions, re-render runtime config, redeploy skills, restart chat. |
-| `uninstall` | Delegate to `scripts/uninstall.sh` and remove Ubuntu Zombie. |
+| `uninstall` | Delegate to `scripts/uninstall.sh` and remove Ubuntu AI System Administrator. |
 
 ## Logs and state
 

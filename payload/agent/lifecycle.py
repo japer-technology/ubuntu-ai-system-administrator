@@ -1,6 +1,6 @@
-"""Time-to-live (TTL) kill switch for the Ubuntu Zombie.
+"""Time-to-live (TTL) kill switch for Ubuntu AI System Administrator.
 
-The Ubuntu Zombie Systems Administrator is a privileged, root-capable
+Ubuntu AI System Administrator is a privileged, root-capable
 account. To bound the window in which it can act, a fresh install is
 given a *Time to Live*: a future moment after which the zombie is
 permanently disabled. Two events trip the kill switch:
@@ -291,7 +291,7 @@ def main(argv: list[str] | None = None) -> int:
     import argparse
 
     parser = argparse.ArgumentParser(
-        description="Manage the Ubuntu Zombie time-to-live kill switch."
+        description="Manage the Ubuntu AI System Administrator time-to-live kill switch."
     )
     sub = parser.add_subparsers(dest="cmd", required=True)
 

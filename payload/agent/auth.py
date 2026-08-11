@@ -1,4 +1,4 @@
-"""Password gate for the Ubuntu Zombie chat UI.
+"""Password gate for the Ubuntu AI System Administrator chat UI.
 
 The chat service binds to ``127.0.0.1`` only, but on a shared desktop
 *every* local user can reach ``http://127.0.0.1:7878``. A password gate
@@ -91,7 +91,7 @@ def main(argv: list[str] | None = None) -> int:
     import sys
 
     parser = argparse.ArgumentParser(
-        description="Compute the Ubuntu Zombie admin password hash."
+        description="Compute the Ubuntu AI System Administrator admin password hash."
     )
     parser.add_argument(
         "--password",

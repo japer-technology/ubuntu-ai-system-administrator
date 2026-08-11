@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
-# health-check — one-shot health summary for Ubuntu Zombie.
+# health-check — one-shot health summary for Ubuntu AI System Administrator.
 set -uo pipefail
 
 usage() {
   cat <<EOF
-health-check — one-shot health summary for Ubuntu Zombie.
+health-check — one-shot health summary for Ubuntu AI System Administrator.
 
 Usage:
   health-check [-h|--help]

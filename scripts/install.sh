@@ -2,7 +2,7 @@
 #
 # install.sh
 # ----------
-# Ubuntu Zombie: baseline installer + chat service.
+# Ubuntu AI System Administrator: baseline installer + chat service.
 #
 # Turn a normal Ubuntu Desktop LTS PC into a machine with a resident
 # AI Systems Administrator, authenticated by the configured token
@@ -74,7 +74,7 @@ RECEIPT_FILE="${ZOMBIE_RECEIPT_FILE:-${ZOMBIE_LOG_DIR}/install-receipt.txt}"
 
 ZOMBIE_NONINTERACTIVE="${ZOMBIE_NONINTERACTIVE:-0}"
 
-# Ubuntu Zombie chat-UI password gate and Time-to-Live (TTL) kill switch.
+# Ubuntu AI System Administrator chat-UI password gate and Time-to-Live (TTL) kill switch.
 # The chat service is reachable by every local user on http://127.0.0.1:PORT,
 # so it is protected by a shared password (only a PBKDF2 hash is stored in
 # secrets/env). The TTL bounds the lifetime of the root-capable agent: once
@@ -230,19 +230,19 @@ usage() {
   cat <<EOF
 ${SCRIPT_NAME} ${SCRIPT_VERSION}
 
-Install and manage Ubuntu Zombie, the AI Systems Administrator for Ubuntu
+Install and manage Ubuntu AI System Administrator for Ubuntu
 Desktop LTS.
 
 Usage:
   sudo ./${SCRIPT_NAME} [VERB] [FLAGS]
 
 Verbs:
-  install     Install Ubuntu Zombie (default). Interactive runs open an
+  install     Install Ubuntu AI System Administrator (default). Interactive runs open an
               editable parameter review before any change is made.
   verify      Read-only state check. Does not change state.
   doctor      Explain failures and likely fixes.
   repair      Apply known-safe fixes and restart the chat service.
-  uninstall   Remove Ubuntu Zombie (delegates to uninstall.sh).
+  uninstall   Remove Ubuntu AI System Administrator (delegates to uninstall.sh).
 
 Flags:
   -n, --dry-run     Print the install/uninstall plan without changing the host.
@@ -424,7 +424,7 @@ validate_zombie_config() {
   fi
 }
 
-# Validate common settings for Ubuntu Zombie.
+# Validate common settings for Ubuntu AI System Administrator.
 validate_config() {
   if ! is_safe_absolute_path "${LOG_FILE}"; then
     die "LOG_FILE must be an absolute path using only letters, digits, dot, underscore, slash, plus, colon, and hyphen." 2
@@ -779,7 +779,7 @@ print_dry_run_plan() {
   cat <<EOF
 ${SCRIPT_NAME} ${SCRIPT_VERSION}  —  dry-run
 
-A real install would install Ubuntu Zombie on:
+A real install would install Ubuntu AI System Administrator on:
 
   Host:           ${ID:-?} ${VERSION_ID:-?} on $(dpkg --print-architecture 2>/dev/null || uname -m)
   Transcript:     ${LOG_FILE}
@@ -799,7 +799,7 @@ EOF
 print_zombie_dry_run() {
   cat <<EOF
 
-Ubuntu Zombie:
+Ubuntu AI System Administrator:
   Agent user:     ${AGENT_USER}  (home: ${AGENT_HOME})
   Install root:   ${ZOMBIE_DIR}
   Etc dir:        ${ZOMBIE_ETC}
@@ -847,7 +847,7 @@ print_parameter_table() {
     receipt_state="disabled"
   fi
 
-  brand_banner "Ubuntu Zombie — setup parameters"
+  brand_banner "Ubuntu AI System Administrator — setup parameters"
   printf '  %sReview every setting below, edit any of them, then accept when happy.%s\n\n' \
     "${C_DIM}" "${C_RESET}"
   field "1) Agent user"      "${AGENT_USER}"
@@ -1288,7 +1288,7 @@ write_receipt_start() {
 
   if ! {
     printf '============================================================\n'
-    printf 'Ubuntu Zombie — install receipt\n'
+    printf 'Ubuntu AI System Administrator — install receipt\n'
     printf '============================================================\n'
     printf 'Phase            : START\n'
     printf 'Started (UTC)    : %s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)"

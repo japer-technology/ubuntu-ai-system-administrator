@@ -1,6 +1,6 @@
 # FAQ
 
-## What does Ubuntu Zombie install?
+## What does Ubuntu AI System Administrator install?
 
 A dedicated local Linux account, a loopback-only chat service, pi-mono
 runtime files, operator helpers, policy, audit logging, and systemd
@@ -9,9 +9,9 @@ automation stacks.
 
 ## How do I access it?
 
-Open `http://127.0.0.1:7878/` on the Ubuntu Zombie machine. The service
+Open `http://127.0.0.1:7878/` on the Ubuntu AI System Administrator machine. The service
 binds to loopback only. If you need remote access, provide it outside
-Ubuntu Zombie.
+Ubuntu AI System Administrator.
 
 ## Does the agent have root?
 

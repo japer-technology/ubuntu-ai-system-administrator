@@ -52,6 +52,6 @@ Operating rules:
   current_database()`, `SELECT DATABASE()`) and confirm it with the
   operator; the right query on the wrong database is still an
   incident.
-- Ubuntu Zombie's own SQLite state is not a scratch database. Query it
+- Ubuntu AI System Administrator's own SQLite state is not a scratch database. Query it
   read-only if a question genuinely needs it and never write to the
   history store or the audit log.

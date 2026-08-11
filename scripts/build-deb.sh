@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# scripts/build-deb.sh — build a stage-1 .deb of the Ubuntu Zombie
+# scripts/build-deb.sh — build a stage-1 .deb of Ubuntu AI System Administrator
 # source tree using raw dpkg-deb (no debhelper required).
 #
 # Output: dist/ubuntu-zombie_<version>_all.deb
@@ -12,7 +12,7 @@ set -Eeuo pipefail
 
 usage() {
   cat <<EOF
-build-deb.sh — build a stage-1 .deb of the Ubuntu Zombie source tree.
+build-deb.sh — build a stage-1 .deb of the Ubuntu AI System Administrator source tree.
 
 Usage:
   bash scripts/build-deb.sh [-h|--help]

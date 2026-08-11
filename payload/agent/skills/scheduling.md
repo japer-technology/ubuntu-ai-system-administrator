@@ -35,7 +35,7 @@ Operating rules:
   interactively. A timer that runs a `system_change` or `destructive`
   command unattended moves that decision outside the approval gate —
   describe it and let the operator land it deliberately.
-- Do not schedule Ubuntu Zombie's own agent activity through cron.
+- Do not schedule Ubuntu AI System Administrator's own agent activity through cron.
   Bounded continuations belong to `timer.reactivation`, which stays
   inside the conversation, the audit log and the TTL kill switch.
 - Removing a job is a change too. Show the exact entry or unit you

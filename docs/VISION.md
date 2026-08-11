@@ -2,14 +2,14 @@
 
 ## The one-sentence vision
 
-> **Ubuntu Zombie turns a supported Ubuntu Desktop LTS machine into a
+> **Ubuntu AI System Administrator turns a supported Ubuntu Desktop LTS machine into a
 > computer that can administer itself — by installing a private,
 > root-capable AI Systems Administrator account that the owner can ask
 > to diagnose, explain, configure, repair, and operate the machine, in
 > plain language, under explicit human approval, with every action
 > written to an auditable log.**
 
-That sentence is the entire Ubuntu Zombie product. Its scope is deliberately
+That sentence is the entire Ubuntu AI System Administrator product. Its scope is deliberately
 narrow: every shipped file exists to make that promise true, observable, and
 reversible.
 
@@ -21,7 +21,7 @@ gap between *"my laptop is broken"* and *"here is the exact `systemd`
 unit, kernel parameter, or `apt` pin that will fix it"* is filled,
 today, by a friend, a forum thread, or a paid technician.
 
-Ubuntu Zombie closes that gap on the machine itself. The owner asks
+Ubuntu AI System Administrator closes that gap on the machine itself. The owner asks
 the computer a question; the computer answers as an administrator
 would, proposes the commands it would run, waits for approval, runs
 them, and writes down what happened. The operator stays in charge of
@@ -50,7 +50,7 @@ the machine the whole time.
 - **Multi-tenant or fleet management.** One machine, one operator,
   one trust boundary. Multi-machine fleet orchestration is out of scope.
 - **Replacement of the human users on the desktop.** Existing logins,
-  files, and workflows are left alone. Ubuntu Zombie installs
+  files, and workflows are left alone. Ubuntu AI System Administrator installs
   *beside* the user, not *over* them.
 - **A locked appliance or a hosted service.** This is a transparent
   bash installer on a normal Ubuntu LTS system. Every installed file can

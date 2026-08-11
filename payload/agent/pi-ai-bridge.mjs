@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// pi-ai-bridge.mjs — minimal stdin/stdout bridge from Ubuntu Zombie's
+// pi-ai-bridge.mjs — minimal stdin/stdout bridge from Ubuntu AI System Administrator's
 // Python chat service to the @earendil-works/pi-ai library.
 //
 // The Python surface (provider.chat) shells out to this script so
@@ -50,7 +50,7 @@ import { delimiter, dirname, join, resolve } from "node:path";
 import { execPath } from "node:process";
 import { pathToFileURL } from "node:url";
 
-// Map Ubuntu Zombie provider names (operator-visible) to the provider
+// Map Ubuntu AI System Administrator provider names (operator-visible) to the provider
 // ids that @earendil-works/pi-ai uses internally. Keep this list in
 // lockstep with providers.py's _PI_AI_PROVIDERS.
 const PROVIDER_MAP = {

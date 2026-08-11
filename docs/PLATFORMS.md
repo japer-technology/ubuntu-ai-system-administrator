@@ -1,6 +1,6 @@
 # Supported platforms
 
-This is the canonical statement of what Ubuntu Zombie supports. Every
+This is the canonical statement of what Ubuntu AI System Administrator supports. Every
 other doc that mentions versions or architectures should link here.
 
 ## Hosts
@@ -39,7 +39,7 @@ CHANGELOG.md for the gory detail). Do not override.
 - **Outbound**: HTTPS to `archive.ubuntu.com`, `deb.nodesource.com`,
   `registry.npmjs.org`, `pypi.org`, and the configured LLM provider's
   API endpoint.
-- **Inbound**: Ubuntu Zombie opens no inbound network listener. The chat
+- **Inbound**: Ubuntu AI System Administrator opens no inbound network listener. The chat
   service binds to `127.0.0.1` only.
 
 ## What "Supported" means

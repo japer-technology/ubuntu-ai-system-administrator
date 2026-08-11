@@ -31,7 +31,7 @@ Operating rules:
   `curl`.
 - Treat a local inference server as operator-managed software. Discover
   its executable, service, configuration, model directory and listener
-  before proposing changes; do not assume Ubuntu Zombie installed it.
+  before proposing changes; do not assume Ubuntu AI System Administrator installed it.
 - Keep local inference endpoints on loopback unless the operator has
   explicitly designed and approved authentication, encryption and
   firewall rules for remote access.

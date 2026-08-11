@@ -31,7 +31,7 @@ Operating rules:
 - Use Ubuntu archive packages where practical. Do not add PPAs, vendor
   repositories, snaps or downloaded installers merely because a package is
   absent; explain the options and trust implications first.
-- Never disable the Ubuntu Zombie chat service, widen its policy, or mutate
+- Never disable the Ubuntu AI System Administrator chat service, widen its policy, or mutate
   its managed runtime while performing general maintenance.
 - Finish with focused verification and report what changed, what still needs
   a reboot or operator action, and the rollback path.

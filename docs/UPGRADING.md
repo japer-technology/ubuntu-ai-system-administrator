@@ -1,6 +1,6 @@
 # Upgrading
 
-Ubuntu Zombie is distributed as repository scripts and payload files.
+Ubuntu AI System Administrator is distributed as repository scripts and payload files.
 There is no in-place package manager upgrade path yet.
 
 ## Recommended process

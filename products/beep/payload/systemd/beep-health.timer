@@ -1,0 +1,13 @@
+[Unit]
+Description=Run Beep health check every 15 minutes
+BindsTo=beep-chat.service
+After=beep-chat.service
+
+[Timer]
+OnBootSec=5min
+OnUnitActiveSec=15min
+Persistent=true
+Unit=beep-health.service
+
+[Install]
+WantedBy=timers.target

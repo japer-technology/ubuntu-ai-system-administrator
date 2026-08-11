@@ -1,0 +1,223 @@
+name: Release
+
+# VERSION-driven release: changing VERSION on main, pushing a date-time
+# version tag (v2026.06.02.03.59.05, ...), or manually dispatching this
+# workflow builds the source tarball, an SPDX SBOM, the SHA-256 checksum,
+# SLSA provenance, a keyless cosign signature, and the .deb package;
+# everything is published to the matching GitHub Release.
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - VERSION
+    tags:
+      - "v*.*.*"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Tag to release (must already exist)"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build release artifacts
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      id-token: write   # cosign keyless signing
+      attestations: write
+    outputs:
+      version: ${{ steps.meta.outputs.version }}
+      tag: ${{ steps.meta.outputs.tag }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          fetch-depth: 0
+          ref: ${{ inputs.tag || github.ref }}
+
+      - name: Resolve version
+        id: meta
+        env:
+          INPUT_TAG: ${{ inputs.tag || '' }}
+        run: |
+          set -euo pipefail
+          version="$(tr -d '[:space:]' < VERSION)"
+          tag="${INPUT_TAG}"
+          if [[ -z "${tag}" && "${GITHUB_REF_TYPE}" == "tag" ]]; then
+            tag="${GITHUB_REF_NAME:-}"
+          fi
+          if [[ -z "${tag}" ]]; then
+            tag="v${version}"
+          fi
+          if [[ "${tag}" != "v${version}" ]]; then
+            echo "::error::Tag ${tag} does not match VERSION ${version} (expected v${version})." >&2
+            exit 1
+          fi
+          echo "version=${version}" >> "${GITHUB_OUTPUT}"
+          echo "tag=${tag}" >> "${GITHUB_OUTPUT}"
+
+      - name: Install packaging tooling
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y dpkg-dev debhelper fakeroot devscripts shellcheck
+
+      - name: Lint before release
+        run: |
+          make lint
+          bash tests/smoke.sh all
+
+      - name: Verify checksum-pinned bridge inputs
+        run: make verify-bridge-pins
+
+      - name: Build source tarball
+        run: make package
+
+      - name: Build .deb
+        run: make deb
+
+      - name: Compute SHA-256 checksums
+        working-directory: dist
+        run: |
+          set -euo pipefail
+          sha256sum -- *.tar.gz *.deb 2>/dev/null > SHA256SUMS
+          cat SHA256SUMS
+
+      - name: Generate SPDX SBOM (Syft)
+        uses: anchore/sbom-action@e22c389904149dbc22b58101806040fa8d37a610  # v0.24.0
+        with:
+          path: .
+          format: spdx-json
+          output-file: dist/ubuntu-zombie-${{ steps.meta.outputs.version }}.spdx.json
+
+      - name: Generate SLSA provenance attestation
+        id: provenance
+        uses: actions/attest@f7c74d28b9d84cb8768d0b8ca14a4bac6ef463e6  # v4.2.0
+        with:
+          subject-checksums: dist/SHA256SUMS
+
+      - name: Stage provenance attestation
+        run: |
+          set -euo pipefail
+          cp "${{ steps.provenance.outputs.bundle-path }}" \
+            "dist/ubuntu-zombie-${{ steps.meta.outputs.version }}.intoto.jsonl"
+          test -s "dist/ubuntu-zombie-${{ steps.meta.outputs.version }}.intoto.jsonl"
+
+      - name: Install cosign
+        uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6  # v4.1.2
+
+      - name: Cosign keyless sign artifacts
+        working-directory: dist
+        env:
+          COSIGN_YES: "true"
+        run: |
+          set -euo pipefail
+          for f in *.tar.gz *.deb SHA256SUMS *.spdx.json *.intoto.jsonl; do
+            [[ -f "$f" ]] || continue
+            cosign sign-blob --yes "$f" \
+              --bundle "${f}.cosign.bundle" \
+              --output-signature "${f}.sig" \
+              --output-certificate "${f}.pem"
+          done
+          ls -la
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7.0.1
+        with:
+          name: release-artifacts
+          path: dist/
+          retention-days: 30
+          if-no-files-found: error
+
+  publish:
+    name: Publish GitHub Release
+    needs: build
+    runs-on: ubuntu-24.04
+    # Publish for tag pushes, manual dispatches, and VERSION changes on main.
+    if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/main'
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          ref: ${{ inputs.tag || github.ref }}
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c  # v8.0.1
+        with:
+          name: release-artifacts
+          path: dist
+
+      - name: Ensure release tag exists
+        if: github.ref == 'refs/heads/main'
+        env:
+          RELEASE_TAG: ${{ needs.build.outputs.tag }}
+        run: |
+          set -euo pipefail
+          git fetch --tags --force origin
+          if git show-ref --tags --verify --quiet "refs/tags/${RELEASE_TAG}"; then
+            existing_sha="$(git rev-list -n 1 "${RELEASE_TAG}")"
+            if [[ "${existing_sha}" != "${GITHUB_SHA}" ]]; then
+              echo "::error::Tag ${RELEASE_TAG} already exists and points to ${existing_sha} instead of ${GITHUB_SHA}." \
+                "Increment VERSION to create a new release." >&2
+              exit 1
+            fi
+          else
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git tag -a "${RELEASE_TAG}" -m "Release ${RELEASE_TAG}" "${GITHUB_SHA}"
+            git push origin "refs/tags/${RELEASE_TAG}"
+          fi
+
+      - name: Extract changelog excerpt
+        id: notes
+        run: |
+          set -euo pipefail
+          version="${{ needs.build.outputs.version }}"
+          # Best-effort: pull the section for this version from
+          # CHANGELOG.md if present.
+          if grep -qE "^## \[?${version}\]?" CHANGELOG.md; then
+            awk -v ver="${version}" '
+              $0 ~ "^## \\[?" ver "\\]?" {found=1; next}
+              found && /^## / {exit}
+              found {print}
+            ' CHANGELOG.md > release-notes.md
+          else
+            printf '%s\n' "Ubuntu Zombie ${version}." > release-notes.md
+          fi
+          {
+            echo
+            echo "## Verifying release artifacts"
+            echo
+            echo '```bash'
+            echo "mkdir ubuntu-zombie-${version}"
+            echo "tar -xzf ubuntu-zombie-${version}.tar.gz -C ubuntu-zombie-${version}"
+            echo "bash ubuntu-zombie-${version}/payload/bin/verify-release ."
+            echo '```'
+            echo
+            echo "See [SUPPORT.md](../blob/main/SUPPORT.md) for help channels."
+          } >> release-notes.md
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@3d0d9888cb7fd7b750713d6e236d1fcb99157228  # v3.0.2
+        with:
+          tag_name: ${{ needs.build.outputs.tag }}
+          name: Ubuntu Zombie ${{ needs.build.outputs.version }}
+          body_path: release-notes.md
+          draft: false
+          prerelease: false
+          fail_on_unmatched_files: true
+          files: |
+            dist/*.tar.gz
+            dist/*.deb
+            dist/SHA256SUMS
+            dist/*.spdx.json
+            dist/*.intoto.jsonl
+            dist/*.sig
+            dist/*.pem
+            dist/*.cosign.bundle

@@ -1,0 +1,1 @@
+"""Independent Forgejo infrastructure product."""

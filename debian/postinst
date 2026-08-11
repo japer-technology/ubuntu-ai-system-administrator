@@ -1,0 +1,40 @@
+#!/bin/sh
+# postinst — make installer scripts executable and tell the operator
+# what to do next. Run after the .deb's files have been laid down.
+set -e
+
+INSTALL_ROOT="/usr/share/ubuntu-zombie"
+
+# Re-assert executable bits (dpkg preserves them from the .deb, but be
+# defensive in case a future maintainer strips them).
+for f in \
+  "${INSTALL_ROOT}/scripts/install.sh" \
+  "${INSTALL_ROOT}/scripts/uninstall.sh" \
+  "${INSTALL_ROOT}/payload/bin"/* \
+  /usr/sbin/ubuntu-zombie
+do
+  [ -e "$f" ] || continue
+  chmod 0755 "$f" 2>/dev/null || true
+done
+
+cat <<'EOF'
+
+Ubuntu Zombie has been staged at /usr/share/ubuntu-zombie/.
+
+Nothing has been changed on this host yet. To install:
+
+  sudo ubuntu-zombie --dry-run install      # preview the plan
+  sudo ubuntu-zombie install                # apply it
+
+To verify or recover an existing install:
+
+  sudo ubuntu-zombie verify
+  sudo ubuntu-zombie doctor
+  sudo ubuntu-zombie repair
+
+Documentation: /usr/share/doc/ubuntu-zombie/README.md and
+https://github.com/japer-technology/ubuntu-zombie
+
+EOF
+
+exit 0

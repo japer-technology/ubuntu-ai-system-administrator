@@ -1,0 +1,70 @@
+#!/usr/bin/env bash
+#
+# setup-agent-venv
+# ----------------
+# Provision the unprivileged Python virtualenv for the Ubuntu Zombie
+# agent account (default `~/agent-env`).
+#
+# Run as the AGENT_USER (not root):
+#   runuser -l "${AGENT_USER}" -- "${ZOMBIE_DIR}/bin/setup-agent-venv"
+#
+# This script is intentionally idempotent and retries transient pip
+# failures with exponential backoff.
+
+set -Eeuo pipefail
+
+usage() {
+  cat <<EOF
+setup-agent-venv — provision the agent account's Python virtualenv.
+
+Usage:
+  setup-agent-venv [-h|--help]
+
+Creates (or reuses) the virtualenv at \${VENV_DIR:-~/agent-env} and
+installs the small standard operator toolkit into it, retrying
+transient pip failures with exponential backoff. Idempotent.
+
+Run as the agent user, not root:
+  runuser -l "\${AGENT_USER}" -- "\${ZOMBIE_DIR}/bin/setup-agent-venv"
+
+Environment:
+  VENV_DIR    Virtualenv location (default ~/agent-env).
+EOF
+}
+
+case "${1:-}" in
+  -h|--help) usage; exit 0 ;;
+  "") ;;
+  *) echo "setup-agent-venv: unknown argument: $1" >&2; usage >&2; exit 2 ;;
+esac
+
+VENV_DIR="${VENV_DIR:-${HOME}/agent-env}"
+
+if [[ ! -d "${VENV_DIR}" ]]; then
+  python3 -m venv "${VENV_DIR}"
+fi
+
+# shellcheck disable=SC1091
+. "${VENV_DIR}/bin/activate"
+
+pip_with_retry() {
+  local n=1 delay=3
+  while true; do
+    if pip "$@"; then return 0; fi
+    if (( n >= 4 )); then return 1; fi
+    echo "pip retry ${n} in ${delay}s..."
+    sleep "${delay}"
+    n=$((n + 1)); delay=$((delay * 2))
+  done
+}
+
+pip_with_retry install --upgrade pip wheel setuptools
+# Provider calls go through the Node @earendil-works/pi-ai library via
+# payload/agent/pi-ai-bridge.mjs; the Python venv only needs the small
+# standard operator toolkit used by the chat service and helpers.
+pip_with_retry install --upgrade \
+  requests \
+  pydantic \
+  rich \
+  typer \
+  python-dotenv

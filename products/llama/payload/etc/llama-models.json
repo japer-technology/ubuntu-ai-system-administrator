@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "models": [
+    {
+      "id": "smollm2-360m-instruct-q4_k_m",
+      "name": "SmolLM2 360M Instruct Q4_K_M",
+      "filename": "SmolLM2-360M-Instruct-Q4_K_M.gguf",
+      "url": "https://huggingface.co/bartowski/SmolLM2-360M-Instruct-GGUF/resolve/7be6f65f1db715fe5dc5a4634c0d459b4eed42ec/SmolLM2-360M-Instruct-Q4_K_M.gguf",
+      "sha256": "2fa3f013dcdd7b99f9b237717fa0b12d75bbb89984cc1274be1471a465bac9c2",
+      "size_bytes": 270590880,
+      "license": "Apache-2.0",
+      "context_size": 2048
+    }
+  ]
+}

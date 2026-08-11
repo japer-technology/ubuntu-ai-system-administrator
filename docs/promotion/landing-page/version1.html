@@ -1,0 +1,1079 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ubuntu Zombie — An AI Systems Administrator for your Ubuntu machine</title>
+<meta name="description" content="Ubuntu Zombie adds a private, root-capable AI Systems Administrator account to a supported Ubuntu Desktop LTS machine. You ask, it proposes, you approve, it acts, it logs.">
+<meta property="og:title" content="Ubuntu Zombie — An AI Systems Administrator">
+<meta property="og:description" content="Ask your Ubuntu machine to diagnose, explain, configure, repair, and operate itself — under explicit approval, with every action audit-logged.">
+<meta property="og:type" content="website">
+<style>
+  :root {
+    --orchid: #AC43D9;
+    --orchid-tint: #C77BE6;
+    --teal: #43D9AC;
+    --magenta: #D943AC;
+    --ubuntu-orange: #E95420;
+    --ink: #1A1320;
+    --ink-2: #241A2E;
+    --ink-3: #2E2240;
+    --paper: #F7F4FA;
+    --text: #EDE6F5;
+    --text-dim: #B5A8C7;
+    --radius: 18px;
+    --max-w: 1180px;
+    --mono: "SF Mono", "Cascadia Code", "Fira Code", ui-monospace, Menlo, Consolas, monospace;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--ink);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Ubuntu, Roboto, "Helvetica Neue", Arial, sans-serif;
+    line-height: 1.6;
+    overflow-x: hidden;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  ::selection { background: var(--orchid); color: #fff; }
+
+  a { color: var(--orchid-tint); text-decoration: none; }
+  a:hover { color: var(--teal); }
+
+  /* ---------- Canvas background ---------- */
+  #bg-canvas {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+  }
+
+  .vignette {
+    position: fixed;
+    inset: 0;
+    z-index: 1;
+    pointer-events: none;
+    background:
+      radial-gradient(ellipse 90% 65% at 50% 0%, rgba(172,67,217,0.14), transparent 60%),
+      radial-gradient(ellipse 80% 55% at 50% 110%, rgba(67,217,172,0.07), transparent 60%);
+  }
+
+  main, header.nav, footer { position: relative; z-index: 2; }
+
+  /* ---------- Nav ---------- */
+  header.nav {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 50;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 24px;
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    background: rgba(26,19,32,0.55);
+    border-bottom: 1px solid rgba(172,67,217,0.15);
+    transition: background .3s ease;
+  }
+
+  .nav .wordmark {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 700;
+    font-size: 1.05rem;
+    letter-spacing: 0.02em;
+    color: var(--text);
+  }
+
+  .nav .wordmark .eye {
+    width: 14px; height: 14px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 35%, var(--orchid-tint), var(--orchid) 60%, #6e2a8c);
+    box-shadow: 0 0 12px rgba(172,67,217,0.9), 0 0 30px rgba(172,67,217,0.45);
+    animation: eyePulse 3.2s ease-in-out infinite;
+  }
+
+  @keyframes eyePulse {
+    0%, 100% { box-shadow: 0 0 10px rgba(172,67,217,0.8), 0 0 26px rgba(172,67,217,0.35); }
+    50%      { box-shadow: 0 0 16px rgba(172,67,217,1), 0 0 44px rgba(172,67,217,0.6); }
+  }
+
+  .nav nav { display: flex; gap: 26px; align-items: center; }
+  .nav nav a { color: var(--text-dim); font-size: 0.92rem; font-weight: 500; }
+  .nav nav a:hover { color: var(--text); }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 26px;
+    border-radius: 999px;
+    font-weight: 600;
+    font-size: 0.95rem;
+    cursor: pointer;
+    border: 1px solid transparent;
+    transition: transform .2s ease, box-shadow .2s ease, background .2s ease;
+    will-change: transform;
+  }
+
+  .btn-primary {
+    background: linear-gradient(135deg, var(--orchid), var(--magenta));
+    color: #fff !important;
+    box-shadow: 0 4px 24px rgba(172,67,217,0.35);
+  }
+  .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 34px rgba(172,67,217,0.55); }
+
+  .btn-ghost {
+    border-color: rgba(199,123,230,0.4);
+    color: var(--text) !important;
+    background: rgba(172,67,217,0.07);
+  }
+  .btn-ghost:hover { background: rgba(172,67,217,0.16); transform: translateY(-2px); }
+
+  .nav .btn { padding: 9px 20px; font-size: 0.88rem; }
+
+  .menu-toggle {
+    display: none;
+    background: none;
+    border: 1px solid rgba(199,123,230,0.4);
+    border-radius: 10px;
+    color: var(--text);
+    width: 42px; height: 38px;
+    font-size: 1.2rem;
+    cursor: pointer;
+  }
+
+  /* ---------- Hero ---------- */
+  .hero {
+    min-height: 100svh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 120px 24px 80px;
+    position: relative;
+  }
+
+  .hero .kicker {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--teal);
+    border: 1px solid rgba(67,217,172,0.35);
+    background: rgba(67,217,172,0.06);
+    padding: 7px 16px;
+    border-radius: 999px;
+    margin-bottom: 28px;
+  }
+
+  .hero h1 {
+    font-size: clamp(2.6rem, 7.5vw, 5.4rem);
+    line-height: 1.04;
+    font-weight: 800;
+    letter-spacing: -0.025em;
+    max-width: 14ch;
+  }
+
+  .hero h1 .grad {
+    background: linear-gradient(110deg, var(--orchid-tint), var(--orchid) 45%, var(--magenta));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+
+  .hero .sub {
+    margin-top: 26px;
+    font-size: clamp(1.02rem, 2.2vw, 1.25rem);
+    color: var(--text-dim);
+    max-width: 56ch;
+  }
+
+  .hero .sub strong { color: var(--text); font-weight: 600; }
+
+  .hero .cta-row {
+    margin-top: 40px;
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .hero .loop-line {
+    margin-top: 54px;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: center;
+    gap: 6px 10px;
+    font-family: var(--mono);
+    font-size: clamp(0.78rem, 1.8vw, 0.95rem);
+    color: var(--text-dim);
+  }
+
+  .hero .loop-line .step {
+    padding: 6px 14px;
+    border-radius: 999px;
+    border: 1px solid rgba(199,123,230,0.28);
+    background: rgba(36,26,46,0.6);
+    color: var(--text);
+    white-space: nowrap;
+  }
+  .hero .loop-line .arrow { color: var(--orchid); }
+
+  .scroll-hint {
+    position: absolute;
+    bottom: 28px;
+    left: 50%;
+    transform: translateX(-50%);
+    color: var(--text-dim);
+    font-size: 0.75rem;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+  }
+  .scroll-hint::after {
+    content: "";
+    width: 1px; height: 34px;
+    background: linear-gradient(var(--orchid), transparent);
+    animation: hintDrop 2s ease-in-out infinite;
+  }
+  @keyframes hintDrop {
+    0% { transform: scaleY(0); transform-origin: top; opacity: 1; }
+    70% { transform: scaleY(1); transform-origin: top; opacity: 1; }
+    100% { transform: scaleY(1); opacity: 0; }
+  }
+
+  /* ---------- Sections ---------- */
+  section { padding: 110px 24px; }
+  .wrap { max-width: var(--max-w); margin: 0 auto; }
+
+  .section-kicker {
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--orchid-tint);
+    margin-bottom: 14px;
+  }
+
+  h2.section-title {
+    font-size: clamp(1.9rem, 4.6vw, 3rem);
+    line-height: 1.12;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    max-width: 24ch;
+  }
+
+  .section-lede {
+    margin-top: 18px;
+    color: var(--text-dim);
+    font-size: 1.08rem;
+    max-width: 62ch;
+  }
+
+  /* ---------- Loop section ---------- */
+  .loop-grid {
+    margin-top: 60px;
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 18px;
+  }
+
+  .loop-card {
+    background: linear-gradient(180deg, rgba(46,34,64,0.55), rgba(36,26,46,0.55));
+    border: 1px solid rgba(172,67,217,0.18);
+    border-radius: var(--radius);
+    padding: 26px 22px;
+    position: relative;
+    overflow: hidden;
+    transition: border-color .3s ease, transform .3s ease;
+  }
+  .loop-card:hover { border-color: rgba(172,67,217,0.55); transform: translateY(-4px); }
+
+  .loop-card .num {
+    font-family: var(--mono);
+    font-size: 0.78rem;
+    color: var(--teal);
+    margin-bottom: 14px;
+  }
+
+  .loop-card h3 { font-size: 1.15rem; font-weight: 700; margin-bottom: 8px; }
+  .loop-card p { font-size: 0.9rem; color: var(--text-dim); }
+
+  /* ---------- Terminal ---------- */
+  .terminal-section .wrap { display: grid; grid-template-columns: 1fr 1.15fr; gap: 60px; align-items: center; }
+
+  .terminal {
+    background: #16101c;
+    border: 1px solid rgba(172,67,217,0.3);
+    border-radius: 14px;
+    box-shadow: 0 30px 80px rgba(0,0,0,0.55), 0 0 60px rgba(172,67,217,0.12);
+    overflow: hidden;
+    font-family: var(--mono);
+    font-size: 0.84rem;
+  }
+
+  .terminal .bar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 11px 16px;
+    background: rgba(46,34,64,0.6);
+    border-bottom: 1px solid rgba(172,67,217,0.2);
+  }
+  .terminal .dot { width: 11px; height: 11px; border-radius: 50%; }
+  .terminal .dot:nth-child(1) { background: var(--magenta); }
+  .terminal .dot:nth-child(2) { background: var(--orchid); }
+  .terminal .dot:nth-child(3) { background: var(--teal); }
+  .terminal .bar .title { margin-left: 8px; color: var(--text-dim); font-size: 0.75rem; }
+
+  .terminal .body { padding: 22px 20px; line-height: 1.85; min-height: 280px; }
+  .terminal .line { white-space: pre-wrap; word-break: break-word; }
+  .terminal .you { color: var(--teal); }
+  .terminal .zombie { color: var(--orchid-tint); }
+  .terminal .dim { color: var(--text-dim); }
+  .terminal .ok { color: var(--teal); }
+  .terminal .cursor {
+    display: inline-block;
+    width: 8px; height: 15px;
+    background: var(--orchid);
+    vertical-align: -2px;
+    animation: blink 1s steps(1) infinite;
+  }
+  @keyframes blink { 50% { opacity: 0; } }
+
+  /* ---------- Features ---------- */
+  .features-grid {
+    margin-top: 60px;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+  }
+
+  .feature {
+    background: linear-gradient(180deg, rgba(46,34,64,0.45), rgba(36,26,46,0.45));
+    border: 1px solid rgba(172,67,217,0.16);
+    border-radius: var(--radius);
+    padding: 30px 26px;
+    transition: border-color .3s ease, transform .3s ease, box-shadow .3s ease;
+  }
+  .feature:hover {
+    border-color: rgba(67,217,172,0.45);
+    transform: translateY(-5px);
+    box-shadow: 0 18px 50px rgba(0,0,0,0.35);
+  }
+
+  .feature .icon {
+    width: 46px; height: 46px;
+    border-radius: 12px;
+    display: grid;
+    place-items: center;
+    margin-bottom: 18px;
+    background: rgba(172,67,217,0.12);
+    border: 1px solid rgba(172,67,217,0.3);
+    font-size: 1.25rem;
+  }
+  .feature h3 { font-size: 1.12rem; font-weight: 700; margin-bottom: 8px; }
+  .feature p { font-size: 0.92rem; color: var(--text-dim); }
+  .feature code {
+    font-family: var(--mono);
+    font-size: 0.82em;
+    background: rgba(172,67,217,0.12);
+    border: 1px solid rgba(172,67,217,0.22);
+    padding: 1px 6px;
+    border-radius: 6px;
+    color: var(--orchid-tint);
+  }
+
+  /* ---------- Trust ---------- */
+  .trust-section {
+    background: linear-gradient(180deg, transparent, rgba(46,34,64,0.35) 18%, rgba(46,34,64,0.35) 82%, transparent);
+  }
+
+  .trust-list { margin-top: 50px; display: grid; grid-template-columns: 1fr 1fr; gap: 16px 40px; }
+
+  .trust-item {
+    display: flex;
+    gap: 16px;
+    padding: 20px 0;
+    border-bottom: 1px solid rgba(172,67,217,0.14);
+  }
+  .trust-item .mark {
+    flex: none;
+    width: 30px; height: 30px;
+    border-radius: 50%;
+    display: grid; place-items: center;
+    color: var(--ink);
+    background: var(--teal);
+    font-weight: 800;
+    font-size: 0.85rem;
+    box-shadow: 0 0 18px rgba(67,217,172,0.4);
+  }
+  .trust-item h3 { font-size: 1.02rem; font-weight: 700; }
+  .trust-item p { font-size: 0.9rem; color: var(--text-dim); margin-top: 4px; }
+
+  /* ---------- Quickstart ---------- */
+  .quickstart pre {
+    margin-top: 44px;
+    background: #16101c;
+    border: 1px solid rgba(172,67,217,0.28);
+    border-radius: 14px;
+    padding: 26px 26px;
+    overflow-x: auto;
+    font-family: var(--mono);
+    font-size: 0.86rem;
+    line-height: 1.9;
+    box-shadow: 0 24px 60px rgba(0,0,0,0.45);
+  }
+  .quickstart pre .c { color: var(--text-dim); }
+  .quickstart pre .p { color: var(--teal); user-select: none; }
+
+  /* ---------- Stats strip ---------- */
+  .stats {
+    margin-top: 70px;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 20px;
+    text-align: center;
+  }
+  .stat .big {
+    font-size: clamp(1.5rem, 3.4vw, 2.3rem);
+    font-weight: 800;
+    background: linear-gradient(110deg, var(--orchid-tint), var(--teal));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  .stat .small { font-size: 0.82rem; color: var(--text-dim); margin-top: 4px; }
+
+  /* ---------- Final CTA ---------- */
+  .final-cta { text-align: center; padding-bottom: 140px; }
+  .final-cta .eye-big {
+    width: 70px; height: 70px;
+    border-radius: 50%;
+    margin: 0 auto 34px;
+    background: radial-gradient(circle at 35% 35%, var(--orchid-tint), var(--orchid) 55%, #5e2378);
+    box-shadow: 0 0 40px rgba(172,67,217,0.85), 0 0 120px rgba(172,67,217,0.4);
+    animation: eyePulse 3.2s ease-in-out infinite;
+  }
+  .final-cta h2 {
+    font-size: clamp(2rem, 5.4vw, 3.4rem);
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    max-width: 20ch;
+    margin: 0 auto;
+  }
+  .final-cta p { margin: 22px auto 0; color: var(--text-dim); max-width: 52ch; }
+  .final-cta .cta-row { margin-top: 38px; display: flex; gap: 16px; justify-content: center; flex-wrap: wrap; }
+
+  /* ---------- Footer ---------- */
+  footer {
+    border-top: 1px solid rgba(172,67,217,0.15);
+    padding: 50px 24px 60px;
+    background: rgba(22,16,28,0.7);
+  }
+  footer .wrap {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 30px 60px;
+    justify-content: space-between;
+    align-items: flex-start;
+  }
+  footer .col h4 {
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: var(--text-dim);
+    margin-bottom: 12px;
+  }
+  footer .col a { display: block; font-size: 0.9rem; padding: 3px 0; color: var(--text-dim); }
+  footer .col a:hover { color: var(--orchid-tint); }
+  footer .legal {
+    margin-top: 40px;
+    font-size: 0.78rem;
+    color: var(--text-dim);
+    max-width: 70ch;
+    line-height: 1.7;
+  }
+
+  /* ---------- Reveal helpers ---------- */
+  .reveal { opacity: 0; }
+  .no-js .reveal, .reduced-motion .reveal { opacity: 1; }
+
+  /* ---------- Responsive ---------- */
+  @media (max-width: 980px) {
+    .loop-grid { grid-template-columns: repeat(2, 1fr); }
+    .features-grid { grid-template-columns: repeat(2, 1fr); }
+    .terminal-section .wrap { grid-template-columns: 1fr; gap: 44px; }
+    .stats { grid-template-columns: repeat(2, 1fr); }
+  }
+
+  @media (max-width: 720px) {
+    section { padding: 80px 20px; }
+    .nav nav {
+      position: fixed;
+      top: 64px; left: 0; right: 0;
+      flex-direction: column;
+      gap: 0;
+      background: rgba(26,19,32,0.97);
+      border-bottom: 1px solid rgba(172,67,217,0.25);
+      padding: 10px 0 18px;
+      display: none;
+    }
+    .nav nav.open { display: flex; }
+    .nav nav a { padding: 12px 24px; width: 100%; text-align: center; }
+    .nav nav .btn { margin: 10px auto 0; width: auto; }
+    .menu-toggle { display: block; }
+    .loop-grid { grid-template-columns: 1fr; }
+    .features-grid { grid-template-columns: 1fr; }
+    .trust-list { grid-template-columns: 1fr; }
+    .hero .loop-line .arrow { display: none; }
+    .scroll-hint { display: none; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    html { scroll-behavior: auto; }
+    *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+  }
+</style>
+</head>
+<body class="no-js">
+<script>document.body.classList.remove('no-js');</script>
+
+<canvas id="bg-canvas" aria-hidden="true"></canvas>
+<div class="vignette" aria-hidden="true"></div>
+
+<header class="nav">
+  <a class="wordmark" href="#top" aria-label="Ubuntu Zombie home">
+    <span class="eye" aria-hidden="true"></span>
+    Ubuntu&nbsp;Zombie
+  </a>
+  <button class="menu-toggle" aria-label="Toggle menu" aria-expanded="false">☰</button>
+  <nav id="site-nav">
+    <a href="#loop">How it works</a>
+    <a href="#features">Features</a>
+    <a href="#trust">Trust model</a>
+    <a href="#quickstart">Quickstart</a>
+    <a class="btn btn-primary" href="https://github.com/japer-technology/ubuntu-zombie" rel="noopener">GitHub →</a>
+  </nav>
+</header>
+
+<main id="top">
+
+  <!-- ============ HERO ============ -->
+  <section class="hero" id="hero">
+    <span class="kicker reveal">Open source · MIT licence · Ubuntu Desktop LTS 22.04 / 24.04</span>
+    <h1 class="reveal">Your computer,<br><span class="grad">administering itself.</span></h1>
+    <p class="sub reveal">
+      Ubuntu Zombie adds a private, root-capable <strong>AI Systems
+      Administrator</strong> account to your Ubuntu machine. Ask it to
+      diagnose, explain, configure, repair, and operate itself — in plain
+      language, under your explicit approval, with every action audit-logged.
+    </p>
+    <div class="cta-row reveal">
+      <a class="btn btn-primary" href="https://github.com/japer-technology/ubuntu-zombie" rel="noopener">Get the installer</a>
+      <a class="btn btn-ghost" href="#loop">See how it works</a>
+    </div>
+    <div class="loop-line reveal" aria-label="The control loop">
+      <span class="step">you ask</span><span class="arrow">→</span>
+      <span class="step">it proposes</span><span class="arrow">→</span>
+      <span class="step">you approve</span><span class="arrow">→</span>
+      <span class="step">it acts</span><span class="arrow">→</span>
+      <span class="step">it logs</span>
+    </div>
+    <div class="scroll-hint" aria-hidden="true">scroll</div>
+  </section>
+
+  <!-- ============ THE LOOP ============ -->
+  <section id="loop">
+    <div class="wrap">
+      <p class="section-kicker reveal">The control loop</p>
+      <h2 class="section-title reveal">One loop. You hold every link in it.</h2>
+      <p class="section-lede reveal">
+        Nothing privileged happens behind your back. Every change passes
+        through a local policy gate, waits for your approval, and lands in an
+        append-only audit log you can read at any time.
+      </p>
+      <div class="loop-grid">
+        <div class="loop-card reveal">
+          <div class="num">01 / ask</div>
+          <h3>You ask</h3>
+          <p>Open a private, local chat at <strong>127.0.0.1:7878</strong> and describe what you want in plain English.</p>
+        </div>
+        <div class="loop-card reveal">
+          <div class="num">02 / propose</div>
+          <h3>It proposes</h3>
+          <p>The agent explains exactly what it intends to run — the commands, the files, the consequences.</p>
+        </div>
+        <div class="loop-card reveal">
+          <div class="num">03 / approve</div>
+          <h3>You approve</h3>
+          <p>Privileged actions pause at the policy gate until you say yes. No approval, no action.</p>
+        </div>
+        <div class="loop-card reveal">
+          <div class="num">04 / act</div>
+          <h3>It acts</h3>
+          <p>Approved work runs under a dedicated account — never as your user, never as an invisible daemon.</p>
+        </div>
+        <div class="loop-card reveal">
+          <div class="num">05 / log</div>
+          <h3>It logs</h3>
+          <p>Every action is recorded in an audit log on your disk. Read it, rotate it, keep it.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ TERMINAL DEMO ============ -->
+  <section class="terminal-section" id="demo">
+    <div class="wrap">
+      <div>
+        <p class="section-kicker reveal">A conversation, not a console</p>
+        <h2 class="section-title reveal">Sysadmin work in plain language.</h2>
+        <p class="section-lede reveal">
+          No man pages, no copy-pasting commands you found on a forum. Tell
+          the machine what is wrong; it works out the rest and shows its
+          working before anything runs.
+        </p>
+        <p class="section-lede reveal">
+          Chat binds to <strong style="color:var(--text)">loopback only</strong>
+          and is password-protected. Reach it locally, or tunnel the port over
+          a transport you control from a machine you trust.
+        </p>
+      </div>
+      <div class="terminal reveal" role="img" aria-label="Example chat with the AI Systems Administrator">
+        <div class="bar">
+          <span class="dot"></span><span class="dot"></span><span class="dot"></span>
+          <span class="title">ubuntu-zombie-chat — 127.0.0.1:7878</span>
+        </div>
+        <div class="body" id="term-body"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ FEATURES ============ -->
+  <section id="features">
+    <div class="wrap">
+      <p class="section-kicker reveal">What ships in the box</p>
+      <h2 class="section-title reveal">Built like infrastructure, not a demo.</h2>
+      <div class="features-grid">
+        <div class="feature reveal">
+          <div class="icon" aria-hidden="true">🛡️</div>
+          <h3>Policy gate</h3>
+          <p>Every privileged action is classified against a local <code>policy.yaml</code> before it can run. You decide what is auto-approved and what must wait for you.</p>
+        </div>
+        <div class="feature reveal">
+          <div class="icon" aria-hidden="true">📜</div>
+          <h3>Audit log</h3>
+          <p>An append-only record of everything the agent does — proposed, approved, executed, denied — with log rotation handled for you.</p>
+        </div>
+        <div class="feature reveal">
+          <div class="icon" aria-hidden="true">⏳</div>
+          <h3>Time to Live</h3>
+          <p>The administrator expires by default. Unless you renew it from the chat, it permanently disables itself — and <code>/ttl --die</code> is an instant kill switch.</p>
+        </div>
+        <div class="feature reveal">
+          <div class="icon" aria-hidden="true">🩺</div>
+          <h3>Doctor &amp; repair</h3>
+          <p>Idempotent <code>verify</code>, <code>doctor</code>, and <code>repair</code> subcommands inspect the install and converge it back to a known-good state.</p>
+        </div>
+        <div class="feature reveal">
+          <div class="icon" aria-hidden="true">🔌</div>
+          <h3>Your LLM, your key</h3>
+          <p>Bring your own provider and API key — including fully local models. One source of truth for model and credentials; switch at runtime with <code>/model</code>.</p>
+        </div>
+        <div class="feature reveal">
+          <div class="icon" aria-hidden="true">🔭</div>
+          <h3>Transparent installer</h3>
+          <p>A readable bash installer with a <code>--dry-run</code> plan preview, a parameter review before any change, and a written receipt of what it did.</p>
+        </div>
+      </div>
+      <div class="stats">
+        <div class="stat reveal"><div class="big" data-count="100" data-suffix="%">0%</div><div class="small">of privileged actions audit-logged</div></div>
+        <div class="stat reveal"><div class="big" data-count="0">0</div><div class="small">ports exposed beyond loopback by default</div></div>
+        <div class="stat reveal"><div class="big" data-count="7">0</div><div class="small">days of Time to Live by default — renewable from the chat</div></div>
+        <div class="stat reveal"><div class="big" data-count="1">0</div><div class="small">kill switch — and you hold it</div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ TRUST ============ -->
+  <section class="trust-section" id="trust">
+    <div class="wrap">
+      <p class="section-kicker reveal">The trust model</p>
+      <h2 class="section-title reveal">Honest about what it is. Clear about what it is not.</h2>
+      <p class="section-lede reveal">
+        Ubuntu Zombie grants a root-capable identity, and says so plainly.
+        Trust is the differentiator — so the boundaries are explicit, written
+        down, and enforced in code.
+      </p>
+      <div class="trust-list">
+        <div class="trust-item reveal">
+          <span class="mark" aria-hidden="true">✓</span>
+          <div><h3>You own the machine</h3><p>And the API key, the chat password, and the kill switch. The agent is a guest with a written contract — and an expiry date.</p></div>
+        </div>
+        <div class="trust-item reveal">
+          <span class="mark" aria-hidden="true">✓</span>
+          <div><h3>Loopback by default</h3><p>The password-protected chat on 127.0.0.1 is the only network surface. No SSH, VNC, or inbound remote access is provisioned.</p></div>
+        </div>
+        <div class="trust-item reveal">
+          <span class="mark" aria-hidden="true">✓</span>
+          <div><h3>Everything is reversible</h3><p>A full uninstaller removes the account, services, and rules it created. Your machine, returned.</p></div>
+        </div>
+        <div class="trust-item reveal">
+          <span class="mark" aria-hidden="true">✓</span>
+          <div><h3>Readable, open source</h3><p>MIT-licensed bash and Python you can read end to end before you run any of it. No binaries, no blobs.</p></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ QUICKSTART ============ -->
+  <section class="quickstart" id="quickstart">
+    <div class="wrap">
+      <p class="section-kicker reveal">Quickstart</p>
+      <h2 class="section-title reveal">From clone to conversation in minutes.</h2>
+      <p class="section-lede reveal">
+        Preview the full plan with <strong style="color:var(--text)">--dry-run</strong>
+        before a single change is made. Use a machine you are happy to dedicate
+        to the experiment — ideally a fresh Ubuntu Desktop LTS install.
+      </p>
+      <pre class="reveal"><code><span class="p">$</span> git clone https://github.com/japer-technology/ubuntu-zombie.git
+<span class="p">$</span> cd ubuntu-zombie
+<span class="p">$</span> sudo ./scripts/install.sh install --dry-run   <span class="c"># preview the plan (no changes)</span>
+<span class="p">$</span> sudo ./scripts/install.sh install
+<span class="p">$</span> sudo reboot
+<span class="c"># after reboot:</span>
+<span class="p">$</span> /opt/ai-zombie/bin/verify
+<span class="p">$</span> sudo /opt/ai-zombie/bin/secrets-edit          <span class="c"># add an LLM API key</span>
+<span class="p">$</span> xdg-open http://127.0.0.1:7878/               <span class="c"># start the conversation</span></code></pre>
+    </div>
+  </section>
+
+  <!-- ============ FINAL CTA ============ -->
+  <section class="final-cta">
+    <div class="eye-big reveal" aria-hidden="true"></div>
+    <h2 class="reveal">One shared eye. It belongs to you.</h2>
+    <p class="reveal">
+      A calm robot and a real PC, fused — and the single glowing eye they
+      share is the operator's. Install it, read every line first, and stay
+      in control throughout.
+    </p>
+    <div class="cta-row reveal">
+      <a class="btn btn-primary" href="https://github.com/japer-technology/ubuntu-zombie" rel="noopener">View on GitHub</a>
+      <a class="btn btn-ghost" href="https://github.com/japer-technology/ubuntu-zombie/releases/latest" rel="noopener">Latest release</a>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    <div class="col">
+      <a class="wordmark" href="#top" style="display:flex;align-items:center;gap:10px;font-weight:700;color:var(--text)">
+        <span class="eye" aria-hidden="true" style="width:12px;height:12px;border-radius:50%;background:radial-gradient(circle at 35% 35%, var(--orchid-tint), var(--orchid) 60%, #6e2a8c);box-shadow:0 0 10px rgba(172,67,217,0.8)"></span>
+        Ubuntu&nbsp;Zombie
+      </a>
+      <p style="margin-top:10px;font-size:0.85rem;color:var(--text-dim);max-width:34ch">
+        Practical, transparent tools that keep humans in control of the
+        systems they own.
+      </p>
+    </div>
+    <div class="col">
+      <h4>Project</h4>
+      <a href="https://github.com/japer-technology/ubuntu-zombie" rel="noopener">Repository</a>
+      <a href="https://github.com/japer-technology/ubuntu-zombie/releases/latest" rel="noopener">Latest release</a>
+      <a href="https://github.com/japer-technology/ubuntu-zombie/discussions" rel="noopener">Discussions</a>
+    </div>
+    <div class="col">
+      <h4>Docs</h4>
+      <a href="https://github.com/japer-technology/ubuntu-zombie/blob/main/docs/QUICKSTART.md" rel="noopener">Quickstart</a>
+      <a href="https://github.com/japer-technology/ubuntu-zombie/blob/main/docs/VISION.md" rel="noopener">Vision</a>
+      <a href="https://github.com/japer-technology/ubuntu-zombie/blob/main/SECURITY.md" rel="noopener">Security &amp; trust model</a>
+    </div>
+    <div class="col">
+      <h4>Publisher</h4>
+      <a href="https://www.japer.technology" rel="noopener">Japer Technology</a>
+    </div>
+  </div>
+  <div class="wrap">
+    <p class="legal">
+      Released under the MIT Licence. Ubuntu is a trademark of Canonical Ltd.
+      Ubuntu Zombie is an independent, third-party project and is not
+      affiliated with, endorsed by, or sponsored by Canonical.
+      © Japer Technology.
+    </p>
+  </div>
+</footer>
+
+<!-- Three.js + GSAP from CDN -->
+<script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/ScrollTrigger.min.js"></script>
+
+<script>
+(function () {
+  "use strict";
+
+  var reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  if (reducedMotion) document.body.classList.add("reduced-motion");
+
+  /* ---------- Mobile nav ---------- */
+  var toggle = document.querySelector(".menu-toggle");
+  var nav = document.getElementById("site-nav");
+  toggle.addEventListener("click", function () {
+    var open = nav.classList.toggle("open");
+    toggle.setAttribute("aria-expanded", open ? "true" : "false");
+  });
+  nav.addEventListener("click", function (e) {
+    if (e.target.tagName === "A") {
+      nav.classList.remove("open");
+      toggle.setAttribute("aria-expanded", "false");
+    }
+  });
+
+  /* ---------- Three.js background: orchid particle field ---------- */
+  function initThree() {
+    if (typeof THREE === "undefined" || reducedMotion) return;
+    var canvas = document.getElementById("bg-canvas");
+    var renderer;
+    try {
+      renderer = new THREE.WebGLRenderer({ canvas: canvas, alpha: true, antialias: false, powerPreference: "low-power" });
+    } catch (err) { return; }
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.6));
+    renderer.setSize(window.innerWidth, window.innerHeight);
+
+    var scene = new THREE.Scene();
+    var camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 100);
+    camera.position.z = 9;
+
+    var isMobile = window.innerWidth < 720;
+    var COUNT = isMobile ? 700 : 1800;
+
+    var positions = new Float32Array(COUNT * 3);
+    var colors = new Float32Array(COUNT * 3);
+    var orchid = new THREE.Color(0xac43d9);
+    var tint = new THREE.Color(0xc77be6);
+    var teal = new THREE.Color(0x43d9ac);
+    var magenta = new THREE.Color(0xd943ac);
+    var palette = [orchid, orchid, orchid, tint, tint, teal, magenta];
+
+    for (var i = 0; i < COUNT; i++) {
+      // distribute on a loose shell for depth
+      var r = 5 + Math.random() * 7;
+      var theta = Math.random() * Math.PI * 2;
+      var phi = Math.acos(2 * Math.random() - 1);
+      positions[i * 3] = r * Math.sin(phi) * Math.cos(theta);
+      positions[i * 3 + 1] = r * Math.sin(phi) * Math.sin(theta) * 0.6;
+      positions[i * 3 + 2] = r * Math.cos(phi) - 4;
+      var c = palette[(Math.random() * palette.length) | 0];
+      colors[i * 3] = c.r; colors[i * 3 + 1] = c.g; colors[i * 3 + 2] = c.b;
+    }
+
+    var geo = new THREE.BufferGeometry();
+    geo.setAttribute("position", new THREE.BufferAttribute(positions, 3));
+    geo.setAttribute("color", new THREE.BufferAttribute(colors, 3));
+
+    var mat = new THREE.PointsMaterial({
+      size: isMobile ? 0.045 : 0.035,
+      vertexColors: true,
+      transparent: true,
+      opacity: 0.75,
+      depthWrite: false,
+      blending: THREE.AdditiveBlending,
+      sizeAttenuation: true
+    });
+
+    var points = new THREE.Points(geo, mat);
+    scene.add(points);
+
+    // soft central glow sphere — the shared eye, far in the distance
+    var eyeGeo = new THREE.SphereGeometry(0.9, 24, 24);
+    var eyeMat = new THREE.MeshBasicMaterial({ color: 0xac43d9, transparent: true, opacity: 0.10 });
+    var eye = new THREE.Mesh(eyeGeo, eyeMat);
+    eye.position.set(0, 0.4, -6);
+    scene.add(eye);
+
+    var mouseX = 0, mouseY = 0;
+    var scrollY = 0;
+    window.addEventListener("pointermove", function (e) {
+      mouseX = (e.clientX / window.innerWidth - 0.5) * 2;
+      mouseY = (e.clientY / window.innerHeight - 0.5) * 2;
+    }, { passive: true });
+    window.addEventListener("scroll", function () { scrollY = window.scrollY; }, { passive: true });
+
+    window.addEventListener("resize", function () {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+
+    var clock = new THREE.Clock();
+    var visible = true;
+    document.addEventListener("visibilitychange", function () { visible = !document.hidden; });
+
+    function animate() {
+      requestAnimationFrame(animate);
+      if (!visible) return;
+      var t = clock.getElapsedTime();
+      points.rotation.y = t * 0.03 + mouseX * 0.08;
+      points.rotation.x = Math.sin(t * 0.12) * 0.06 + mouseY * 0.05 + scrollY * 0.00012;
+      eye.material.opacity = 0.08 + Math.sin(t * 1.4) * 0.035;
+      eye.scale.setScalar(1 + Math.sin(t * 1.4) * 0.06);
+      renderer.render(scene, camera);
+    }
+    animate();
+  }
+  initThree();
+
+  /* ---------- GSAP scroll animations ---------- */
+  function setFinalCounts() {
+    document.querySelectorAll(".stat .big").forEach(function (el) {
+      el.textContent = el.getAttribute("data-count") + (el.getAttribute("data-suffix") || "");
+    });
+  }
+
+  function initGsap() {
+    if (typeof gsap === "undefined") {
+      // Fallback: show everything
+      document.querySelectorAll(".reveal").forEach(function (el) { el.style.opacity = 1; });
+      setFinalCounts();
+      return;
+    }
+    if (reducedMotion) {
+      gsap.set(".reveal", { opacity: 1 });
+      setFinalCounts();
+      return;
+    }
+    gsap.registerPlugin(ScrollTrigger);
+
+    // Hero entrance
+    gsap.timeline({ defaults: { ease: "power3.out" } })
+      .to(".hero .kicker", { opacity: 1, y: 0, duration: 0.7, startAt: { y: 18 } })
+      .to(".hero h1", { opacity: 1, y: 0, duration: 0.9, startAt: { y: 32 } }, "-=0.4")
+      .to(".hero .sub", { opacity: 1, y: 0, duration: 0.8, startAt: { y: 24 } }, "-=0.55")
+      .to(".hero .cta-row", { opacity: 1, y: 0, duration: 0.7, startAt: { y: 18 } }, "-=0.5")
+      .to(".hero .loop-line", { opacity: 1, duration: 0.9 }, "-=0.3");
+
+    // Generic per-section reveals
+    document.querySelectorAll("section:not(.hero)").forEach(function (sec) {
+      var targets = sec.querySelectorAll(".reveal");
+      if (!targets.length) return;
+      gsap.fromTo(targets,
+        { opacity: 0, y: 36 },
+        {
+          opacity: 1, y: 0,
+          duration: 0.8,
+          ease: "power3.out",
+          stagger: 0.1,
+          scrollTrigger: { trigger: sec, start: "top 72%" }
+        });
+    });
+
+    // Stat counters
+    document.querySelectorAll(".stat .big").forEach(function (el) {
+      var target = parseInt(el.getAttribute("data-count"), 10);
+      var suffix = el.getAttribute("data-suffix") || "";
+      var obj = { v: 0 };
+      gsap.to(obj, {
+        v: target,
+        duration: 1.4,
+        ease: "power2.out",
+        scrollTrigger: { trigger: el, start: "top 85%" },
+        onUpdate: function () { el.textContent = Math.round(obj.v) + suffix; }
+      });
+    });
+
+    // Subtle parallax on the terminal
+    gsap.to(".terminal", {
+      y: -24,
+      ease: "none",
+      scrollTrigger: { trigger: ".terminal-section", start: "top bottom", end: "bottom top", scrub: 1 }
+    });
+  }
+  initGsap();
+
+  /* ---------- Terminal typing demo ---------- */
+  (function termDemo() {
+    var body = document.getElementById("term-body");
+    if (!body) return;
+
+    var script = [
+      { cls: "you",    text: "you> the wifi keeps dropping after suspend" },
+      { cls: "zombie", text: "zombie> Checking journal… driver iwlwifi resets on resume." },
+      { cls: "zombie", text: "zombie> Proposed fix: disable wifi power-saving on resume." },
+      { cls: "dim",    text: "  [policy: system-config — approval required]" },
+      { cls: "zombie", text: "zombie> Run it? [approve / deny]" },
+      { cls: "you",    text: "you> approve" },
+      { cls: "ok",     text: "  [ok] applied — audit log updated" },
+      { cls: "zombie", text: "zombie> Done. Suspend/resume tested; connection held." }
+    ];
+
+    if (reducedMotion) {
+      script.forEach(function (l) {
+        var div = document.createElement("div");
+        div.className = "line " + l.cls;
+        div.textContent = l.text;
+        body.appendChild(div);
+      });
+      return;
+    }
+
+    var started = false;
+    function start() {
+      if (started) return;
+      started = true;
+      var li = 0;
+      function nextLine() {
+        if (li >= script.length) {
+          var c = document.createElement("span");
+          c.className = "cursor";
+          body.appendChild(c);
+          return;
+        }
+        var l = script[li++];
+        var div = document.createElement("div");
+        div.className = "line " + l.cls;
+        body.appendChild(div);
+        var ci = 0;
+        function typeChar() {
+          if (ci <= l.text.length) {
+            div.textContent = l.text.slice(0, ci++);
+            setTimeout(typeChar, 14);
+          } else {
+            setTimeout(nextLine, 320);
+          }
+        }
+        typeChar();
+      }
+      nextLine();
+    }
+
+    if ("IntersectionObserver" in window) {
+      var io = new IntersectionObserver(function (entries) {
+        entries.forEach(function (en) {
+          if (en.isIntersecting) { start(); io.disconnect(); }
+        });
+      }, { threshold: 0.3 });
+      io.observe(body);
+    } else {
+      start();
+    }
+  })();
+})();
+</script>
+</body>
+</html>

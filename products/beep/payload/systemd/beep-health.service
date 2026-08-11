@@ -1,0 +1,11 @@
+[Unit]
+Description=Periodic Beep health check
+
+[Service]
+Type=oneshot
+User=__AGENT_USER__
+Group=__AGENT_USER__
+Environment=BEEP_DIR=__BEEP_DIR__
+Environment=PATH=__BEEP_DIR__/node/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+Environment=BEEP_HEALTH_WARN_ONLY=1
+ExecStart=__BEEP_DIR__/bin/beep-health

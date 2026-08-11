@@ -1,0 +1,110 @@
+name: CI
+
+# All third-party actions are pinned to a commit SHA with the
+# human-readable tag in a trailing comment. Renovate / Dependabot can
+# update the SHAs while the comment keeps PR review honest.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    name: Lint and syntax (Ubuntu ${{ matrix.os-version }}, Python ${{ matrix.python-version }})
+    strategy:
+      fail-fast: false
+      matrix:
+        # Cover both supported Ubuntu LTS targets and both Python
+        # interpreters that ship with them (3.10 on 22.04, 3.12 on 24.04).
+        include:
+          - os-version: "22.04"
+            runs-on: ubuntu-22.04
+            python-version: "3.10"
+          - os-version: "24.04"
+            runs-on: ubuntu-24.04
+            python-version: "3.12"
+    runs-on: ${{ matrix.runs-on }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97  # v7.0.0
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y shellcheck
+
+      - name: ShellCheck
+        run: |
+          set -e
+          mapfile -t files < <( { git ls-files; git ls-files --others --exclude-standard; } \
+            | grep -E '\.(sh|bash)$' \
+            | grep -v '^payload/agent/templates/' | sort -u )
+          # Also lint the helper scripts under payload/bin (no .sh extension).
+          mapfile -t bins  < <( { git ls-files payload/bin; git ls-files --others --exclude-standard payload/bin; } | sort -u )
+          for f in "${files[@]}" "${bins[@]}"; do
+            [[ -f "$f" ]] || continue
+            head -n1 "$f" | grep -q '^#!.*bash' || continue
+            echo "shellcheck $f"
+            shellcheck --severity=warning "$f"
+          done
+
+      - name: bash -n syntax check
+        run: bash tests/smoke.sh syntax
+
+      - name: Python compile
+        run: bash tests/smoke.sh python
+
+      - name: Subcommand parsing
+        run: bash tests/smoke.sh subcommands
+
+      - name: Non-interactive guards
+        run: bash tests/smoke.sh noninteractive
+
+      - name: Repository standards
+        run: bash tests/smoke.sh standards
+
+      - name: pytest (policy + audit regressions)
+        run: |
+          python3 -m pip install --upgrade pip
+          python3 -m pip install pytest
+          python3 -m pytest tests/python -q
+
+      - name: Imaginary Friend lint and tests
+        run: |
+          make -C products/imaginary-friend lint PYTHON=python3
+          make -C products/imaginary-friend test PYTHON=python3
+
+      - name: Llama lint and tests
+        run: |
+          make -C products/llama lint PYTHON=python3
+          make -C products/llama test PYTHON=python3
+
+      - name: Forgejo lint and tests
+        run: |
+          make -C products/forgejo lint PYTHON=python3
+          make -C products/forgejo test PYTHON=python3
+
+      - name: Package source bundle
+        run: |
+          make package
+          make -C products/imaginary-friend package
+          make -C products/forgejo package
+          make -C products/llama package
+
+      - name: Secret pattern scan
+        run: |
+          set -e
+          # No literal API keys or pre-auth tokens should be committed.
+          # Allow example placeholders ("sk-...") but flag long values.
+          if git grep -nE '(sk-[A-Za-z0-9_-]{20,}|sk-ant-[A-Za-z0-9_-]{20,}|tskey-auth-[A-Za-z0-9_-]{20,})' -- . ':!CHANGELOG.md'; then
+            echo 'Likely secret found in repository.' >&2
+            exit 1
+          fi

@@ -1,0 +1,85 @@
+name: Bug report
+description: Report a defect in the installer, payload, or chat service.
+title: "[bug] "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to file a bug.
+
+        Before filing, please run `sudo /opt/ai-zombie/bin/collect-diagnostics`
+        (or `sudo ./scripts/install.sh doctor` on a failed install) and
+        attach the redacted output. **Do not paste API keys, the VNC password,
+        Tailscale auth keys, or the contents of `/opt/ai-zombie/secrets/`.**
+  - type: input
+    id: ubuntu-version
+    attributes:
+      label: Ubuntu version
+      description: Output of `lsb_release -ds` (must be a supported Desktop LTS).
+      placeholder: "Ubuntu 24.04.1 LTS"
+    validations:
+      required: true
+  - type: dropdown
+    id: install-path
+    attributes:
+      label: Install path
+      description: Which invocation surfaced the bug?
+      options:
+        - "Fresh install (first `install.sh install`)"
+        - "Re-run install (idempotent path)"
+        - "verify"
+        - "doctor"
+        - "repair"
+        - "uninstall"
+        - "Runtime (chat service, helpers, systemd units)"
+        - "Other / not sure"
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Ubuntu Zombie version
+      description: Output of `./scripts/install.sh --version` or contents of the `VERSION` file.
+      placeholder: "2026.06.02.03.59.05"
+    validations:
+      required: true
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened
+      description: What did you expect, and what did you observe?
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Steps to reproduce
+      description: Exact commands and any environment variables that were set.
+      render: bash
+    validations:
+      required: true
+  - type: textarea
+    id: verify-output
+    attributes:
+      label: `verify` / `doctor` output
+      description: Redacted output of `sudo ./scripts/install.sh verify` and/or `doctor`.
+      render: text
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant log excerpts
+      description: |
+        Redacted excerpts from `/var/log/ubuntu-zombie-install.log`,
+        `/var/log/ubuntu-zombie/audit.log`, or
+        `journalctl -u ubuntu-zombie-chat.service`.
+      render: text
+  - type: checkboxes
+    id: confirmations
+    attributes:
+      label: Confirmations
+      options:
+        - label: I have removed API keys, the VNC password, Tailscale auth keys, and any host-identifying secrets from the report.
+          required: true
+        - label: I have searched existing issues for duplicates.
+          required: true

@@ -1,0 +1,20 @@
+{
+  "$schema": "https://raw.githubusercontent.com/earendil-works/pi-mono/main/packages/coding-agent/schemas/settings.schema.json",
+  "_comment": "Rendered by scripts/install.sh on every install / repair. Edit /etc/ubuntu-zombie/settings.json instead if you need to override.",
+  "mode": "rpc",
+  "noBuiltinTools": true,
+  "tools": [
+    "shell.run",
+    "fs.read",
+    "fs.write",
+    "pkg.query",
+    "pkg.install",
+    "svc.status",
+    "svc.control",
+    "net.status",
+    "skill.list",
+    "skill.load"
+  ],
+  "sessionDir": "/opt/ai-zombie/state/pi-mono-sessions",
+  "appendSystemPromptFile": "/opt/ai-zombie/pi/APPEND_SYSTEM.md"
+}

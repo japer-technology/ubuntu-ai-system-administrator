@@ -1,0 +1,65 @@
+[Unit]
+Description=Beep chat service (loopback-only AI Systems Administrator)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=__AGENT_USER__
+Group=__AGENT_USER__
+WorkingDirectory=__BEEP_DIR__
+EnvironmentFile=-/etc/beep/secrets/env
+Environment=PYTHONUNBUFFERED=1
+Environment=PATH=__BEEP_DIR__/node/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+Environment=BEEP_USER=__AGENT_USER__
+Environment=BEEP_SESSION_KEY_FILE=/etc/beep/secrets/session.key
+# FIX-3-02: provide a default for BEEP_CHAT_PORT so the unit still
+# starts when the operator has not added the variable to
+# /etc/beep/secrets/env (EnvironmentFile= is optional). Without
+# this, ${BEEP_CHAT_PORT} would expand to '' and argparse would
+# reject ``--port ''``.
+Environment=BEEP_CHAT_PORT=58989
+ExecStart=__AGENT_HOME__/agent-env/bin/python __BEEP_DIR__/agent/server.py --host 127.0.0.1 --port ${BEEP_CHAT_PORT}
+Restart=on-failure
+RestartSec=3
+StandardOutput=journal
+StandardError=journal
+
+# Sandboxing is deliberately *off*. The pi-mono agent is a full Systems
+# Administrator: it must have full, unfettered access to the entire
+# host — not a sandpit. Safety comes from the policy gate in
+# payload/etc/policy.yaml (classify → propose → approve → run → log),
+# not from confining the process inside a systemd mount/namespace
+# sandbox. Every directive below is therefore set to grant access, and
+# the restrictive ones (PrivateTmp, ProtectKernel*, ProtectControlGroups,
+# RestrictRealtime, RestrictSUIDSGID, LockPersonality) are intentionally
+# omitted.
+#
+# FIX-3-01: ``NoNewPrivileges=true`` is intentionally absent here. The
+# whole product is designed around the agent account elevating via
+# passwordless ``sudo`` (a setuid binary) once the policy gate has
+# approved a command; NoNewPrivileges would block every such elevation.
+#
+# FIX-3-03: ``ProtectSystem`` is intentionally disabled. ``ProtectSystem=full``
+# (and ``strict``) read-only bind-mounts /usr, /boot and /etc *inside
+# this unit's private mount namespace*. ``sudo`` does not create a new
+# mount namespace, so every approved elevation the agent runs —
+# ``pkg.install`` (``apt-get install``), config edits under /etc, and so
+# on — inherits that read-only /usr and fails with "Read-only file
+# system", even after a successful live ``mount -o remount,rw /usr`` (the
+# namespace override cannot be undone from inside the unit). Writing /usr
+# and /etc *is* the agent's job, so the systemd mount sandbox must not
+# block it.
+#
+# PrivateTmp / ProtectKernelTunables / ProtectKernelModules /
+# ProtectControlGroups / RestrictRealtime / RestrictSUIDSGID /
+# LockPersonality are likewise omitted: a private /tmp hides the
+# operator's own files from the agent, and the Protect*/Restrict*
+# directives block legitimate administrative work (tuning sysctls,
+# loading kernel modules, managing cgroups, installing setuid binaries).
+# The policy gate is the security boundary, not these knobs.
+ProtectSystem=false
+ProtectHome=false
+
+[Install]
+WantedBy=multi-user.target

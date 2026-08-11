@@ -1,0 +1,117 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/japer-technology/ubuntu-zombie/raw/main/family/schemas/inventory-v1.schema.json",
+  "title": "Ubuntu Zombie family manager inventory v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "generated_at",
+    "products"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "generated_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "products": {
+      "type": "object",
+      "propertyNames": {
+        "enum": [
+          "imaginary-friend",
+          "curriculum-flame",
+          "eric",
+          "forgejo",
+          "llama",
+          "beep"
+        ]
+      },
+      "additionalProperties": {
+        "$ref": "#/$defs/entry"
+      }
+    }
+  },
+  "$defs": {
+    "digest": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "entry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "instance_id",
+        "installed_version",
+        "available_version",
+        "descriptor_digest",
+        "marker_digest",
+        "lifecycle_status",
+        "health_status",
+        "last_correlation_id",
+        "last_operation",
+        "last_result",
+        "receipt_path",
+        "receipt_digest",
+        "last_checked_at"
+      ],
+      "properties": {
+        "instance_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "installed_version": {
+          "type": "string"
+        },
+        "available_version": {
+          "type": "string"
+        },
+        "descriptor_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "marker_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "lifecycle_status": {
+          "enum": [
+            "active",
+            "suspended",
+            "retained",
+            "unknown"
+          ]
+        },
+        "health_status": {
+          "enum": [
+            "ok",
+            "degraded",
+            "failed",
+            "unknown"
+          ]
+        },
+        "last_correlation_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "last_operation": {
+          "type": "string"
+        },
+        "last_result": {
+          "type": "string"
+        },
+        "receipt_path": {
+          "type": "string",
+          "pattern": "^/"
+        },
+        "receipt_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "last_checked_at": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,78 @@
+# Ubuntu Zombie .gitignore
+#
+# Keep accidental local artifacts and secrets out of the repository.
+
+# Logs and state from running the installer locally
+*.log
+logs/
+state/
+screenshots/
+*.png
+*.jpg
+*.jpeg
+
+# Secrets / env files
+secrets/
+secrets.env
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+authorized_keys
+known_hosts
+id_*
+*.gpg
+*.asc
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+venv/
+env/
+agent-env/
+
+# Node
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-store/
+
+# Debian / package build artifacts
+debian/.debhelper/
+debian/files
+debian/*.substvars
+debian/*.debhelper
+debian/*.log
+debian/tmp/
+debian/ubuntu-zombie/
+*.deb
+*.buildinfo
+*.changes
+*.dsc
+*.tar.gz
+*.tar.xz
+*.tar.zst
+
+# Editor / OS
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# CI/coverage
+coverage/
+*.coverage
+htmlcov/
+
+# Build artifacts
+dist/
+build/

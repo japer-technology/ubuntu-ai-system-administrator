@@ -1,0 +1,24 @@
+{
+  "$schema": "https://raw.githubusercontent.com/earendil-works/pi-mono/main/packages/coding-agent/schemas/settings.schema.json",
+  "_comment": "Rendered by beep-manage on install and repair. Edit /etc/beep/settings.json to request a reviewed override.",
+  "mode": "rpc",
+  "noBuiltinTools": true,
+  "tools": [
+    "shell.run",
+    "fs.read",
+    "fs.write",
+    "pkg.query",
+    "pkg.install",
+    "svc.status",
+    "svc.control",
+    "net.status",
+    "skill.list",
+    "skill.load",
+    "agent.list",
+    "agent.status",
+    "agent.plan",
+    "agent.manage"
+  ],
+  "sessionDir": "/var/lib/beep/runtime/pi-mono-sessions",
+  "appendSystemPromptFile": "/opt/beep/pi/APPEND_SYSTEM.md"
+}

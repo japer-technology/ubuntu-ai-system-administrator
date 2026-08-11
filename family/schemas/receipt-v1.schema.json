@@ -1,0 +1,46 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/japer-technology/ubuntu-zombie/raw/main/family/schemas/receipt-v1.schema.json",
+  "title": "Ubuntu Zombie family lifecycle receipt v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "response",
+    "installed_version",
+    "previous_version",
+    "changed_resources",
+    "audit_event_id"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "response": {
+      "$ref": "response-v1.schema.json"
+    },
+    "installed_version": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "previous_version": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "changed_resources": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "type": "string"
+      }
+    },
+    "audit_event_id": {
+      "type": "string",
+      "format": "uuid"
+    }
+  }
+}

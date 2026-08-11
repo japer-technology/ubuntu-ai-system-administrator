@@ -1,0 +1,21 @@
+{
+  "schema_version": 1,
+  "product_id": "imaginary-friend",
+  "capabilities": {
+    "conversation": "owner-session",
+    "workspace.read": "enabled-nominated-root",
+    "workspace.change": "enabled-nominated-root-owner-session",
+    "product.admin": "owner-session"
+  },
+  "destructive_confirmation": "canonical-relative-path",
+  "absent": [
+    "account",
+    "host-inspection",
+    "network-tool",
+    "package",
+    "service",
+    "shell",
+    "sibling",
+    "sudo"
+  ]
+}

@@ -1,0 +1,37 @@
+/var/log/ubuntu-zombie/audit.log {
+    weekly
+    rotate 8
+    compress
+    delaycompress
+    missingok
+    notifempty
+    create 0640 __AGENT_USER__ __AGENT_USER__
+    postrotate
+        # The chat service reopens on append; no SIGHUP needed.
+        :
+    endscript
+}
+
+/var/log/ubuntu-zombie-install.log {
+    monthly
+    rotate 4
+    compress
+    delaycompress
+    missingok
+    notifempty
+    create 0600 root root
+}
+
+# Phase 2 (UPGRADE-TO-PI-PLAN §4.6): pi-mono per-turn logs land
+# under the state directory and are owned by the agent user (the
+# chat service does not run as root). One file per service start /
+# turn keeps each log small; rotation just culls stale ones.
+/opt/ai-zombie/state/logs/pi-mono.*.log {
+    daily
+    rotate 14
+    compress
+    delaycompress
+    missingok
+    notifempty
+    create 0640 __AGENT_USER__ __AGENT_USER__
+}

@@ -1,0 +1,25 @@
+# Managed by install.sh for a runner co-located with Forgejo.
+runner:
+  file: /var/lib/forgejo-runner/.runner
+  capacity: 1
+  insecure: false
+  envs:
+    SSL_CERT_FILE: /etc/ssl/certs/ca-certificates.crt
+    GIT_SSL_CAINFO: /etc/ssl/certs/ca-certificates.crt
+    NODE_EXTRA_CA_CERTS: /etc/ssl/certs/ca-certificates.crt
+    REQUESTS_CA_BUNDLE: /etc/ssl/certs/ca-certificates.crt
+
+cache:
+  # The built-in cache proxy listens on every interface by default.
+  enabled: false
+
+container:
+  # Host networking makes the loopback Caddy edge reachable. The fixed host
+  # entry avoids relying on image-specific mDNS/NSS support, while the
+  # read-only host bundle carries the product-installed Caddy CA.
+  network: host
+  privileged: false
+  options: "--add-host __FORGEJO_HOST__:127.0.0.1 --volume /etc/ssl/certs/ca-certificates.crt:/etc/ssl/certs/ca-certificates.crt:ro"
+  valid_volumes: []
+  # The runner can use Docker, but jobs do not receive the Docker socket.
+  docker_host: "-"

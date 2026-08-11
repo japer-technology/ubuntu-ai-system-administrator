@@ -1,0 +1,33 @@
+# Ruff configuration. Kept minimal: the smoke suite already enforces
+# behavioural invariants; ruff catches the easy-to-fix style and
+# correctness issues before they reach review.
+
+target-version = "py310"   # lowest Python on a supported Ubuntu LTS (22.04 → 3.10)
+line-length = 100
+
+[lint]
+select = [
+  "E",   # pycodestyle errors
+  "F",   # pyflakes
+  "W",   # pycodestyle warnings
+  "I",   # import sorting
+  "B",   # flake8-bugbear
+  "UP",  # pyupgrade
+  "C4",  # flake8-comprehensions
+  "PIE", # flake8-pie
+  "SIM", # flake8-simplify
+  "RUF", # ruff-specific
+]
+ignore = [
+  "E501",  # line length already enforced softly; ruff-format handles long strings.
+  "B008",  # default arg function calls are deliberate in CLI helpers.
+  "SIM117", # nested with-statements are sometimes clearer.
+]
+
+[lint.per-file-ignores]
+"tests/**" = ["B011", "S101"]    # asserts are the point.
+
+[format]
+quote-style = "double"
+indent-style = "space"
+line-ending = "lf"

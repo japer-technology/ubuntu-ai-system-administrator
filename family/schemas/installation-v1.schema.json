@@ -1,0 +1,68 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/japer-technology/ubuntu-zombie/raw/main/family/schemas/installation-v1.schema.json",
+  "title": "Ubuntu Zombie family installation marker v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "product_id",
+    "instance_id",
+    "version",
+    "source_revision",
+    "installed_at",
+    "install_root",
+    "lifecycle_entrypoint",
+    "artifact_sha256"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "product_id": {
+      "enum": [
+        "imaginary-friend",
+        "curriculum-flame",
+        "eric",
+        "forgejo",
+        "llama",
+        "beep"
+      ]
+    },
+    "instance_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^[0-9]{4}\\.[0-9]{2}\\.[0-9]{2}\\.[0-9]{2}\\.[0-9]{2}\\.[0-9]{2}$"
+    },
+    "source_revision": {
+      "type": "string",
+      "minLength": 1
+    },
+    "installed_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "install_root": {
+      "type": "string",
+      "pattern": "^/opt/(imaginary-friend|curriculum-flame|eric|forgejo|llama\\.cpp|beep)$"
+    },
+    "lifecycle_entrypoint": {
+      "type": "string",
+      "pattern": "^/usr/local/sbin/(friend|flame|eric|forgejo|llama|beep)-manage$"
+    },
+    "artifact_sha256": {
+      "oneOf": [
+        {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    }
+  }
+}

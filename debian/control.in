@@ -1,0 +1,22 @@
+Package: ubuntu-zombie
+Version: __VERSION__
+Section: admin
+Priority: optional
+Architecture: all
+Depends: bash (>= 4), coreutils, sudo, ca-certificates, curl
+Recommends: openssh-server, ufw, fail2ban, unattended-upgrades, jq
+Maintainer: Japer Technology <ops@japer.technology>
+Homepage: https://github.com/japer-technology/ubuntu-zombie
+Description: Resident AI Systems Administrator for Ubuntu Desktop LTS
+ Ubuntu Zombie adds a private, root-capable AI Systems Administrator
+ account to supported Ubuntu Desktop LTS machines so an owner can ask
+ the machine to diagnose, explain, configure, repair, and operate
+ itself.
+ .
+ This package only stages the installer, payload, and documentation
+ under /usr/share/ubuntu-zombie/ and exposes a wrapper at
+ /usr/sbin/ubuntu-zombie. The wrapper delegates to scripts/install.sh
+ from the staged tree; nothing is changed on the host until the
+ operator runs `sudo ubuntu-zombie install`.
+ .
+ See /usr/share/doc/ubuntu-zombie/README.md after install.

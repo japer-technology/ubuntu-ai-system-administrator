@@ -1,0 +1,134 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/japer-technology/ubuntu-zombie/raw/main/family/schemas/request-v1.schema.json",
+  "title": "Ubuntu Zombie family lifecycle request v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "product_id",
+    "operation",
+    "correlation_id",
+    "requested_by",
+    "inputs",
+    "confirmation"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "product_id": {
+      "enum": [
+        "imaginary-friend",
+        "curriculum-flame",
+        "eric",
+        "forgejo",
+        "llama",
+        "beep"
+      ]
+    },
+    "operation": {
+      "$ref": "#/$defs/operation"
+    },
+    "correlation_id": {
+      "$ref": "#/$defs/uuid"
+    },
+    "requested_by": {
+      "enum": [
+        "operator",
+        "ubuntu-zombie",
+        "beep"
+      ]
+    },
+    "inputs": {
+      "type": "object"
+    },
+    "retain_state": {
+      "type": "boolean"
+    },
+    "confirmation": {
+      "type": [
+        "string",
+        "null"
+      ]
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "operation": {
+            "const": "uninstall"
+          }
+        },
+        "required": [
+          "operation"
+        ]
+      },
+      "then": {
+        "required": [
+          "retain_state"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "product_id": {
+            "const": "beep"
+          }
+        },
+        "required": [
+          "product_id"
+        ]
+      },
+      "else": {
+        "properties": {
+          "operation": {
+            "$ref": "#/$defs/shared_operation"
+          }
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "operation": {
+      "enum": [
+        "describe",
+        "status",
+        "install",
+        "verify",
+        "doctor",
+        "repair",
+        "backup",
+        "update",
+        "rollback",
+        "suspend",
+        "resume",
+        "kill",
+        "uninstall"
+      ]
+    },
+    "shared_operation": {
+      "enum": [
+        "describe",
+        "status",
+        "install",
+        "verify",
+        "doctor",
+        "repair",
+        "backup",
+        "update",
+        "rollback",
+        "suspend",
+        "resume",
+        "uninstall"
+      ]
+    },
+    "uuid": {
+      "type": "string",
+      "format": "uuid",
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+    }
+  }
+}

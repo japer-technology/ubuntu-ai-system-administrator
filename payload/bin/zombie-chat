@@ -1,0 +1,57 @@
+#!/usr/bin/env bash
+# zombie-chat — print the local chat URL and the
+# operator's debugging entry points. This is the single command a
+# tester should run to discover every diagnostic surface the payload
+# ships with.
+set -euo pipefail
+
+usage() {
+  cat <<EOF
+zombie-chat — print the local chat URL and every diagnostic entry point.
+
+Usage:
+  zombie-chat [-h|--help]
+
+Environment:
+  ZOMBIE_CHAT_PORT    Chat port to show in the URL (default 7878).
+EOF
+}
+
+case "${1:-}" in
+  -h|--help) usage; exit 0 ;;
+  "") ;;
+  *) echo "zombie-chat: unknown argument: $1" >&2; usage >&2; exit 2 ;;
+esac
+
+PORT="${ZOMBIE_CHAT_PORT:-7878}"
+cat <<EOF
+Ubuntu Zombie
+-------------
+
+Local URL:
+  http://127.0.0.1:${PORT}/
+
+Service control:
+  sudo systemctl status ubuntu-zombie-chat.service
+  sudo systemctl restart ubuntu-zombie-chat.service
+  sudo journalctl -u ubuntu-zombie-chat.service -f
+
+Health and diagnostics:
+  zombie-health                       # one-shot health summary
+  zombie-diagnostics                  # bundle redacted logs + state for bug reports
+  sudo ${ZOMBIE_DIR:-/opt/ai-zombie}/bin/secrets-edit    # safely edit provider keys
+
+Audit log:
+  audit-recent                        # last 25 entries (pretty)
+  audit-recent -f                     # stream new entries (tail -F)
+  audit-recent -t tool_call -t provider_error
+  audit-recent --all                  # full log
+
+Verbose audit (for testing only — opt in on the chat service):
+  sudo systemctl edit ubuntu-zombie-chat.service
+    # add: [Service]
+    #      Environment=ZOMBIE_AUDIT_VERBOSE=1
+  sudo systemctl restart ubuntu-zombie-chat.service
+  # tool_call entries then include redacted stdout/stderr previews.
+
+EOF

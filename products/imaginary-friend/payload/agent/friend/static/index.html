@@ -1,0 +1,404 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Imaginary Friend</title>
+  <style>
+    :root {
+      color-scheme: light dark;
+      --accent: #7656c9;
+      --border: color-mix(in srgb, CanvasText 20%, transparent);
+      --muted: color-mix(in srgb, CanvasText 65%, transparent);
+      --panel: color-mix(in srgb, Canvas 92%, var(--accent) 8%);
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; font: 16px/1.45 system-ui, sans-serif; background: Canvas; color: CanvasText; }
+    button, input, textarea, select { font: inherit; }
+    button { cursor: pointer; border: 1px solid var(--border); border-radius: .5rem; padding: .45rem .7rem; }
+    button.primary { color: white; background: var(--accent); }
+    button.danger { color: #fff; background: #a52828; }
+    input, textarea, select { width: 100%; border: 1px solid var(--border); border-radius: .5rem; padding: .55rem; background: Canvas; color: CanvasText; }
+    textarea { min-height: 7rem; resize: vertical; }
+    label { display: block; margin: .7rem 0 .25rem; font-weight: 600; }
+    .row { display: flex; gap: .5rem; align-items: center; }
+    .row > * { flex: 1; }
+    [hidden] { display: none !important; }
+    #login { max-width: 28rem; margin: 12vh auto; padding: 1.5rem; border: 1px solid var(--border); border-radius: 1rem; background: var(--panel); }
+    #shell { min-height: 100vh; display: grid; grid-template-columns: minmax(15rem, 22rem) 1fr; grid-template-rows: auto 1fr; }
+    header { grid-column: 1 / -1; padding: .75rem 1rem; border-bottom: 1px solid var(--border); display: flex; gap: 1rem; align-items: center; }
+    header h1 { margin: 0; font-size: 1.1rem; flex: 1; }
+    aside { border-right: 1px solid var(--border); padding: 1rem; overflow: auto; }
+    aside section { padding-bottom: 1rem; border-bottom: 1px solid var(--border); }
+    aside h2 { font-size: .95rem; margin: 1rem 0 .4rem; }
+    #conversations button { width: 100%; text-align: left; margin: .2rem 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    main { min-width: 0; display: grid; grid-template-rows: 1fr auto; }
+    #messages { overflow: auto; padding: 1rem max(1rem, calc((100% - 52rem) / 2)); }
+    .message { border: 1px solid var(--border); border-radius: .8rem; margin: .7rem 0; padding: .75rem; white-space: pre-wrap; overflow-wrap: anywhere; }
+    .message.user { margin-left: 12%; background: color-mix(in srgb, Canvas 88%, #4a90e2 12%); }
+    .message.assistant { margin-right: 12%; background: var(--panel); }
+    #composer { border-top: 1px solid var(--border); padding: .8rem max(1rem, calc((100% - 52rem) / 2)); }
+    #composer textarea { min-height: 5rem; }
+    #notice { min-height: 1.4rem; color: var(--muted); }
+    .small { color: var(--muted); font-size: .85rem; }
+    dialog { width: min(44rem, calc(100% - 2rem)); border: 1px solid var(--border); border-radius: .8rem; background: Canvas; color: CanvasText; }
+    dialog::backdrop { background: #0008; }
+    @media (max-width: 760px) {
+      #shell { grid-template-columns: 1fr; }
+      aside { border-right: 0; border-bottom: 1px solid var(--border); max-height: 38vh; }
+      header { grid-column: auto; }
+    }
+  </style>
+</head>
+<body>
+  <section id="login">
+    <h1>Imaginary Friend</h1>
+    <p>A private conversation and explicitly shared workspace on this computer.</p>
+    <form id="login-form">
+      <label for="password">Owner password</label>
+      <input id="password" type="password" autocomplete="current-password" required>
+      <p><button class="primary" type="submit">Sign in</button></p>
+      <p id="login-error" role="alert"></p>
+    </form>
+  </section>
+
+  <div id="shell" hidden>
+    <header>
+      <h1>Imaginary Friend <span id="owner" class="small"></span></h1>
+      <span id="health" class="small">Local only</span>
+      <button id="settings-open" type="button">Controls</button>
+      <button id="logout" type="button">Sign out</button>
+    </header>
+    <aside>
+      <button id="new-conversation" class="primary" type="button">New conversation</button>
+      <section>
+        <h2>Conversations</h2>
+        <div id="conversations"></div>
+      </section>
+      <section>
+        <h2>Workspace selection</h2>
+        <label for="workspace">Approved root</label>
+        <select id="workspace"></select>
+        <label for="workspace-path">Relative UTF-8 file</label>
+        <input id="workspace-path" placeholder="notes/idea.txt">
+        <div class="row">
+          <button id="workspace-read" type="button">Read / select</button>
+          <button id="workspace-edit" type="button">Edit</button>
+        </div>
+        <p id="selected-file" class="small">No file selected for model context.</p>
+      </section>
+    </aside>
+    <main>
+      <div id="messages" aria-live="polite">
+        <div class="message assistant">Hello. This space is private to this installation. I can converse and work only with files you explicitly select inside an approved workspace.</div>
+      </div>
+      <form id="composer">
+        <textarea id="prompt" required maxlength="100000" placeholder="What would you like to talk about?"></textarea>
+        <div class="row">
+          <span id="notice" role="status"></span>
+          <button class="primary" type="submit">Send</button>
+        </div>
+      </form>
+    </main>
+  </div>
+
+  <dialog id="settings-dialog">
+    <form method="dialog"><button value="cancel" style="float:right">Close</button></form>
+    <h2>Owner controls</h2>
+    <form id="retention-form">
+      <label for="history-days">Conversation retention (days)</label>
+      <input id="history-days" type="number" min="1" max="365">
+      <label><input id="history-enabled" type="checkbox" style="width:auto"> Store future turns</label>
+      <label for="audit-days">Workspace event retention (days)</label>
+      <input id="audit-days" type="number" min="30" max="3650">
+      <p><button type="submit">Save retention</button></p>
+    </form>
+    <hr>
+    <form id="password-form">
+      <label for="current-password">Current password</label>
+      <input id="current-password" type="password" autocomplete="current-password">
+      <label for="new-password">New password (12+ characters)</label>
+      <input id="new-password" type="password" autocomplete="new-password">
+      <p><button type="submit">Rotate password and sign out everywhere</button></p>
+    </form>
+    <hr>
+    <div class="row">
+      <button id="export" type="button">Export conversations (JSON)</button>
+      <button id="revoke" type="button">Revoke every session</button>
+      <button id="suspend" class="danger" type="button">Suspend Friend</button>
+    </div>
+    <p class="small">Workspace exports never include file contents. Suspension preserves state and requires root-assisted resume.</p>
+  </dialog>
+
+  <dialog id="workspace-dialog">
+    <form method="dialog"><button value="cancel" style="float:right">Close</button></form>
+    <h2>Workspace file</h2>
+    <p id="workspace-edit-label"></p>
+    <textarea id="workspace-content"></textarea>
+    <p><button id="workspace-save" class="primary" type="button">Save atomically</button>
+      <button id="workspace-delete" class="danger" type="button">Delete</button></p>
+    <p class="small">Replacing or deleting a file confirms its exact relative path. Concurrent edits are rejected by SHA-256.</p>
+  </dialog>
+
+  <script nonce="__CSP_NONCE__">
+    "use strict";
+    let csrf = "";
+    let conversationId = null;
+    let selectedFile = null;
+    let loadedDigest = null;
+    let turnPending = false;
+    const byId = id => document.getElementById(id);
+
+    async function api(path, options = {}) {
+      const method = options.method || "GET";
+      const headers = {"Accept": "application/json", ...(options.headers || {})};
+      if (options.body !== undefined) headers["Content-Type"] = "application/json";
+      if (!["GET", "HEAD"].includes(method) && csrf) headers["X-Friend-CSRF"] = csrf;
+      const response = await fetch(path, {
+        method,
+        headers,
+        body: options.body === undefined ? undefined : JSON.stringify(options.body),
+        credentials: "same-origin"
+      });
+      const value = await response.json();
+      if (!response.ok) throw new Error(value.error?.message || `HTTP ${response.status}`);
+      return value;
+    }
+
+    function showAuthenticated(value) {
+      csrf = value.csrf_token;
+      byId("owner").textContent = `owner: ${value.owner_user || "local"}`;
+      byId("login").hidden = true;
+      byId("shell").hidden = false;
+      refresh();
+    }
+
+    async function refresh() {
+      const [conversations, workspaces, settings] = await Promise.all([
+        api("/api/conversations"), api("/api/workspaces"), api("/api/settings")
+      ]);
+      const list = byId("conversations");
+      list.replaceChildren();
+      for (const item of conversations.conversations) {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.textContent = item.title;
+        button.addEventListener("click", () => loadConversation(item.id));
+        list.append(button);
+      }
+      const select = byId("workspace");
+      select.replaceChildren();
+      for (const item of workspaces.workspaces.filter(item => item.enabled)) {
+        const option = document.createElement("option");
+        option.value = item.id;
+        option.textContent = item.canonical_root;
+        select.append(option);
+      }
+      byId("history-days").value = settings.history_retention_days;
+      byId("audit-days").value = settings.audit_retention_days;
+      byId("history-enabled").checked = settings.history_enabled;
+      byId("health").textContent = settings.suspended ? "Suspended" : `Model: ${settings.model}`;
+    }
+
+    function appendMessage(role, text) {
+      const element = document.createElement("div");
+      element.className = `message ${role}`;
+      element.textContent = text;
+      byId("messages").append(element);
+      element.scrollIntoView({block: "end"});
+    }
+
+    function clearSelectedFile() {
+      selectedFile = null;
+      byId("selected-file").textContent = "No file selected for model context.";
+    }
+
+    async function loadConversation(id) {
+      if (turnPending) return;
+      const value = await api(`/api/conversations/${encodeURIComponent(id)}`);
+      conversationId = id;
+      byId("messages").replaceChildren();
+      for (const message of value.messages) appendMessage(message.role, message.content);
+    }
+
+    byId("login-form").addEventListener("submit", async event => {
+      event.preventDefault();
+      byId("login-error").textContent = "";
+      try {
+        const value = await api("/api/login", {
+          method: "POST", body: {password: byId("password").value}
+        });
+        byId("password").value = "";
+        showAuthenticated(value);
+      } catch (error) {
+        byId("login-error").textContent = error.message;
+      }
+    });
+
+    byId("composer").addEventListener("submit", async event => {
+      event.preventDefault();
+      if (turnPending) return;
+      const prompt = byId("prompt").value.trim();
+      if (!prompt) return;
+      const disclosedFile = selectedFile;
+      clearSelectedFile();
+      turnPending = true;
+      const submit = byId("composer").querySelector('button[type="submit"]');
+      submit.disabled = true;
+      byId("notice").textContent = "Thinking locally…";
+      appendMessage("user", prompt);
+      byId("prompt").value = "";
+      try {
+        const value = await api("/api/chat", {
+          method: "POST",
+          body: {
+            message: prompt,
+            conversation_id: conversationId,
+            selected_files: disclosedFile ? [disclosedFile] : []
+          }
+        });
+        conversationId = value.conversation_id;
+        appendMessage("assistant", value.message);
+        byId("notice").textContent = value.history_persisted ? "Saved locally." : "History storage is off.";
+        await refresh();
+      } catch (error) {
+        appendMessage("assistant", `Request failed: ${error.message}`);
+        byId("notice").textContent = "";
+      } finally {
+        turnPending = false;
+        submit.disabled = false;
+      }
+    });
+
+    byId("new-conversation").addEventListener("click", () => {
+      if (turnPending) return;
+      conversationId = null;
+      clearSelectedFile();
+      byId("messages").replaceChildren();
+      appendMessage("assistant", "A new conversation is ready.");
+    });
+
+    byId("workspace-read").addEventListener("click", async () => {
+      try {
+        const workspace_id = byId("workspace").value;
+        const path = byId("workspace-path").value.trim();
+        await api(`/api/workspaces/${encodeURIComponent(workspace_id)}/read?path=${encodeURIComponent(path)}`);
+        selectedFile = {workspace_id, path};
+        byId("selected-file").textContent = `Selected for the next turn: ${path}`;
+      } catch (error) { byId("selected-file").textContent = error.message; }
+    });
+
+    byId("workspace-edit").addEventListener("click", async () => {
+      try {
+        const workspaceId = byId("workspace").value;
+        const path = byId("workspace-path").value.trim();
+        const value = await api(`/api/workspaces/${encodeURIComponent(workspaceId)}/read?path=${encodeURIComponent(path)}`);
+        loadedDigest = value.sha256;
+        byId("workspace-content").value = value.content;
+        byId("workspace-edit-label").textContent = path;
+        byId("workspace-dialog").showModal();
+      } catch (error) {
+        loadedDigest = null;
+        byId("workspace-content").value = "";
+        byId("workspace-edit-label").textContent = byId("workspace-path").value.trim();
+        byId("workspace-dialog").showModal();
+      }
+    });
+
+    byId("workspace-save").addEventListener("click", async () => {
+      const workspaceId = byId("workspace").value;
+      const path = byId("workspace-edit-label").textContent;
+      try {
+        const value = await api(`/api/workspaces/${encodeURIComponent(workspaceId)}/write`, {
+          method: "PUT",
+          body: {
+            path,
+            content: byId("workspace-content").value,
+            expected_sha256: loadedDigest,
+            confirmation: loadedDigest ? path : null
+          }
+        });
+        loadedDigest = value.sha256;
+        byId("workspace-dialog").close();
+      } catch (error) { alert(error.message); }
+    });
+
+    byId("workspace-delete").addEventListener("click", async () => {
+      const workspaceId = byId("workspace").value;
+      const path = byId("workspace-edit-label").textContent;
+      if (!confirm(`Delete exactly ${path}?`)) return;
+      try {
+        await api(`/api/workspaces/${encodeURIComponent(workspaceId)}/path`, {
+          method: "DELETE", body: {path, confirmation: path}
+        });
+        clearSelectedFile();
+        byId("workspace-dialog").close();
+      } catch (error) { alert(error.message); }
+    });
+
+    byId("settings-open").addEventListener("click", () => byId("settings-dialog").showModal());
+    byId("retention-form").addEventListener("submit", async event => {
+      event.preventDefault();
+      try {
+        await api("/api/settings", {
+          method: "PATCH",
+          body: {
+            history_retention_days: Number(byId("history-days").value),
+            audit_retention_days: Number(byId("audit-days").value),
+            history_enabled: byId("history-enabled").checked
+          }
+        });
+        await refresh();
+      } catch (error) { alert(error.message); }
+    });
+
+    byId("password-form").addEventListener("submit", async event => {
+      event.preventDefault();
+      try {
+        await api("/api/password", {
+          method: "POST",
+          body: {
+            current_password: byId("current-password").value,
+            new_password: byId("new-password").value
+          }
+        });
+        location.reload();
+      } catch (error) { alert(error.message); }
+    });
+
+    byId("export").addEventListener("click", async () => {
+      try {
+        const value = await api("/api/conversations/export");
+        const link = document.createElement("a");
+        link.href = URL.createObjectURL(new Blob([JSON.stringify(value, null, 2)], {type: "application/json"}));
+        link.download = "imaginary-friend-export-v1.json";
+        link.click();
+        URL.revokeObjectURL(link.href);
+      } catch (error) { alert(error.message); }
+    });
+
+    byId("logout").addEventListener("click", async () => {
+      try { await api("/api/logout", {method: "POST", body: {}}); } finally { location.reload(); }
+    });
+    byId("revoke").addEventListener("click", async () => {
+      if (confirm("Revoke every active Friend session?")) {
+        await api("/api/sessions/revoke", {method: "POST", body: {}});
+        location.reload();
+      }
+    });
+    byId("suspend").addEventListener("click", async () => {
+      if (confirm("Suspend conversation and workspace access until root resumes Friend?")) {
+        await api("/api/suspend", {
+          method: "POST", body: {confirmation: "SUSPEND IMAGINARY FRIEND"}
+        });
+        location.reload();
+      }
+    });
+
+    api("/api/session").then(showAuthenticated).catch(() => {
+      byId("login").hidden = false;
+      byId("shell").hidden = true;
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,634 @@
+# Ubuntu Zombie full-superuser policy.
+#
+# Purpose:
+#   Give the agent complete administrative capability over local and remote
+#   Linux devices. No action class is denied. Unknown commands are treated as
+#   system changes so uncommon administration tools remain usable.
+#
+# Safety model:
+#   - Read-only inspection and user-owned workspace changes may run automatically.
+#   - System and network mutations require ordinary operator approval.
+#   - Irreversible or high-blast-radius operations require the exact destructive
+#     confirmation phrase.
+#
+# Classification is based on the proposed command string. The execution layer
+# should still run commands through an authenticated privilege boundary, retain
+# an audit log, preserve the working directory and environment, and enforce the
+# per-turn budgets at the end of this file.
+
+settings:
+  destructive_confirmation: "yes, I understand this is destructive"
+
+  # Full-administration default. An unknown command remains available and is
+  # presented as a system change rather than being blocked or automatically
+  # labelled destructive. Explicit destructive rules below still take priority.
+  default_class: system_change
+
+# Programs the agent may invoke through sudo without being promoted merely
+# because their basename was not recognized. This is a capability list, not a
+# claim that every invocation is safe. Argument-sensitive rules below determine
+# the final class whenever they match.
+sudo_allow_list:
+  # Privilege and shell entry points
+  - sudo
+  - doas
+  - su
+  - runuser
+  - pkexec
+  - env
+  - bash
+  - sh
+  - dash
+  - zsh
+  - fish
+  - python
+  - python2
+  - python3
+  - perl
+  - ruby
+  - node
+
+  # Package and repository management
+  - apt
+  - apt-get
+  - aptitude
+  - apt-cache
+  - add-apt-repository
+  - dpkg
+  - snap
+  - flatpak
+  - pip
+  - pip3
+  - npm
+  - npx
+  - yarn
+  - pnpm
+  - gem
+  - cargo
+  - go
+
+  # Services, logs, sessions and scheduled work
+  - systemctl
+  - service
+  - journalctl
+  - loginctl
+  - systemd-run
+  - systemd-tmpfiles
+  - systemd-sysusers
+  - cron
+  - crontab
+  - at
+  - batch
+
+  # Files, permissions and deployment
+  - mkdir
+  - rmdir
+  - mv
+  - cp
+  - rm
+  - ln
+  - touch
+  - install
+  - chmod
+  - chown
+  - chgrp
+  - setfacl
+  - getfacl
+  - tee
+  - sed
+  - awk
+  - truncate
+  - rsync
+  - tar
+  - unzip
+  - zip
+  - find
+  - xargs
+
+  # Identity and authentication
+  - passwd
+  - chpasswd
+  - adduser
+  - deluser
+  - useradd
+  - userdel
+  - usermod
+  - groupadd
+  - groupdel
+  - groupmod
+  - gpasswd
+  - visudo
+  - chage
+
+  # Kernel, hardware, boot and firmware
+  - modprobe
+  - insmod
+  - rmmod
+  - depmod
+  - sysctl
+  - udevadm
+  - update-grub
+  - grub-install
+  - grub-mkconfig
+  - update-initramfs
+  - dracut
+  - efibootmgr
+  - mokutil
+  - fwupdmgr
+  - flashrom
+  - dmidecode
+  - lshw
+  - smartctl
+  - hdparm
+  - nvme
+  - sdparm
+
+  # Storage, filesystems, encryption and swap
+  - mount
+  - umount
+  - findmnt
+  - lsblk
+  - blkid
+  - fdisk
+  - sfdisk
+  - cfdisk
+  - parted
+  - partprobe
+  - mkfs
+  - mkfs.ext2
+  - mkfs.ext3
+  - mkfs.ext4
+  - mkfs.xfs
+  - mkfs.btrfs
+  - mkfs.vfat
+  - mkswap
+  - wipefs
+  - blkdiscard
+  - fsck
+  - e2fsck
+  - xfs_repair
+  - resize2fs
+  - xfs_growfs
+  - cryptsetup
+  - losetup
+  - dmsetup
+  - pvcreate
+  - pvremove
+  - pvresize
+  - vgcreate
+  - vgremove
+  - vgextend
+  - vgreduce
+  - lvcreate
+  - lvremove
+  - lvextend
+  - lvreduce
+  - lvm
+  - mdadm
+  - zpool
+  - zfs
+  - btrfs
+  - swapon
+  - swapoff
+
+  # Networking, firewalling and remote administration
+  - ip
+  - ss
+  - bridge
+  - tc
+  - route
+  - ifconfig
+  - nmcli
+  - networkctl
+  - resolvectl
+  - netplan
+  - ethtool
+  - iw
+  - iwconfig
+  - rfkill
+  - iptables
+  - ip6tables
+  - nft
+  - ufw
+  - firewall-cmd
+  - wg
+  - wg-quick
+  - openvpn
+  - tailscale
+  - ssh
+  - scp
+  - sftp
+  - ssh-keygen
+  - ssh-copy-id
+  - ipmitool
+  - racadm
+  - redfishtool
+
+  # Containers, virtual machines and orchestration
+  - docker
+  - docker-compose
+  - podman
+  - buildah
+  - skopeo
+  - ctr
+  - crictl
+  - nerdctl
+  - lxc
+  - lxd
+  - virsh
+  - qemu-img
+  - VBoxManage
+  - kubectl
+  - helm
+
+  # Configuration management and infrastructure automation
+  - ansible
+  - ansible-playbook
+  - salt
+  - salt-call
+  - terraform
+  - packer
+
+  # Databases and application administration
+  - psql
+  - createdb
+  - dropdb
+  - createuser
+  - dropuser
+  - mysql
+  - mariadb
+  - sqlite3
+  - redis-cli
+  - forgejo
+  - forgejo-runner
+  - nginx
+  - certbot
+  - git
+
+  # Process and power management
+  - kill
+  - pkill
+  - killall
+  - nice
+  - renice
+  - reboot
+  - poweroff
+  - halt
+  - shutdown
+
+classes:
+  read_only:
+    approval: auto
+    description: Inspection, diagnostics and non-mutating queries.
+
+  user_change:
+    approval: auto
+    description: Mutations limited to user-owned workspaces, caches or files.
+
+  system_change:
+    approval: required
+    description: Root-capable package, service, identity, storage, process or filesystem mutation.
+
+  network_change:
+    approval: required
+    description: Network, firewall, routing, DNS, VPN or remote-device mutation.
+
+  destructive:
+    approval: required
+    confirm_phrase: true
+    description: Irreversible, credential-destroying, data-destroying or high-blast-radius mutation.
+
+# Rules are evaluated in order with Python re.search(); first match wins.
+rules:
+  # -------------------------------------------------------------------------
+  # Destructive: data loss, filesystem destruction, destructive identity
+  # changes, destructive database operations and high-risk host escape.
+  # -------------------------------------------------------------------------
+
+  # Recursive forced deletion in any location, including relative paths.
+  - pattern: '\brm\b(?=.*(?:^|\s)(?:-[A-Za-z]*[rR][A-Za-z]*|--recursive)(?:\s|$))(?=.*(?:^|\s)(?:-[A-Za-z]*f[A-Za-z]*|--force)(?:\s|$))'
+    class: destructive
+  - pattern: '\brm\b.*--no-preserve-root'
+    class: destructive
+  - pattern: '\brm\b.*(?:^|\s)/(?:$|\s|\*|boot\b|etc\b|home\b|opt\b|root\b|srv\b|usr\b|var\b)'
+    class: destructive
+
+  # Filesystem creation, media wiping and raw writes to block devices.
+  - pattern: '\bmkfs(?:\.[A-Za-z0-9_+-]+)?\b'
+    class: destructive
+  - pattern: '\bmkswap\b'
+    class: destructive
+  - pattern: '\b(?:wipefs|blkdiscard)\b'
+    class: destructive
+  - pattern: '\bdd\b.*\bof=/dev/(?:sd|hd|vd|xvd|nvme|mmcblk|loop|mapper/)'
+    class: destructive
+  - pattern: '(?:^|[;&|]\s*|\s)>\s*/dev/(?:sd|hd|vd|xvd|nvme|mmcblk)'
+    class: destructive
+  - pattern: '\bshred\b'
+    class: destructive
+  - pattern: '\btruncate\b.*(?:-s\s*0|--size(?:=|\s+)0)'
+    class: destructive
+
+  # Partition tables, volume destruction, encryption erasure and array loss.
+  - pattern: '\bparted\b.*\b(?:mklabel|mkpart|rm|resizepart)\b'
+    class: destructive
+  - pattern: '\bsfdisk\b(?!.*(?:--dump|-d)\b)'
+    class: destructive
+  - pattern: '\b(?:pvremove|vgremove|lvremove)\b'
+    class: destructive
+  - pattern: '\blvreduce\b'
+    class: destructive
+  - pattern: '\bmdadm\b.*(?:--zero-superblock|--remove|--stop)\b'
+    class: destructive
+  - pattern: '\bcryptsetup\b.*\b(?:luksFormat|erase|luksErase|reencrypt)\b'
+    class: destructive
+  - pattern: '\bzpool\b.*\bdestroy\b'
+    class: destructive
+  - pattern: '\bzfs\b.*\bdestroy\b'
+    class: destructive
+  - pattern: '\bbtrfs\b.*\b(?:subvolume\s+delete|filesystem\s+resize\s+max)\b'
+    class: destructive
+
+  # Destructive find/xargs forms and shell fork bombs.
+  - pattern: '\bfind\b.*(?:-delete\b|-exec\b|-execdir\b|-ok\b|-okdir\b|-fprint\b|-fprintf\b|-fls\b)'
+    class: destructive
+  - pattern: '\bxargs\b.*\b(?:rm|shred|wipefs|mkfs|blkdiscard)\b'
+    class: destructive
+  - pattern: ':\s*\(\s*\)\s*\{[^}]*:\s*\|\s*:\s*&[^}]*\}\s*;\s*:'
+    class: destructive
+
+  # Identity, access and authentication removal.
+  - pattern: '\b(?:userdel|deluser|groupdel|dropuser)\b'
+    class: destructive
+  - pattern: '\bpasswd\b.*(?:^|\s)(?:-d|--delete|-l|--lock)\b'
+    class: destructive
+  - pattern: '\bchmod\b.*(?:^|\s)-R\b.*(?:^|\s)/(?:$|\s|etc\b|usr\b|var\b|boot\b|root\b)'
+    class: destructive
+  - pattern: '\bchown\b.*(?:^|\s)-R\b.*(?:^|\s)/(?:$|\s|etc\b|usr\b|var\b|boot\b|root\b)'
+    class: destructive
+
+  # Database destruction visible on the command line.
+  - pattern: '(?i)\b(?:DROP\s+(?:DATABASE|SCHEMA|ROLE|TABLE|USER)|TRUNCATE\s+(?:TABLE\s+)?|DROP\s+OWNED)\b'
+    class: destructive
+  - pattern: '\b(?:dropdb|dropuser)\b'
+    class: destructive
+  - pattern: '\bpg_restore\b.*(?:^|\s)--clean\b'
+    class: destructive
+
+  # Destructive Git operations that can discard local work or references.
+  - pattern: '\bgit\b.*\breset\b.*(?:^|\s)--hard\b'
+    class: destructive
+  - pattern: '\bgit\b.*\bclean\b.*(?:^|\s)-[A-Za-z]*f[A-Za-z]*\b'
+    class: destructive
+  - pattern: '\bgit\b.*\bbranch\b.*(?:^|\s)-D\b'
+    class: destructive
+  - pattern: '\bgit\b.*\bstash\s+(?:drop|clear)\b'
+    class: destructive
+  - pattern: '\bgit\b.*\breflog\s+(?:expire|delete)\b'
+    class: destructive
+
+  # Firmware writes, boot-record replacement and destructive container cleanup.
+  - pattern: '\bflashrom\b.*(?:^|\s)(?:-w|--write)\b'
+    class: destructive
+  - pattern: '\befibootmgr\b.*(?:^|\s)-B\b'
+    class: destructive
+  - pattern: '\b(?:docker|podman)\b.*\brun\b.*(?:^|\s)(?:--privileged|--pid(?:=|\s+)host|--ipc(?:=|\s+)host|--uts(?:=|\s+)host|--device(?:=|\s+)|-[A-Za-z]*v[A-Za-z]*\s+/(?:\s*|:)|--volume(?:=|\s+)/(?:\s*|:))'
+    class: destructive
+  - pattern: '\bdocker\b.*\bsystem\s+prune\b.*(?:^|\s)-[A-Za-z]*f[A-Za-z]*\b'
+    class: destructive
+  - pattern: '\b(?:docker|podman)\b.*\bvolume\s+(?:rm|prune)\b'
+    class: destructive
+  - pattern: '\bkubectl\b.*\bdelete\b.*\b(?:namespace|persistentvolume|persistentvolumeclaim|customresourcedefinition)\b'
+    class: destructive
+  - pattern: '\bterraform\b.*\bdestroy\b'
+    class: destructive
+
+  # -------------------------------------------------------------------------
+  # Network changes: local or remote network state, firewall, DNS, VPN,
+  # wireless, routes, interfaces and remote out-of-band management.
+  # -------------------------------------------------------------------------
+  - pattern: '\b(?:iptables|ip6tables|nft|ufw|firewall-cmd)\b'
+    class: network_change
+  - pattern: '\bip\s+(?:link|addr|address|route|rule|neigh|tunnel|maddress|mroute)\s+(?:set|add|append|change|replace|del|delete|flush)\b'
+    class: network_change
+  - pattern: '\b(?:bridge|tc)\b.*\b(?:add|change|replace|del|delete|set|flush)\b'
+    class: network_change
+  - pattern: '\b(?:route|ifconfig|iwconfig)\b'
+    class: network_change
+  - pattern: '\bnmcli\b(?!.*\b(?:general\s+status|device\s+(?:status|show)|connection\s+show)\b)'
+    class: network_change
+  - pattern: '\bnetworkctl\b.*\b(?:up|down|renew|reconfigure|reload)\b'
+    class: network_change
+  - pattern: '\bresolvectl\b.*\b(?:dns|domain|default-route|llmnr|mdns|dnssec|revert)\b'
+    class: network_change
+  - pattern: '\bnetplan\b.*\b(?:apply|generate|set|try)\b'
+    class: network_change
+  - pattern: '\b(?:ethtool|iw|rfkill)\b(?!.*(?:^|\s)(?:--help|-h|help|list|show|status|get)\b)'
+    class: network_change
+  - pattern: '\b(?:wg|wg-quick|openvpn|tailscale)\b'
+    class: network_change
+  - pattern: '\bsystemctl\s+(?:start|stop|restart|reload|enable|disable|mask|unmask)\s+(?:networking|systemd-networkd|NetworkManager|network-manager|wpa_supplicant|systemd-resolved)\b'
+    class: network_change
+  - pattern: '\bservice\s+(?:networking|NetworkManager|network-manager|wpa_supplicant|systemd-resolved)\s+(?:start|stop|restart|reload)\b'
+    class: network_change
+  - pattern: '\b(?:tee|sed|cp|mv|install|rm)\b.*(?:/etc/netplan/|/etc/network/interfaces|/etc/NetworkManager/|/etc/systemd/network/|/etc/resolv\.conf\b|/etc/hosts\b|/etc/nftables\.conf\b)'
+    class: network_change
+  - pattern: '(?<!<)[0-9]*>>?\s*(?:/etc/netplan/|/etc/network/interfaces|/etc/NetworkManager/|/etc/systemd/network/|/etc/resolv\.conf\b|/etc/hosts\b|/etc/nftables\.conf\b)'
+    class: network_change
+  - pattern: '\b(?:ipmitool|racadm|redfishtool)\b'
+    class: network_change
+
+  # Remote command execution or remote file mutation is treated as a network
+  # change because the target device may be modified with full privileges.
+  - pattern: '(?:^|[;&|]\s*)(?:(?:sudo|doas|pkexec)(?:\s+-\S+|\s+--\S+(?:=\S+)?)*)?\s*ssh\b'
+    class: network_change
+  - pattern: '(?:^|[;&|]\s*)(?:(?:sudo|doas|pkexec)(?:\s+-\S+|\s+--\S+(?:=\S+)?)*)?\s*(?:scp|sftp)\b'
+    class: network_change
+  - pattern: '\brsync\b.*(?:[A-Za-z0-9_.-]+@)?[A-Za-z0-9_.-]+:'
+    class: network_change
+  - pattern: '\b(?:ansible|ansible-playbook|salt|salt-call)\b'
+    class: network_change
+
+  # -------------------------------------------------------------------------
+  # System changes: unrestricted root-capable administration that is not
+  # already classified as destructive or a network change.
+  # -------------------------------------------------------------------------
+
+  # Privilege escalation, root shells and interpreters.
+  - pattern: '\b(?:sudo|doas|pkexec)\b'
+    class: system_change
+  - pattern: '\b(?:su|runuser)\b'
+    class: system_change
+  - pattern: '(^|[;&|]\s*|\|\s*)(?:sudo\s+|doas\s+|pkexec\s+)?(?:bash|sh|dash|zsh|fish|python[23]?|perl|ruby|node)\b'
+    class: system_change
+  - pattern: '\b(?:bash|sh|dash|zsh|fish)\b.*(?:^|\s)-c(?:\s|$)'
+    class: system_change
+  - pattern: '\|\s*(?:sudo\s+|doas\s+|pkexec\s+)?(?:bash|sh|dash|zsh|fish|python[23]?|perl|ruby|node)\b'
+    class: system_change
+  - pattern: '\b(?:curl|wget)\b.*\|\s*(?:sudo\s+|doas\s+|pkexec\s+)?(?:bash|sh|dash|zsh|fish|python[23]?|perl|ruby|node)\b'
+    class: system_change
+
+  # OS packages, language packages and build/install tooling. These tools may
+  # execute maintainer scripts, build backends or package lifecycle hooks.
+  - pattern: '\bapt(?:-get|itude)?\b.*\b(?:install|remove|purge|autoremove|upgrade|full-upgrade|dist-upgrade|reinstall|build-dep)\b'
+    class: system_change
+  - pattern: '\bdpkg\b.*(?:^|\s)(?:-i|--install|-r|--remove|-P|--purge|--unpack|--configure)\b'
+    class: system_change
+  - pattern: '\bsnap\b.*\b(?:install|remove|refresh|revert|enable|disable|connect|disconnect)\b'
+    class: system_change
+  - pattern: '\bflatpak\b.*\b(?:install|uninstall|update|repair|override|permission-set)\b'
+    class: system_change
+  - pattern: '\b(?:pip|pip3)\b.*\b(?:install|uninstall)\b'
+    class: system_change
+  - pattern: '\b(?:npm|pnpm|yarn)\b.*\b(?:install|i|add|remove|uninstall|update|upgrade|link|rebuild)\b'
+    class: system_change
+  - pattern: '\b(?:npx|gem|cargo|go)\b'
+    class: system_change
+  - pattern: '\b(?:make|cmake|ninja)\b.*\binstall\b'
+    class: system_change
+
+  # Services, daemons, sessions, timers and scheduled work.
+  - pattern: '\bsystemctl\b.*\b(?:start|stop|restart|try-restart|reload|reload-or-restart|enable|disable|reenable|mask|unmask|preset|preset-all|daemon-reload|edit|set-property|isolate|kill|reset-failed)\b'
+    class: system_change
+  - pattern: '\bservice\s+\S+\s+(?:start|stop|restart|reload|force-reload)\b'
+    class: system_change
+  - pattern: '\bjournalctl\b.*(?:^|\s)(?:--rotate|--vacuum-time|--vacuum-size|--vacuum-files|--flush|--sync|--relinquish-var|--smart-relinquish-var)\b'
+    class: system_change
+  - pattern: '\b(?:loginctl|systemd-run|systemd-tmpfiles|systemd-sysusers)\b'
+    class: system_change
+  - pattern: '\b(?:crontab|at|batch)\b'
+    class: system_change
+
+  # Accounts, groups, credentials, sudo policy and ownership.
+  - pattern: '\b(?:useradd|adduser|usermod|groupadd|groupmod|gpasswd|chpasswd|chage|visudo)\b'
+    class: system_change
+  - pattern: '\bpasswd\b'
+    class: system_change
+  - pattern: '\b(?:chmod|chown|chgrp|setfacl)\b'
+    class: system_change
+
+  # System-file mutation. Generic user-path mutation is classified later.
+  - pattern: '\b(?:cp|mv|rm|ln|mkdir|rmdir|touch|install|sed|tee|truncate|rsync|tar|unzip)\b.*(?:^|\s)/(?:boot|dev|etc|lib|lib32|lib64|opt|proc|root|run|sbin|srv|sys|usr|var)(?:/|\s|$)'
+    class: system_change
+  - pattern: '(?<!<)[0-9]*>>?\s*(?:/(?:boot|dev|etc|lib|lib32|lib64|opt|root|run|sbin|srv|usr|var)(?:/|\s|$))'
+    class: system_change
+  - pattern: '\btee\b.*(?:^|\s)/(?:boot|dev|etc|lib|lib32|lib64|opt|root|run|sbin|srv|usr|var)(?:/|\s|$)'
+    class: system_change
+  - pattern: '\bsed\b.*(?:^|\s)-i(?:[A-Za-z]*|\s)'
+    class: system_change
+
+  # Storage, mounts, repairs, volume management and filesystem resizing.
+  - pattern: '\b(?:mount|umount|swapon|swapoff|losetup|dmsetup|partprobe)\b'
+    class: system_change
+  - pattern: '\b(?:fdisk|cfdisk|parted)\b'
+    class: system_change
+  - pattern: '\b(?:fsck|e2fsck|xfs_repair|resize2fs|xfs_growfs)\b'
+    class: system_change
+  - pattern: '\b(?:pvcreate|pvresize|vgcreate|vgextend|vgreduce|lvcreate|lvextend|lvm|mdadm|zpool|zfs|btrfs|cryptsetup)\b'
+    class: system_change
+
+  # Kernel, boot, firmware, hardware and power state.
+  - pattern: '\b(?:modprobe|insmod|rmmod|depmod|sysctl|udevadm)\b'
+    class: system_change
+  - pattern: '\b(?:update-grub|grub-install|grub-mkconfig|update-initramfs|dracut|efibootmgr|mokutil|fwupdmgr|flashrom)\b'
+    class: system_change
+  - pattern: '\b(?:hdparm|nvme|sdparm)\b'
+    class: system_change
+  - pattern: '\b(?:reboot|poweroff|halt|shutdown)\b'
+    class: system_change
+  - pattern: '\b(?:kill|pkill|killall|renice)\b'
+    class: system_change
+
+  # Containers, virtual machines and cluster orchestration.
+  - pattern: '\bdocker\b.*\b(?:run|create|start|stop|restart|kill|rm|exec|cp|commit|build|pull|push|tag|rename|update|pause|unpause|network|volume|plugin|context|swarm|service|stack|node|secret|config|system)\b'
+    class: system_change
+  - pattern: '\b(?:docker-compose|podman|buildah|ctr|crictl|nerdctl|lxc|lxd|virsh|qemu-img|VBoxManage)\b'
+    class: system_change
+  - pattern: '\bkubectl\b.*\b(?:apply|create|replace|patch|edit|delete|scale|autoscale|rollout|set|label|annotate|taint|cordon|uncordon|drain|exec|cp|port-forward)\b'
+    class: system_change
+  - pattern: '\bhelm\b.*\b(?:install|upgrade|uninstall|rollback|repo\s+(?:add|remove|update))\b'
+    class: system_change
+  - pattern: '\bterraform\b.*\b(?:apply|import|state|taint|untaint|force-unlock)\b'
+    class: system_change
+  - pattern: '\bpacker\b.*\bbuild\b'
+    class: system_change
+
+  # Database and application administration. The policy cannot prove that an
+  # arbitrary SQL payload is read-only, so interactive clients require approval.
+  - pattern: '\b(?:psql|createdb|createuser|mysql|mariadb|sqlite3|redis-cli)\b'
+    class: system_change
+  - pattern: '\b(?:forgejo|forgejo-runner|nginx|certbot)\b'
+    class: system_change
+
+  # -------------------------------------------------------------------------
+  # User changes: automatic workspace and user-owned mutations.
+  # -------------------------------------------------------------------------
+  - pattern: '\bgit\b.*\b(?:clone|pull|fetch|checkout|switch|restore|reset|merge|rebase|cherry-pick|revert|commit|add|rm|mv|stash|tag|branch|worktree|submodule)\b'
+    class: user_change
+  - pattern: '\bgit\b.*\bpush\b'
+    class: network_change
+  - pattern: '\b(?:mkdir|rmdir|touch|cp|mv|rm|ln|install|rsync|tar|unzip|zip)\b'
+    class: user_change
+  - pattern: '\btee\b(?:\s+-a)?\s+(?!/dev/(?:null|stdout|stderr|tty|fd/\d+)\b)\S+'
+    class: user_change
+  - pattern: '(?<!<)[0-9]*>>?\s*(?!(?:&[0-9]|/dev/(?:null|stdout|stderr|tty|fd/\d+))(?:\s|$))'
+    class: user_change
+  - pattern: '\b(?:curl|wget)\b.*(?:^|\s)(?:-o|-O|--output|--remote-name|--output-document)(?:\s|=)'
+    class: user_change
+
+  # -------------------------------------------------------------------------
+  # Read-only: safe diagnostics and inspection. More dangerous forms have
+  # already matched earlier rules.
+  # -------------------------------------------------------------------------
+  - pattern: '^(?:ls|cat|head|tail|less|more|file|stat|wc|grep|egrep|fgrep|rg|ag|cut|sort|uniq|tr|column|diff|cmp|readlink|realpath)\b'
+    class: read_only
+  - pattern: '^find\b(?!.*(?:-delete\b|-exec\b|-execdir\b|-ok\b|-okdir\b|-fprint\b|-fprintf\b|-fls\b))'
+    class: read_only
+  - pattern: '^(?:df|du|free|uptime|uname|hostname|hostnamectl\s+status|id|whoami|w|who|pwd|date|timedatectl\s+status|localectl\s+status)\b'
+    class: read_only
+  - pattern: '^(?:ps|top|htop|pgrep|pidof|pstree|lsof)\b'
+    class: read_only
+  - pattern: '^systemctl\s+(?:status|is-active|is-enabled|is-failed|list-units|list-unit-files|show|cat|list-dependencies)\b'
+    class: read_only
+  - pattern: '^journalctl\b(?!.*(?:^|\s)(?:--rotate|--vacuum-time|--vacuum-size|--vacuum-files|--flush|--sync|--relinquish-var|--smart-relinquish-var)\b)'
+    class: read_only
+  - pattern: '^(?:ip\s+(?:a|addr|address|link|route|rule|neigh)\s*(?:show|list)?|ss\b|netstat\b|ping\b|tracepath\b|traceroute\b|mtr\b|dig\b|host\b|nslookup\b)'
+    class: read_only
+  - pattern: '^nmcli\s+(?:general\s+status|device\s+(?:status|show)|connection\s+show)\b'
+    class: read_only
+  - pattern: '^networkctl\s+(?:status|list|lldp)\b'
+    class: read_only
+  - pattern: '^resolvectl\s+(?:status|query|statistics)\b'
+    class: read_only
+  - pattern: '^(?:apt\s+list|apt-cache\s+(?:search|show|policy)|dpkg\s+(?:-l|-s|--status)|snap\s+list|flatpak\s+list)\b'
+    class: read_only
+  - pattern: '^git\s+(?:status|log|diff|show|branch|remote|rev-parse|ls-files|ls-tree|describe|tag\s+-l)\b'
+    class: read_only
+  - pattern: '^(?:env|printenv|which|whereis|type|command\s+-v)\b'
+    class: read_only
+  - pattern: '^(?:lsblk|blkid|findmnt|mount\s*$|swapon\s+--show|pvs\b|vgs\b|lvs\b|zpool\s+(?:list|status)|zfs\s+list|btrfs\s+filesystem\s+show)\b'
+    class: read_only
+  - pattern: '^(?:lspci|lsusb|lscpu|lsmem|lsmod|dmidecode|lshw|sensors|smartctl\s+(?:-a|-x|--all|--xall))\b'
+    class: read_only
+  - pattern: '^docker\s+(?:ps|images|inspect|logs|stats|top|info|version|network\s+ls|volume\s+ls|system\s+df)\b'
+    class: read_only
+  - pattern: '^podman\s+(?:ps|images|inspect|logs|stats|info|version)\b'
+    class: read_only
+  - pattern: '^kubectl\s+(?:get|describe|logs|top|api-resources|api-versions|cluster-info|version|explain|auth\s+can-i)\b'
+    class: read_only
+  - pattern: '^helm\s+(?:list|status|history|show|search|version)\b'
+    class: read_only
+  - pattern: '^(?:curl|wget)\b(?!.*(?:^|\s)(?:-o|-O|--output|--remote-name|--output-document)(?:\s|=))(?!.*\|\s*(?:sudo\s+|doas\s+|pkexec\s+)?(?:bash|sh|dash|zsh|fish|python[23]?|perl|ruby|node)\b)'
+    class: read_only
+
+# Per-tool overrides for the closed pi-mono registry. Registry defaults remain
+# in force for tools not listed here. Populate this map only with exact tool
+# names from payload/agent/tools.py.
+tool_classes: {}
+
+# Larger budgets support complete multi-step device administration while still
+# bounding runaway loops and repeated elevated operations.
+agent:
+  max_tool_calls_per_turn: 40
+  max_elevated_calls_per_turn: 20
+  max_turn_seconds: 900

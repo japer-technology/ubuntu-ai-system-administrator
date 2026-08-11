@@ -1,0 +1,38 @@
+name: Feature request
+description: Suggest a change. Please read VISION.md first — the MVP scope is deliberately narrow.
+title: "[feature] "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Before filing, please read [`docs/VISION.md`](../blob/main/docs/VISION.md)
+        and [`docs/ROADMAP.md`](../blob/main/docs/ROADMAP.md). The MVP scope
+        is intentionally narrow; many ideas are post-MVP by design.
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What user-facing problem are you trying to solve?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed change
+      description: What would the installer, payload, or chat service do differently?
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+  - type: checkboxes
+    id: scope
+    attributes:
+      label: Scope check
+      options:
+        - label: I have read `docs/VISION.md` and believe this is in scope, or I am proposing a roadmap addition.
+          required: true
+        - label: This does not require autonomous (un-gated) privileged action.
+          required: true

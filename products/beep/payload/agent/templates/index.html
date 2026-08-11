@@ -1,0 +1,3508 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Beep</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<style>
+  /*
+     Single-file chat shell
+     ----------------------
+     This template is served directly by the local Python service, so it
+     deliberately has no external CSS/JS dependencies: the page must keep
+     working offline, on loopback, and before any package manager is
+     available. Keep styles semantic and token-light so browser light/dark
+     colour schemes, keyboard navigation, and assistive technology all get
+     first-class behaviour without a build step.
+   */
+  :root {
+    color-scheme: light dark;
+    --accent: #7c3aed;
+    --accent-soft: #7c3aed18;
+    --border: #64748b55;
+    --surface: #ffffffd9;
+    --surface-raised: #fff;
+    --text: #172033;
+    --text-muted: #536174;
+    --user-surface: #e8f2ff;
+    --user-border: #4a90e266;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --accent: #c084fc;
+      --accent-soft: #c084fc18;
+      --border: #94a3b855;
+      --surface: #111827e6;
+      --surface-raised: #1f2937;
+      --text: #f3f4f6;
+      --text-muted: #cbd5e1;
+      --user-surface: #172b46;
+      --user-border: #60a5fa66;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { font-family: system-ui, sans-serif; margin: 0; padding: 0;
+         display: flex; flex-direction: column; height: 100vh; height: 100dvh;
+         color: var(--text); background:
+         radial-gradient(circle at 50% -20%, var(--accent-soft), transparent 35%),
+         Canvas; }
+  header { padding: .7rem clamp(.75rem, 3vw, 1.5rem);
+           border-bottom: 1px solid var(--border);
+           display: grid; grid-template-columns: 1fr auto 1fr;
+           gap: .75rem; align-items: center; background: var(--surface);
+           backdrop-filter: blur(12px); z-index: 10; }
+  header h1 { font-size: 1rem; margin: 0; display: flex; align-items: baseline;
+             gap: .5rem; }
+  header .host { color: var(--text-muted); font-size: .75rem; font-weight: 500; }
+  header .status { font-size: .8rem; color: var(--text-muted);
+                  justify-self: end; text-align: right; }
+  header .header-actions { justify-self: center; }
+  main { flex: 1; overflow-y: auto; padding: 1rem; max-width: 60rem;
+         width: 100%; margin: 0 auto; }
+  body.fullwidth main, body.fullwidth .composer,
+  body.fullwidth .reactivation-banner { max-width: none; }
+  .welcome { margin: clamp(1rem, 8vh, 5rem) auto 2rem; text-align: center;
+             max-width: 44rem; }
+  .welcome[hidden] { display: none; }
+  .welcome h2 { margin: .5rem 0; font-size: clamp(1.45rem, 4vw, 2.25rem);
+               letter-spacing: -.025em; }
+  .welcome > p { color: var(--text-muted); margin: .4rem auto 1.25rem;
+                max-width: 34rem; line-height: 1.55; }
+  .starter-actions { display: flex; flex-wrap: wrap; justify-content: center;
+                    gap: .5rem; }
+  .starter-actions button { background: var(--surface-raised);
+                           border-color: var(--border); }
+  .wordmark { margin: 0 auto 1rem; color: var(--accent);
+             font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+             font-size: clamp(.62rem, 2.5vw, .82rem); line-height: 1.2;
+             letter-spacing: 0; font-variant-ligatures: none;
+             white-space: pre; width: min-content; max-width: 100%; }
+  .msg { margin: .8rem 0; padding: .6rem .8rem; border-radius: .5rem;
+         white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.5; }
+  .user { background: var(--user-surface); border: 1px solid var(--user-border);
+          border-radius: 1rem 1rem .25rem 1rem; }
+  .assistant { background: var(--surface-raised); border: 1px solid var(--border);
+              box-shadow: 0 1px 2px #0000000c;
+              border-radius: 1rem 1rem 1rem .25rem; }
+  .system { background: #f5a62320; border: 1px solid #f5a62366;
+            font-family: ui-monospace, monospace; font-size: .85rem; }
+  .system.error { background: #e74c3c30; border-color: #e74c3c; }
+  .queued { background: #4a90e214; border: 1px dashed #4a90e299; }
+  .queued .actions { margin-top: .4rem; }
+  .queued pre { margin: .35rem 0 0; white-space: pre-wrap; }
+  .live-status { font-size: .8rem; opacity: .8; margin-top: .35rem;
+                 display: flex; align-items: center; gap: .45rem; }
+  .spin { width: .65rem; height: .65rem; border-radius: 50%;
+          border: 2px solid currentColor; border-top-color: transparent;
+          display: inline-block; flex: none; opacity: .7;
+          animation: zspin .8s linear infinite; }
+  @keyframes zspin { to { transform: rotate(360deg); } }
+  .live-activity { display: flex; flex-direction: column; gap: .2rem;
+                   margin: .25rem 0 .35rem;
+                   font-family: ui-monospace, monospace; font-size: .8rem; }
+  /* A turn with no tool calls must not draw a blank strip in the
+     bubble: collapse the activity block entirely while it is empty. */
+  .live-activity:empty { display: none; margin: 0; }
+  .live-activity .act { display: flex; align-items: center; flex-wrap: wrap;
+    gap: .45rem; }
+  .live-activity .act .icon { width: 1rem; text-align: center; flex: none; }
+  .live-activity .act details { margin-left: auto; flex: none;
+    text-align: right; }
+  .live-activity .act details summary { cursor: pointer;
+    color: var(--text-muted); list-style-position: outside; }
+  .live-activity .act details[open] { flex-basis: 100%; margin-left: 1.45rem;
+    text-align: left; }
+  .live-activity .act details pre { margin-top: .35rem; white-space: pre-wrap; }
+  .live-activity .act.done { opacity: .75; }
+  .live-activity .act.done .icon { color: #2ecc71; }
+  .live-activity .act.warning { color: #f5a623; }
+  .live-activity .act.warning .icon { color: #f5a623; }
+  .live-activity .act.failed .icon { color: #e74c3c; }
+  .live-activity .act.failed { color: #e74c3c; }
+  .muted { color: var(--text-muted); font-size: .8rem; }
+  .msg-head { display: flex; align-items: center; justify-content: space-between;
+              gap: .5rem; min-height: 1.4rem; }
+  .role { font-size: .72rem; text-transform: uppercase; color: var(--text-muted);
+          font-weight: 650; letter-spacing: .04em; margin-bottom: .2rem; }
+  .proposal { border: 1px solid #f5a623; border-radius: .5rem;
+              padding: .6rem .8rem; margin: .5rem 0;
+              background: #f5a62315; }
+  .proposal code { display: block; padding: .4rem .6rem;
+                   background: #0002; border-radius: .3rem;
+                   font-family: ui-monospace, monospace; font-size: .85rem;
+                   white-space: pre-wrap; word-wrap: break-word; }
+  .proposal .class { font-size: .75rem; text-transform: uppercase;
+                     letter-spacing: .05em; opacity: .8; }
+  .proposal.read_only { border-color: #2ecc71; background: #2ecc7115; }
+  .proposal.destructive { border-color: #e74c3c; background: #e74c3c15; }
+  .proposal .actions { margin-top: .5rem; display: flex; gap: .5rem;
+                       align-items: center; flex-wrap: wrap; }
+  button { padding: .55rem .85rem; min-height: 2.5rem; border-radius: .55rem;
+           border: 1px solid var(--border); background: #fff2; color: inherit;
+           font: inherit; font-weight: 600; cursor: pointer; }
+  button:hover:not(:disabled) { border-color: var(--accent);
+                                background: var(--accent-soft); }
+  button.primary { background: #2ecc7140; border-color: #2ecc71; }
+  button.danger { background: #e74c3c40; border-color: #e74c3c; }
+  button:disabled { cursor: not-allowed; opacity: .7; }
+  .icon-button { min-height: 1.8rem; padding: .2rem .5rem; border: 0;
+                 background: transparent; color: var(--text-muted);
+                 font-size: .75rem; }
+  button:focus-visible, textarea:focus-visible, input:focus-visible {
+    outline: 2px solid #ac43d9; outline-offset: 2px; }
+  input[type=text] { padding: .55rem .65rem; border-radius: .45rem;
+                     border: 1px solid #8888; background: #fff2;
+                     min-width: min(18rem, 100%); font: inherit; }
+  footer { padding: .75rem clamp(.75rem, 3vw, 1.5rem);
+           border-top: 1px solid var(--border); background: var(--surface);
+           backdrop-filter: blur(12px); }
+  /* Modal overlay for the password gate and the TTL tombstone. Covers
+     the whole viewport so a locked-out / expired beep cannot be
+     driven from the chat box behind it. */
+  .overlay { position: fixed; inset: 0; z-index: 50;
+             background: #000a; backdrop-filter: blur(3px);
+             display: flex; align-items: center; justify-content: center;
+             padding: 1rem; }
+  .overlay[hidden] { display: none; }
+  .overlay .panel { background: var(--surface-raised); color: var(--text);
+                    border: 1px solid #ac43d9; border-radius: .6rem;
+                    padding: 1.4rem 1.6rem; max-width: 28rem; width: 100%;
+                    box-shadow: 0 0 0 1px #ac43d955, 0 8px 40px #0008; }
+  .overlay h2 { margin: 0 0 .4rem; font-size: 1.1rem; color: #ac43d9; }
+  .overlay p { margin: .3rem 0 .9rem; font-size: .9rem; opacity: .85; }
+  .overlay form { display: flex; gap: .5rem; flex-direction: column; }
+  .overlay input[type=password] { padding: .5rem .6rem; border-radius: .3rem;
+                    border: 1px solid #8888; background: #fff2; font: inherit; }
+  .overlay .err { color: #e74c3c; font-size: .85rem; min-height: 1.1em; }
+  .overlay.tomb .panel { border-color: #e74c3c;
+                         box-shadow: 0 0 0 1px #e74c3c55, 0 8px 40px #0008; }
+  .overlay.tomb h2 { color: #e74c3c; }
+  .composer { max-width: 60rem; margin: 0 auto; }
+  .reactivation-banner { max-width: 60rem; margin: 0 auto .65rem;
+                         padding: .65rem .8rem; border: 1px solid #ac43d9;
+                         border-radius: .65rem; background: #ac43d915;
+                         display: flex; gap: .75rem; align-items: center;
+                         justify-content: space-between; }
+  .reactivation-banner[hidden] { display: none; }
+  .reactivation-banner strong { color: #ac43d9; }
+  .reactivation-banner .detail { color: var(--text-muted); font-size: .82rem; }
+  .reactivation-actions { display: flex; gap: .5rem; }
+  .composer form { display: flex; gap: .5rem; align-items: end; }
+  .prompt-wrap { position: relative; flex: 1; min-width: 0; }
+  .prompt-wrap textarea { width: 100%; display: block; }
+  .command-menu { position: absolute; z-index: 20; left: 0; right: 0;
+                  bottom: calc(100% + .45rem); margin: 0; padding: .35rem;
+                  max-height: min(20rem, 45vh); overflow-y: auto;
+                  list-style: none; border: 1px solid var(--border);
+                  border-radius: .7rem; background: var(--surface-raised);
+                  box-shadow: 0 .8rem 2rem #0003; }
+  .command-menu[hidden] { display: none; }
+  .command-option { display: grid; grid-template-columns: minmax(9rem, auto) 1fr;
+                    gap: .75rem; padding: .5rem .6rem; border-radius: .45rem;
+                    cursor: pointer; }
+  .command-option[aria-selected=true] { background: var(--accent-soft);
+                                        color: var(--text); }
+  .command-option code { color: var(--accent); font-weight: 700; }
+  .command-option span { color: var(--text-muted); font-size: .82rem; }
+  .composer-actions { display: flex; gap: .5rem; }
+  .composer-meta { display: flex; align-items: center; justify-content: space-between;
+                   gap: 1rem; margin-top: .35rem; min-height: 1.2rem; }
+  .composer-feedback { display: flex; flex-direction: column; align-items: flex-end;
+                      min-width: 0; }
+  .prompt-help { color: var(--text-muted); font-size: .7rem; line-height: 1; }
+  .app-version { color: var(--text-muted); font-size: .7rem; line-height: 1; }
+  .sr-only { position: absolute; width: 1px; height: 1px; padding: 0;
+             margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0);
+             white-space: nowrap; border: 0; }
+  textarea { flex: 1; min-height: 3rem; max-height: 12rem; padding: .7rem .8rem;
+             border-radius: .65rem; border: 1px solid var(--border);
+             font: inherit; line-height: 1.4; resize: vertical;
+             overflow-y: auto; background: var(--surface-raised); color: inherit; }
+  textarea::placeholder { color: var(--text-muted); }
+  /* Rendered Markdown inside an assistant bubble. The bubble keeps
+     white-space: pre-wrap for plain text, but once we render Markdown to
+     real HTML we want normal wrapping with the block elements supplying
+     their own spacing. */
+  .msg .md { white-space: normal; }
+  .md > :first-child { margin-top: 0; }
+  .md > :last-child { margin-bottom: 0; }
+  .md p { margin: .5rem 0; }
+  .md h1, .md h2, .md h3, .md h4, .md h5, .md h6 {
+    margin: .8rem 0 .4rem; line-height: 1.25; }
+  .md h1 { font-size: 1.3rem; } .md h2 { font-size: 1.15rem; }
+  .md h3 { font-size: 1.05rem; } .md h4, .md h5, .md h6 { font-size: 1rem; }
+  .md ul, .md ol { margin: .5rem 0; padding-left: 1.4rem; }
+  .md li { margin: .15rem 0; }
+  .md code { font-family: ui-monospace, monospace; font-size: .85em;
+             background: #0002; padding: .1rem .3rem; border-radius: .3rem; }
+  .md pre { background: #0003; padding: .5rem .7rem; border-radius: .4rem;
+            max-height: 24rem; overflow: auto; margin: .5rem 0; }
+  .md pre code { background: none; padding: 0; font-size: .8rem;
+                 white-space: pre; }
+  .md a { color: #4a90e2; }
+  .md blockquote { margin: .5rem 0; padding: .2rem .8rem;
+                   border-left: 3px solid #8886; opacity: .85; }
+  .md .table-wrap { width: fit-content; max-width: 100%; margin: .75rem 0;
+                    overflow-x: auto;
+                    border: 1px solid var(--border); border-radius: .55rem;
+                    background: var(--surface); box-shadow: 0 1px 2px #0001; }
+  .md table { width: max-content; border-collapse: collapse;
+              font-size: .9rem; line-height: 1.4; }
+  .md th, .md td { padding: .65rem .8rem; text-align: left;
+                   vertical-align: top; border-right: 1px solid var(--border); }
+  .md th:last-child, .md td:last-child { border-right: 0; }
+  .md th { color: var(--text); background: var(--accent-soft);
+           font-weight: 700; border-bottom: 2px solid var(--border); }
+  .md td { color: var(--text); border-top: 1px solid var(--border); }
+  .md tbody tr:nth-child(even) { background: var(--surface-raised); }
+  .md .align-center { text-align: center; }
+  .md .align-right { text-align: right; }
+  .md .math { font-family: "STIX Two Math", "Cambria Math", serif;
+              white-space: nowrap; }
+  .result { margin-top: .5rem; }
+  .result pre { background: #0003; padding: .4rem .6rem;
+                border-radius: .3rem; max-height: 16rem; overflow: auto;
+                font-size: .8rem; }
+  .turn-status { color: var(--text-muted); font-size: .75rem;
+                 min-height: 1rem; text-align: right; }
+  .thinking { display: flex; align-items: center; gap: .5rem; }
+  .thinking .dots { display: inline-flex; gap: .25rem; }
+  .thinking .dots i { width: .4rem; height: .4rem; border-radius: 50%;
+                      background: currentColor; opacity: .35;
+                      animation: zblink 1.2s infinite ease-in-out both; }
+  .thinking .dots i:nth-child(2) { animation-delay: .2s; }
+  .thinking .dots i:nth-child(3) { animation-delay: .4s; }
+  @keyframes zblink { 0%, 80%, 100% { opacity: .25; }
+                      40% { opacity: 1; } }
+  @media (prefers-reduced-motion: reduce) {
+    main { scroll-behavior: auto; }
+    .thinking .dots i { animation: none; opacity: .6; }
+    .spin { animation: none; border-top-color: currentColor; opacity: .4; }
+  }
+  @media (max-width: 640px) {
+    header { grid-template-columns: 1fr auto; gap: .35rem .5rem; }
+    header .header-actions { grid-column: 2; grid-row: 1; justify-self: end; }
+    header .status { grid-column: 1 / -1; justify-self: start; text-align: left;
+                     white-space: nowrap; max-width: 100%; overflow: hidden;
+                     text-overflow: ellipsis; }
+    main { padding: .65rem; }
+    .welcome { margin-top: 1.25rem; }
+    .wordmark { font-size: clamp(.54rem, 2.7vw, .7rem); }
+    footer { padding: .6rem; }
+    .composer form { align-items: stretch; }
+    .composer-actions { flex-direction: column; }
+    .composer-actions button { min-width: 4.5rem; }
+    .prompt-help { display: none; }
+    .composer-meta { justify-content: flex-end; }
+    .proposal .actions { align-items: stretch; }
+    .proposal .actions input { flex-basis: 100%; width: 100%; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1 id="brand-heading" aria-label="Beep on {{HOSTNAME}}">
+    Beep <span class="host">{{HOSTNAME}}</span>
+  </h1>
+  <div class="header-actions">
+    <!-- Session control is hidden unless the password gate is active and
+         this browser owns a valid session. Removing the password must also
+         remove this affordance because there is no session left to secure. -->
+    <button type="button" id="logout" title="Log out and secure the chat"
+            aria-label="Log off and require the chat password again" hidden>Logoff</button>
+  </div>
+  <div id="provider-status" class="status">{{PROVIDER_STATUS}}</div>
+</header>
+<main id="viewport">
+<div id="welcome" class="welcome">
+  <div class="starter-actions" aria-label="Example prompts">
+  <button type="button" data-starter="Perform a comprehensive health assessment of this computer. Analyse hardware, operating system, drivers, services, logs, performance, security, temperatures, storage, networking and identify anything requiring attention, ordered by priority.">Assess system health</button>
+  <button type="button" data-starter="Analyse all storage devices. Show what is consuming disk space, identify duplicate, temporary and obsolete files, explain why space is being used, and recommend the safest ways to recover storage.">Analyse disk usage</button>
+  <button type="button" data-starter="Review recent operating system, application and hardware errors. Explain each issue in plain English, determine likely root causes, estimate severity, and recommend corrective actions.">Investigate recent errors</button>
+  <button type="button" data-starter="Analyse overall system performance. Identify CPU, GPU, memory, storage and network bottlenecks, explain why they occur, and recommend the highest-impact optimisations.">Diagnose performance</button>
+  <button type="button" data-starter="Perform a complete security audit. Check operating system security, firewall, antivirus, updates, user accounts, startup items, remote access, exposed services and potential vulnerabilities.">Audit security</button>
+  <button type="button" data-starter="Inspect installed hardware and drivers. Detect missing, outdated or unstable drivers, firmware issues, hardware faults, configuration problems and compatibility risks.">Inspect hardware and drivers</button>
+  <button type="button" data-starter="Evaluate startup behaviour and background activity. Identify slow startup causes, unnecessary services, scheduled tasks, background applications and recommend safe optimisations.">Analyse startup behaviour</button>
+  <button type="button" data-starter="Produce a complete technical report of this computer. Summarise hardware, software, operating system, performance, security, health, storage, networking and prioritise all recommended improvements from most important to least important.">Full system report</button>
+</div>
+</div>
+<div id="log" role="log" aria-live="polite" aria-relevant="additions text"
+     aria-label="Chat transcript"></div>
+</main>
+<pre id="examples" hidden>{{EXAMPLES}}</pre>
+<footer>
+  <div id="reactivation-banner" class="reactivation-banner" role="status"
+       aria-live="polite" hidden>
+    <div>
+      <strong id="reactivation-title">Reactivation queued</strong>
+      <div id="reactivation-detail" class="detail"></div>
+    </div>
+    <div class="reactivation-actions">
+      <button type="button" id="pause-reactivation" hidden>Pause</button>
+      <button type="button" id="stop-reactivation" class="danger" hidden>Stop</button>
+      <button type="button" id="cancel-reactivation" class="danger">Cancel</button>
+    </div>
+  </div>
+  <div class="composer">
+    <form id="form">
+      <label for="prompt" class="sr-only">Message the systems administrator</label>
+      <div class="prompt-wrap">
+        <textarea id="prompt" rows="1" placeholder="AI System Administrator"
+                  aria-describedby="prompt-help" aria-autocomplete="list"
+                  aria-controls="command-menu" aria-expanded="false"
+                  role="combobox" required></textarea>
+        <div id="command-menu" class="command-menu" role="listbox"
+             aria-label="Slash commands" hidden></div>
+      </div>
+      <div class="composer-actions">
+        <button type="submit" id="send" class="primary">Send</button>
+        <button type="button" id="stop" class="danger" hidden>Stop</button>
+      </div>
+    </form>
+    <div class="composer-meta">
+      <span id="prompt-help" class="prompt-help">Enter to send · Shift+Enter for a new line · /help for commands</span>
+      <div class="composer-feedback">
+        <div id="status" class="turn-status" role="status" aria-live="polite"></div>
+        <div id="app-version" class="app-version"
+             aria-label="Beep version {{VERSION}}">v{{VERSION}}</div>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<!-- Authentication overlay. The password is never persisted in the DOM after
+     submit; the server returns only session state, and the UI uses that state
+     to decide whether the Logoff control exists. -->
+<div id="login-overlay" class="overlay" hidden>
+  <div class="panel">
+    <h2 id="login-brand-title">Beep</h2>
+    <form id="login-form">
+      <input type="password" id="login-password" autocomplete="current-password"
+             placeholder="Password" aria-label="Password" required>
+      <div class="err" id="login-error" role="alert"></div>
+      <button type="submit" class="primary">Unlock</button>
+    </form>
+  </div>
+</div>
+
+<!-- TTL tombstone. This is intentionally separate from login: expiry is
+     terminal and must disable the chat controls rather than prompt again. -->
+<div id="tomb-overlay" class="overlay tomb" hidden>
+  <div class="panel">
+    <h2 id="tomb-brand-title">This Beep is dead</h2>
+    <p id="tomb-message">The Beep Systems Administrator has reached
+      the end of its time to live and is permanently disabled. Reinstall
+      Beep to bring it back.</p>
+  </div>
+</div>
+<script>
+"use strict";
+let conversationId = null;
+const log = document.getElementById("log");
+const viewport = document.getElementById("viewport");
+const form = document.getElementById("form");
+const promptEl = document.getElementById("prompt");
+const sendBtn = document.getElementById("send");
+const stopBtn = document.getElementById("stop");
+const logoutBtn = document.getElementById("logout");
+const statusEl = document.getElementById("status");
+const reactivationBanner = document.getElementById("reactivation-banner");
+const reactivationTitle = document.getElementById("reactivation-title");
+const reactivationDetail = document.getElementById("reactivation-detail");
+const cancelReactivationBtn = document.getElementById("cancel-reactivation");
+const pauseReactivationBtn = document.getElementById("pause-reactivation");
+const stopReactivationBtn = document.getElementById("stop-reactivation");
+const welcomeEl = document.getElementById("welcome");
+const commandMenu = document.getElementById("command-menu");
+let visibleMessages = [];
+let authRequired = false;
+let chatDisabled = false;
+let fullWidthMode = false;
+let brandTitle = "Beep";
+let activeReactivation = null;
+let pendingReactivation = null;
+// turn_id of the fired reactivation continuation currently being streamed
+// live into the transcript, so the poller never attaches to it twice.
+let reactivationLiveTurnId = null;
+let reactivationStreamPaused = false;
+const REACTIVATION_REQUEST_MARKER = "<beep-reactivation>";
+
+// In-flight turn state. ``turnController`` lets the operator (or a
+// client-side timeout) abort a request that the server is taking too
+// long to answer, so the UI can never wedge on a single prompt. The
+// default ceiling is generous — longer than the server-side idle
+// deadlines (Python max_turn_seconds and the bridge
+// BEEP_PI_MONO_IDLE_TIMEOUT) — so a legitimately slow turn always
+// completes (or fails cleanly) server-side before the browser gives up.
+let turnController = null;
+let activeEventSource = null;
+// Client-side timeout handle for the in-flight turn. Shared so that
+// abortTurn() can always disarm it: a timeout left armed after a manual
+// stop would otherwise fire minutes later and abort a *newer* turn.
+let turnTimeoutId = null;
+// Set while a live streamed turn is rendering; called to freeze the
+// live bubble (stop spinner/timer) when the turn ends or is aborted.
+let liveTurnCleanup = null;
+let turnBusy = false;
+let thinkingEl = null;
+let thinkingTimer = null;
+let queuedPrompt = null;
+let queuedBubble = null;
+let transcriptPinnedToBottom = true;
+const CLIENT_TURN_TIMEOUT_MS = 86700000;
+const QUEUED_PROMPT_PREVIEW_CHARS = 4000;
+const MAX_COMMAND_MENU_ITEMS = 8;
+const MAX_PROMPT_PLACEHOLDER_CHARS = 160;
+// Leave time for a pointer press on an option before textarea blur closes it.
+const COMMAND_MENU_BLUR_DELAY_MS = 100;
+
+// ---- /verbose background-activity accounting -----------------------
+// Counts everything the page can see moving: HTTP API calls (with
+// request/response byte sizes), live-stream frames, tool executions
+// and the bytes their stdout/stderr moved, plus streamed reply
+// characters. Two buckets: the current turn and the whole browser
+// session. Pure bookkeeping — no behaviour depends on it beyond the
+// optional detail shown when verbose mode is on. Verbose always
+// assumes OFF: it is an explicit per-page opt-in via /verbose and is
+// deliberately not restored from storage, so a reload returns the UI
+// to its quiet default.
+let verboseMode = false;
+// API request lines fire so often (polling, streaming attach) that they
+// pollute the transcript; they are opt-in inside verbose via
+// ``/verbose api`` and are only recorded while that display is enabled,
+// so background polling never grows the DOM unbounded.
+let verboseApi = false;
+// ``/verbose none`` suppresses every trace of tool information,
+// including tool names in the status line.
+let verboseSuppressAll = false;
+
+function newStatBucket() {
+  return { startedAt: Date.now(),
+           apiCalls: 0, bytesOut: 0, bytesIn: 0, sseEvents: 0,
+           toolCalls: 0, toolFailures: 0, toolOutputBytes: 0,
+           reactivations: 0, streamChars: 0 };
+}
+const netStats = { session: newStatBucket(), turn: newStatBucket() };
+
+const uzTextEncoder = new TextEncoder();
+function byteLength(s) {
+  try { return uzTextEncoder.encode(String(s)).length; }
+  catch (_e) { return String(s).length; }
+}
+
+// Set includeTurn false for server-wide activity unrelated to the
+// conversation turn currently displayed in this browser.
+function tallyStat(field, n = 1, includeTurn = true) {
+  if (!Number.isFinite(n) || n <= 0) return;
+  netStats.session[field] += n;
+  if (includeTurn) netStats.turn[field] += n;
+}
+
+function formatBytes(n) {
+  if (!Number.isFinite(n) || n < 0) n = 0;
+  if (n < 1024) return `${n} B`;
+  const units = ["kB", "MB", "GB"];
+  let u = -1;
+  do { n /= 1024; u++; } while (n >= 1024 && u < units.length - 1);
+  return `${n.toFixed(1)} ${units[u]}`;
+}
+
+function formatDuration(seconds) {
+  seconds = Math.max(0, Math.round(Number(seconds) || 0));
+  const days = Math.floor(seconds / 86400);
+  const hours = Math.floor((seconds % 86400) / 3600);
+  const minutes = Math.floor((seconds % 3600) / 60);
+  if (days) return `${days}d ${hours}h ${minutes}m`;
+  if (hours) return `${hours}h ${minutes}m`;
+  if (minutes) return `${minutes}m ${seconds % 60}s`;
+  return `${seconds}s`;
+}
+
+function versionRelation(installed, latest) {
+  const parse = value => String(value).match(/\d+/g)?.map(Number) || [];
+  const left = parse(installed);
+  const right = parse(latest);
+  for (let i = 0; i < Math.max(left.length, right.length); i++) {
+    const a = left[i] || 0;
+    const b = right[i] || 0;
+    if (a < b) return "<";
+    if (a > b) return ">";
+  }
+  return "=";
+}
+
+function statsSummary(bucket) {
+  const plural = (count, word) => `${count} ${word}${count === 1 ? "" : "s"}`;
+  const elapsed = Math.max(0, Math.round((Date.now() - bucket.startedAt) / 1000));
+  return `${elapsed}s elapsed` +
+    ` · ${plural(bucket.apiCalls, "API call")}` +
+    ` (${formatBytes(bucket.bytesOut)} out · ${formatBytes(bucket.bytesIn)} in)` +
+    ` · ${plural(bucket.toolCalls, "tool call")}` +
+    (bucket.toolFailures ? ` (${bucket.toolFailures} failed)` : "") +
+    ` · ${formatBytes(bucket.toolOutputBytes)} tool output` +
+    ` · ${plural(bucket.reactivations, "reactivation")}` +
+    ` · ${plural(bucket.sseEvents, "stream event")}` +
+    ` · ${bucket.streamChars} streamed chars`;
+}
+
+// The full per-turn account, appended after every completed turn while
+// verbose mode is on — including failed turns, so nothing the page did
+// in the background ever goes unreported.
+function appendVerboseTally() {
+  if (!verboseMode) return;
+  log.appendChild(el("div", { class: "muted verbose-tool-activity",
+    text: `Turn activity snapshot: ${statsSummary(netStats.turn)}` }));
+  scrollLog();
+}
+
+function appendVerboseActivity(text) {
+  const line = el("div", {
+    class: "muted verbose-tool-activity",
+    text,
+  });
+  line.hidden = !verboseMode;
+  log.appendChild(line);
+  scrollLog();
+  return line;
+}
+
+// API call lines are only recorded while ``/verbose api`` display is
+// active: appending a hidden line for every poll would grow the DOM
+// without bound and pollute the UX once verbose turns on.
+function appendVerboseApiActivity(text) {
+  if (!verboseMode || !verboseApi) return null;
+  const line = el("div", {
+    class: "muted verbose-api-activity",
+    text,
+  });
+  log.appendChild(line);
+  scrollLog();
+  return line;
+}
+
+// Route every API call through one wrapper so verbose accounting sees
+// each request exactly once. The response size comes from the
+// Content-Length header the local server always sets on JSON replies.
+const uzNativeFetch = window.fetch.bind(window);
+window.fetch = async (input, init) => {
+  const startedAt = performance.now();
+  const method = String((init && init.method) || "GET").toUpperCase();
+  let target = String(input);
+  try { target = new URL(target, window.location.href).pathname; }
+  catch (_e) { /* retain the original local target */ }
+  tallyStat("apiCalls");
+  if (init && typeof init.body === "string") {
+    tallyStat("bytesOut", byteLength(init.body));
+  }
+  try {
+    const r = await uzNativeFetch(input, init);
+    const len = Number(r.headers.get("content-length") || "");
+    tallyStat("bytesIn", len);
+    appendVerboseApiActivity(
+      `API ${method} ${target} — HTTP ${r.status} · ` +
+      `${Math.round(performance.now() - startedAt)} ms · ${formatBytes(len)} received`
+    );
+    return r;
+  } catch (err) {
+    appendVerboseApiActivity(
+      `API ${method} ${target} — failed after ` +
+      `${Math.round(performance.now() - startedAt)} ms · ${String(err)}`
+    );
+    throw err;
+  }
+};
+
+function el(tag, attrs = {}, ...children) {
+  const e = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs)) {
+    if (k === "class") e.className = v;
+    else if (k === "text") e.textContent = v;
+    else e.setAttribute(k, v);
+  }
+  for (const c of children) {
+    if (c == null) continue;
+    e.appendChild(typeof c === "string" ? document.createTextNode(c) : c);
+  }
+  return e;
+}
+
+function addMessage(role, content, opts = {}) {
+  const cls = opts.error ? `msg ${role} error` : `msg ${role}`;
+  const attrs = { class: cls };
+  if (opts.error) attrs.role = "alert";
+  const wrap = el("div", attrs);
+  const head = el("div", { class: "msg-head" });
+  head.appendChild(el("div", { class: "role",
+    text: opts.error ? "error" : (opts.label || role) }));
+  if (role === "assistant" && content && !opts.error) {
+    const copy = el("button", {
+      type: "button", class: "icon-button", text: "Copy",
+      title: "Copy this response", "aria-label": "Copy this assistant response"
+    });
+    copy.addEventListener("click", async () => {
+      try {
+        await uzCopyText(content);
+        copy.textContent = "Copied";
+        statusEl.textContent = "Response copied.";
+        setTimeout(() => { copy.textContent = "Copy"; }, 1500);
+      } catch (err) {
+        statusEl.textContent = `Could not copy: ${String(err)}`;
+      }
+    });
+    head.appendChild(copy);
+  }
+  wrap.appendChild(head);
+  // Assistant replies are Markdown: render them to safe HTML so code
+  // blocks, lists, headings and emphasis display nicely instead of as
+  // raw characters. Every other role (user/system) stays as plain text.
+  if (role === "assistant" && !opts.error && content) {
+    const body = el("div", { class: "md" });
+    body.innerHTML = renderMarkdown(content);
+    wrap.appendChild(body);
+  } else {
+    wrap.appendChild(el("div", { text: content }));
+  }
+  log.appendChild(wrap);
+  if (opts.record !== false) visibleMessages.push({ role, content });
+  scrollLog();
+  return wrap;
+}
+
+function scrollLog() {
+  // Follow the transcript only when the operator is already reading the
+  // tail. If they have scrolled up to study earlier output, a streaming
+  // token or tool line must not yank them back to the bottom.
+  if (transcriptPinnedToBottom) scrollLogToBottom();
+}
+
+// A message the operator just sent always snaps the view to the bottom,
+// even if they had scrolled up beforehand.
+function scrollLogToBottom() {
+  transcriptPinnedToBottom = true;
+  viewport.scrollTop = viewport.scrollHeight;
+}
+
+viewport.addEventListener("scroll", () => {
+  const slack = 48; // px of "close enough to the bottom" tolerance
+  transcriptPinnedToBottom = viewport.scrollHeight - viewport.scrollTop -
+                             viewport.clientHeight <= slack;
+}, { passive: true });
+
+// Minimal, dependency-free Markdown → HTML renderer. The chat UI is
+// served offline as a single inline document, so we cannot pull a
+// library from a CDN. Correctness here is less important than safety:
+// the input is untrusted model output, so every raw character is
+// HTML-escaped *before* we add any markup of our own, and the only
+// links we emit are http(s). Supported: fenced/indented code, inline
+// code, **bold**/_italic_, # headings, -/*/+ and 1. lists, > quotes,
+// GFM-style tables, and [text](url) links.
+function escapeHtml(s) {
+  return String(s)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+const MATH_SYMBOLS = Object.freeze({
+  leftarrow: "\u2190", uparrow: "\u2191", rightarrow: "\u2192",
+  downarrow: "\u2193", leftrightarrow: "\u2194", Leftarrow: "\u21d0",
+  Uparrow: "\u21d1", Rightarrow: "\u21d2", Downarrow: "\u21d3",
+  Leftrightarrow: "\u21d4", mapsto: "\u21a6", to: "\u2192",
+  alpha: "\u03b1", beta: "\u03b2", gamma: "\u03b3", delta: "\u03b4",
+  epsilon: "\u03b5", theta: "\u03b8", lambda: "\u03bb", mu: "\u03bc",
+  pi: "\u03c0", rho: "\u03c1", sigma: "\u03c3", phi: "\u03c6",
+  omega: "\u03c9", Gamma: "\u0393", Delta: "\u0394", Theta: "\u0398",
+  Lambda: "\u039b", Pi: "\u03a0", Sigma: "\u03a3", Phi: "\u03a6",
+  Omega: "\u03a9", times: "\u00d7", div: "\u00f7", pm: "\u00b1",
+  cdot: "\u22c5", le: "\u2264", leq: "\u2264", ge: "\u2265",
+  geq: "\u2265", ne: "\u2260", neq: "\u2260", approx: "\u2248",
+  in: "\u2208", notin: "\u2209", subset: "\u2282", subseteq: "\u2286",
+  supset: "\u2283", supseteq: "\u2287", cup: "\u222a", cap: "\u2229",
+  forall: "\u2200", exists: "\u2203", emptyset: "\u2205",
+  infinity: "\u221e", infty: "\u221e", partial: "\u2202",
+  nabla: "\u2207", sum: "\u2211", prod: "\u220f", int: "\u222b",
+  sqrt: "\u221a", therefore: "\u2234", because: "\u2235"
+});
+
+function renderMath(escaped) {
+  return escaped.replace(/\\([A-Za-z]+)|\\([{}_$%#&])/g,
+    (match, command, literal) =>
+      literal || Object.prototype.hasOwnProperty.call(MATH_SYMBOLS, command)
+        ? (literal || MATH_SYMBOLS[command])
+        : match);
+}
+
+function renderInline(escaped) {
+  // ``escaped`` is already HTML-escaped. Protect inline code spans from
+  // further substitution by stashing them behind placeholders.
+  const codes = [];
+  let out = escaped.replace(/`([^`]+)`/g, (_m, c) => {
+    codes.push(c);
+    return `\u0000CODE${codes.length - 1}\u0000`;
+  });
+  // Render dependency-free LaTeX-style symbols in dollar-delimited math.
+  // Requiring a backslash command avoids treating ordinary currency as math.
+  const maths = [];
+  out = out.replace(/\$([^$\n]*\\[A-Za-z]+[^$\n]*)\$/g, (_m, body) => {
+    maths.push(`<span class="math" role="math">${renderMath(body)}</span>`);
+    return `\u0000MATH${maths.length - 1}\u0000`;
+  });
+  // Links: only http(s); the URL was escaped above so quotes are safe.
+  // Stash rendered links behind placeholders too, so the emphasis
+  // passes below cannot rewrite `**`/`__`/`*`/`_` sequences inside a
+  // generated href (e.g. https://example.com/a__b__c).
+  const links = [];
+  out = out.replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g,
+    (_m, text, url) => {
+      links.push(
+        `<a href="${url}" target="_blank" rel="noopener noreferrer">${text}</a>`);
+      return `\u0000LINK${links.length - 1}\u0000`;
+    });
+  out = out.replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>");
+  out = out.replace(/__([^_]+)__/g, "<strong>$1</strong>");
+  out = out.replace(/(^|[^*])\*([^*\s](?:[^*]*[^*\s])?)\*/g, "$1<em>$2</em>");
+  out = out.replace(/(^|[^_\w])_([^_\s](?:[^_]*[^_\s])?)_/g, "$1<em>$2</em>");
+  out = out.replace(/\u0000LINK(\d+)\u0000/g, (_m, i) => links[Number(i)]);
+  out = out.replace(/\u0000MATH(\d+)\u0000/g, (_m, i) => maths[Number(i)]);
+  out = out.replace(/\u0000CODE(\d+)\u0000/g,
+    (_m, i) => `<code>${codes[Number(i)]}</code>`);
+  return out;
+}
+
+function renderMarkdown(src) {
+  const lines = String(src).replace(/\r\n?/g, "\n").split("\n");
+  const html = [];
+  let i = 0;
+  let para = [];
+  let list = null; // { tag: "ul"|"ol", items: [string,...] }
+
+  function flushPara() {
+    if (para.length) {
+      html.push("<p>" + para.map(l => renderInline(escapeHtml(l))).join("<br>") + "</p>");
+      para = [];
+    }
+  }
+  function flushList() {
+    if (list) {
+      html.push(`<${list.tag}>` +
+        list.items.map(it => `<li>${renderInline(escapeHtml(it))}</li>`).join("") +
+        `</${list.tag}>`);
+      list = null;
+    }
+  }
+  function flush() { flushPara(); flushList(); }
+  function tableCells(line) {
+    let row = line.trim();
+    if (row.startsWith("|")) row = row.slice(1);
+    if (row.endsWith("|")) row = row.slice(0, -1);
+    return row.split("|").map(cell => cell.trim());
+  }
+  function tableAlignment(cell) {
+    if (!/^:?-+:?$/.test(cell)) return null;
+    if (cell.startsWith(":") && cell.endsWith(":")) return "align-center";
+    if (cell.endsWith(":")) return "align-right";
+    return "align-left";
+  }
+
+  while (i < lines.length) {
+    const line = lines[i];
+    const fence = line.match(/^\s*(```+|~~~+)\s*([\w.+-]*)\s*$/);
+    if (fence) {
+      flush();
+      const marker = fence[1][0];
+      const lang = fence[2];
+      const body = [];
+      i++;
+      while (i < lines.length &&
+             !new RegExp("^\\s*" + marker + "{3,}\\s*$").test(lines[i])) {
+        body.push(lines[i]);
+        i++;
+      }
+      i++; // skip closing fence (if present)
+      const cls = lang ? ` class="language-${lang}"` : "";
+      html.push(`<pre><code${cls}>` + escapeHtml(body.join("\n")) + "</code></pre>");
+      continue;
+    }
+    if (/^\s*$/.test(line)) { flush(); i++; continue; }
+    if (i + 1 < lines.length && line.includes("|")) {
+      const headers = tableCells(line);
+      const separators = tableCells(lines[i + 1]);
+      const alignments = separators.map(tableAlignment);
+      if (headers.length === separators.length &&
+          alignments.every(alignment => alignment !== null)) {
+        flush();
+        i += 2;
+        const rows = [];
+        while (i < lines.length && lines[i].includes("|") &&
+               !/^\s*$/.test(lines[i])) {
+          const cells = tableCells(lines[i]);
+          if (cells.length !== headers.length) break;
+          rows.push(cells);
+          i++;
+        }
+        const head = headers.map((cell, index) =>
+          `<th class="${alignments[index]}">${renderInline(escapeHtml(cell))}</th>`
+        ).join("");
+        const body = rows.map(cells => "<tr>" + cells.map((cell, index) =>
+          `<td class="${alignments[index]}">${renderInline(escapeHtml(cell))}</td>`
+        ).join("") + "</tr>").join("");
+        html.push('<div class="table-wrap" tabindex="0" ' +
+          'aria-label="Scrollable Markdown table"><table><thead><tr>' +
+          head + "</tr></thead><tbody>" + body + "</tbody></table></div>");
+        continue;
+      }
+    }
+    const heading = line.match(/^(#{1,6})\s+(.*)$/);
+    if (heading) {
+      flush();
+      const level = heading[1].length;
+      html.push(`<h${level}>${renderInline(escapeHtml(heading[2]))}</h${level}>`);
+      i++;
+      continue;
+    }
+    const quote = line.match(/^\s*>\s?(.*)$/);
+    if (quote) {
+      flushPara(); flushList();
+      const buf = [];
+      while (i < lines.length && /^\s*>\s?/.test(lines[i])) {
+        buf.push(lines[i].replace(/^\s*>\s?/, ""));
+        i++;
+      }
+      html.push("<blockquote>" + renderMarkdown(buf.join("\n")) + "</blockquote>");
+      continue;
+    }
+    const ul = line.match(/^\s*[-*+]\s+(.*)$/);
+    const ol = line.match(/^\s*\d+[.)]\s+(.*)$/);
+    if (ul || ol) {
+      flushPara();
+      const tag = ul ? "ul" : "ol";
+      const item = (ul ? ul[1] : ol[1]);
+      if (!list || list.tag !== tag) { flushList(); list = { tag, items: [] }; }
+      list.items.push(item);
+      i++;
+      continue;
+    }
+    flushList();
+    para.push(line);
+    i++;
+  }
+  flush();
+  return html.join("\n");
+}
+
+function showThinking() {
+  const wrap = el("div", { class: "msg assistant thinking" });
+  wrap.appendChild(el("div", { class: "role", text: "assistant" }));
+  const dots = el("div", { class: "dots" }, el("i", {}), el("i", {}), el("i", {}));
+  const label = el("span", { text: "Thinking… 0s" });
+  wrap.appendChild(dots);
+  wrap.appendChild(label);
+  log.appendChild(wrap);
+  scrollLog();
+  const started = Date.now();
+  thinkingTimer = setInterval(() => {
+    const secs = Math.round((Date.now() - started) / 1000);
+    label.textContent = `Thinking… ${secs}s`;
+  }, 1000);
+  return wrap;
+}
+
+function clearThinking() {
+  if (thinkingTimer !== null) { clearInterval(thinkingTimer); thinkingTimer = null; }
+  if (thinkingEl) { thinkingEl.remove(); thinkingEl = null; }
+}
+
+let pendingAbortStatus = null;
+
+function setBusy(busy) {
+  // Keep both composer and submit enabled so keyboard and pointer users
+  // can queue the next message while slash commands remain available.
+  sendBtn.disabled = chatDisabled;
+  sendBtn.textContent = busy ? "Queue" : "Send";
+  sendBtn.title = busy ? "Queue this message to send next" : "Send message";
+  turnBusy = busy;
+  stopBtn.hidden = !busy;
+  log.setAttribute("aria-busy", busy ? "true" : "false");
+  statusEl.textContent = busy ? "Agent is working…" : (pendingAbortStatus || "");
+  pendingAbortStatus = null;
+}
+
+function abortTurn(reason) {
+  if (turnTimeoutId !== null) { clearTimeout(turnTimeoutId); turnTimeoutId = null; }
+  if (turnController) {
+    try { turnController.abort(); } catch (_e) { /* ignore */ }
+  }
+  if (activeEventSource) {
+    try { activeEventSource.close(); } catch (_e) { /* ignore */ }
+    activeEventSource = null;
+    if (liveTurnCleanup) {
+      liveTurnCleanup("Stopped — the agent may still finish in the background.");
+    }
+  }
+  // A stopped stream must release the reactivation attach guard so a later
+  // fired continuation can be streamed live again.
+  reactivationLiveTurnId = null;
+  // Reset uniformly for both the streaming and the sync fallback path,
+  // and keep the abort reason visible even though the sync path's
+  // `finally` calls setBusy(false) after this runs.
+  turnController = null;
+  setBusy(false);
+  promptEl.focus();
+  if (reason) {
+    statusEl.textContent = reason;
+    // Let the reason survive the sync fallback's `finally` setBusy(false).
+    pendingAbortStatus = reason;
+  }
+  drainQueuedPrompt();
+}
+
+stopBtn.addEventListener("click", () => abortTurn("Stopped."));
+
+function renderResult(result) {
+  const wrap = el("div", { class: "result" });
+  if (result && result.exit_code !== undefined && result.exit_code !== null) {
+    wrap.appendChild(el("div", {
+      text: `exit ${result.exit_code}` +
+            (typeof result.duration_ms === "number" ? ` · ${result.duration_ms} ms` : "")
+    }));
+  }
+  // Tool output almost always ends with "\n"; a raw trailing newline
+  // inside the dark <pre> paints an extra empty dark line under every
+  // observation, so trim it (and skip whitespace-only output entirely).
+  const rtrim = (s) => String(s).replace(/\s+$/, "");
+  if (result && result.stdout && rtrim(result.stdout)) {
+    wrap.appendChild(el("pre", { text: rtrim(result.stdout) }));
+  }
+  if (result && result.stderr && rtrim(result.stderr)) {
+    const pre = el("pre", { text: rtrim(result.stderr) });
+    pre.style.color = "#e74c3c";
+    wrap.appendChild(pre);
+  }
+  if (result && result.content && !result.stdout && rtrim(result.content)) {
+    wrap.appendChild(el("pre", { text: rtrim(result.content) }));
+  }
+  if (result && result.follow_up && result.follow_up.length) {
+    const f = el("div", {});
+    f.appendChild(el("div", { text: "Suggested follow-ups:" }));
+    for (const cmd of result.follow_up) f.appendChild(el("code", { text: cmd }));
+    wrap.appendChild(f);
+  }
+  // Never leave a bare, contentless box in the transcript: an empty
+  // observation is real information ("the tool ran and printed
+  // nothing"), so say so instead of showing nothing.
+  if (!wrap.childElementCount) {
+    wrap.appendChild(el("div", { class: "muted", text: "(no output)" }));
+  }
+  return wrap;
+}
+
+// pi-mono emits structured tool events instead of fenced bash.
+// Three bubble types replace the old renderProposal:
+//
+//   tool_call          — every tool dispatch (auto or queued)
+//   tool_observation   — the recorded result (or denial)
+//   pending_tool_call  — operator gate for elevated calls
+//
+// A per-turn counter (see renderTurnCounter below) reminds the
+// operator that the agent is bounded by ``policy.yaml`` budgets.
+function summarizeArgs(args) {
+  if (!args || typeof args !== "object") return "";
+  try { return JSON.stringify(args); }
+  catch (_e) { return String(args); }
+}
+
+function toolArgumentPayload(p) {
+  // Live bridge frames carry the audit-safe ``args_summary`` field;
+  // stored history keeps the same summary under ``args``.
+  return p.args_summary ?? p.args;
+}
+
+function serializedToolArguments(args, pretty = false) {
+  if (args === null || args === undefined || args === "") return "";
+  if (typeof args === "string") return args;
+  if (typeof args !== "object") return String(args);
+  try { return JSON.stringify(args, null, pretty ? 2 : 0); }
+  catch (_e) { return String(args); }
+}
+
+function formatToolArguments(args) {
+  if (args === null || args === undefined || args === "") return "";
+  if (typeof args === "string") return args;
+  if (typeof args !== "object") return String(args);
+  // ``command`` is the operator-facing payload for shell-style tools;
+  // other keys stay JSON-formatted metadata below it.
+  const command = typeof args.command === "string" ? args.command : "";
+  const rest = {};
+  for (const [key, value] of Object.entries(args)) {
+    if (key !== "command") rest[key] = value;
+  }
+  let restText = "";
+  if (Object.keys(rest).length) {
+    restText = serializedToolArguments(rest, true);
+  }
+  if (command && restText) return `${command}\n${restText}`;
+  if (command) return command;
+  return serializedToolArguments(args, true);
+}
+
+function toolArgumentBytes(args) {
+  return byteLength(serializedToolArguments(args));
+}
+
+// The first few words of the arguments, shown inline on the tool line
+// so the operator can tell calls apart without opening the inspector.
+function toolArgumentPreview(args, maxWords = 6, maxChars = 48) {
+  const text = formatToolArguments(args).replace(/\s+/g, " ").trim();
+  if (!text) return "";
+  let preview = text.split(" ").slice(0, maxWords).join(" ");
+  if (preview.length > maxChars) preview = preview.slice(0, maxChars);
+  return preview + (preview.length < text.length ? "…" : "");
+}
+
+function formatToolDoneNote(tool, status, bits, preview = "") {
+  return `${tool}` + (preview ? ` · ${preview}` : "") + ` · ${status}` +
+    (bits.length ? ` · ${bits.join(" · ")}` : "");
+}
+
+function buildToolMetricParts(payload, inputBytes = 0, outputBytes = null) {
+  const metricParts = [];
+  if (payload.exit_code != null) {
+    metricParts.push(`exit ${payload.exit_code}`);
+  }
+  if (typeof payload.duration_ms === "number") metricParts.push(`${payload.duration_ms} ms`);
+  if (inputBytes > 0) metricParts.push(`${formatBytes(inputBytes)} in`);
+  if (outputBytes !== null) metricParts.push(`${formatBytes(outputBytes)} out`);
+  return metricParts;
+}
+
+function renderToolCall(p) {
+  const wrap = el("div", {
+    class: `proposal verbose-tool-activity ${p.classification || "tool"}`
+  });
+  wrap.hidden = !verboseMode;
+  wrap.appendChild(el("div", { class: "class",
+    text: `${p.tool} · ${p.classification || "?"} · ${p.decision || "?"}` }));
+  const args = formatToolArguments(toolArgumentPayload(p));
+  if (args) wrap.appendChild(el("code", { text: args }));
+  if (p.error) wrap.appendChild(el("div", { class: "system error", text: p.error }));
+  return wrap;
+}
+
+function renderToolObservation(p) {
+  const wrap = el("div", { class: "result verbose-tool-activity" });
+  wrap.hidden = !verboseMode;
+  const header = `observation · ${p.tool}` +
+                 (p.decision ? ` · ${p.decision}` : "");
+  wrap.appendChild(el("div", { class: "role", text: header }));
+  if (p.ok === false) {
+    wrap.appendChild(el("div", { class: "system error",
+      text: p.error || "tool failed" }));
+  } else {
+    wrap.appendChild(renderResult(p.result || {}));
+  }
+  return wrap;
+}
+
+function renderPendingToolCall(p) {
+  const wrap = el("div", { class: `proposal ${p.classification || "tool"}` });
+  wrap.appendChild(el("div", { class: "class",
+    text: `${p.tool} · ${p.classification} · awaiting approval` }));
+  const actions = el("div", { class: "actions" });
+  let phraseInput = null;
+  if (p.requires_phrase) {
+    const inputId = `approval-${String(p.tool_call_id || p.id || "tool")
+      .replace(/[^a-zA-Z0-9_-]/g, "-")}`;
+    actions.appendChild(el("label", {
+      for: inputId, text: `Type “${p.confirm_phrase}” to confirm`
+    }));
+    phraseInput = el("input", { type: "text",
+      id: inputId, placeholder: p.confirm_phrase,
+      autocomplete: "off", spellcheck: "false" });
+    actions.appendChild(phraseInput);
+  }
+  const approve = el("button", { class: "primary", text: "Approve" });
+  const deny = el("button", { class: "danger", text: "Deny" });
+  approve.addEventListener("click", async () => {
+    approve.disabled = deny.disabled = true;
+    const body = { tool_call_id: p.tool_call_id, decision: "approve" };
+    if (phraseInput) body.phrase = phraseInput.value;
+    let data;
+    try {
+      const r = await fetch("/api/approve", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      data = await r.json();
+    } catch (err) {
+      // A network failure must not wedge the buttons disabled: the call
+      // is still pending server-side, so let the operator retry.
+      approve.disabled = deny.disabled = false;
+      wrap.appendChild(el("div", { class: "system error", text: String(err) }));
+      return;
+    }
+    if (data.error) {
+      approve.disabled = deny.disabled = false;
+      wrap.appendChild(el("div", { class: "system error", text: data.error }));
+    } else {
+      actions.remove();
+      if (data.result) wrap.appendChild(renderResult(data.result));
+      else wrap.appendChild(el("div", { text: `(${data.status})` }));
+    }
+  });
+  deny.addEventListener("click", async () => {
+    approve.disabled = deny.disabled = true;
+    try {
+      await fetch("/api/approve", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ tool_call_id: p.tool_call_id, decision: "deny" }),
+      });
+    } catch (err) {
+      approve.disabled = deny.disabled = false;
+      wrap.appendChild(el("div", { class: "system error", text: String(err) }));
+      return;
+    }
+    actions.remove();
+    wrap.appendChild(el("div", { text: "Denied." }));
+  });
+  actions.appendChild(approve);
+  actions.appendChild(deny);
+  wrap.appendChild(actions);
+  return wrap;
+}
+
+function renderTurnCounter(events) {
+  const calls = events.filter(e => e.kind === "tool_call");
+  const total = calls.length;
+  const elevated = calls.filter(e =>
+    e.payload && e.payload.classification && e.payload.classification !== "read_only"
+  ).length;
+  const wrap = el("div", { class: "system verbose-tool-activity", text:
+    `Turn budget: ${total} tool call${total === 1 ? "" : "s"}` +
+    ` (${elevated} elevated)` });
+  wrap.hidden = !verboseMode;
+  return wrap;
+}
+
+function renderSkillActive(p) {
+  const wrap = el("div", { class: "system" });
+  const name = p.name || "?";
+  const path = p.path || "";
+  wrap.appendChild(el("div", { class: "role", text: "skill loaded" }));
+  wrap.appendChild(el("div", { text: `${name} — ${path}` }));
+  return wrap;
+}
+
+function renderReactivationFiredEvent(p) {
+  const detail = p.reason ? ` — ${p.reason}` : "";
+  const index = Number(p.chain_index) > 0 ? ` (continuation ${Number(p.chain_index)})` : "";
+  return el("div", {
+    class: "system",
+    text: `Reactivation started${index}${detail}.`,
+  });
+}
+
+function renderReactivationFailedEvent(p) {
+  const detail = p.error ? ` ${p.error}.` : "";
+  return el("div", {
+    class: "system error",
+    text: `Reactivation did not run:${detail || " unknown reason."}`,
+  });
+}
+
+function renderEvent(ev) {
+  const p = ev.payload || {};
+  if (ev.kind === "tool_call") return renderToolCall(p);
+  if (ev.kind === "tool_observation") return renderToolObservation(p);
+  if (ev.kind === "pending_tool_call") return renderPendingToolCall(p);
+  if (ev.kind === "skill_active") return renderSkillActive(p);
+  if (ev.kind === "reactivation_fired") return renderReactivationFiredEvent(p);
+  if (ev.kind === "reactivation_failed" || ev.kind === "reactivation_cancelled")
+    return renderReactivationFailedEvent(p);
+  return null;
+}
+
+// Client-side slash commands. Most commands run entirely in the
+// browser or call small loopback JSON endpoints that expose already
+// local state. None of these commands adds a new host-privileged path:
+// conversation edits mutate only SQLite, approval commands resolve the
+// existing pending tool queue, /logout only clears the password-gate
+// browser session, and /retry is the only command that
+// intentionally sends a prompt back through the model.
+const SLASH_COMMANDS = [
+  ["/audit", "Show recent audit entries.", "Diagnostics"],
+  ["/approve [id] [phrase]", "Approve a pending tool call.", "Tools"],
+  ["/branch [name]", "Copy the current conversation to a new branch.", "Conversation"],
+  ["/clear", "Clear this browser view only.", "Conversation"],
+  ["/commands [filter]", "Browse or filter the command list.", "Help"],
+  ["/compress", "Create a local summary for future context.", "Conversation"],
+  ["/config", "Show redacted runtime configuration.", "Configuration"],
+  ["/conversations", "List recent conversations (aliases: /history, /sessions).", "Conversation"],
+  ["/copy [n]", "Copy the nth most recent visible assistant response.", "Conversation"],
+  ["/deny [id]", "Deny a pending tool call.", "Tools"],
+  ["/examples", "Show safe example prompts.", "Help"],
+  ["/export", "Download Markdown and JSON transcript files (alias: /save).", "Conversation"],
+  ["/fullwidth [on|off]", "Toggle full-width chat display.", "Configuration"],
+  ["/health", "Show basic machine facts.", "Diagnostics"],
+  ["/help [command]", "List commands or explain one command.", "Help"],
+  ["/load <id...>|last", "Load one, several, or the latest conversation (alias: /resume).", "Conversation"],
+  ["/logout", "Log out and ask for the chat password again.", "Session"],
+  ["/local [url]", "List or switch the active local API.", "Configuration"],
+  ["/locals", "List discovered local API URLs.", "Configuration"],
+  ["/model [id]", "List or switch the active model.", "Configuration"],
+  ["/models", "List models available from the active provider.", "Configuration"],
+  ["/new", "Start a new conversation (alias: /reset).", "Conversation"],
+  ["/password [new password]", "Set or remove the chat password after confirmation.", "Session"],
+  ["/policy", "Show policy classes and rule counts.", "Configuration"],
+  ["/profile", "Show the active local profile.", "Configuration"],
+  ["/purpose", "Show the starter purpose buttons inline in this chat.", "Help"],
+  ["/redraw", "Reload the current conversation from SQLite.", "Conversation"],
+  ["/reactivation [on|off|cancel|reset|minimum <duration>|maximum <duration>]", "Show, reset, or configure agent reactivation (alias: /reactivate).", "Session"],
+  ["/rebrand [title]", "Rebrand this browser's Beep UI; omit title to reset.", "Configuration"],
+  ["/reprompt [placeholder]", "Replace this browser's prompt placeholder; omit text to reset.", "Configuration"],
+  ["/retry", "Retry the last user turn in a new branch.", "Conversation"],
+  ["/shortcuts", "Show keyboard shortcuts.", "Help"],
+  ["/skills [name]", "List skills or preview one skill.", "Tools"],
+  ["/status", "Show compact host and provider status.", "Diagnostics"],
+  ["/stop", "Cancel the turn that is currently running.", "Session"],
+  ["/title <text>", "Set the current conversation title.", "Conversation"],
+  ["/tools", "List the closed tool registry.", "Tools"],
+  ["/ttl [duration|reset [duration]|--die]", "Show, extend, reset, or trip the Time to Live.", "Session"],
+  ["/undo [n]", "Rewind n user turns in a new branch.", "Conversation"],
+  ["/verbose [on|off|none|api]", "Toggle background-activity detail: tool calls, bytes moved. \"api\" toggles API-call display; \"none\" also suppresses tool info in statuses. Off by default; resets on reload.", "Diagnostics"],
+  ["/version", "Show Beep and bridge versions.", "Diagnostics"],
+  ["/whoami", "Show the active agent identity.", "Configuration"]
+];
+
+const COMMAND_DETAILS = {
+  "/audit": "Shows the 50 latest local audit records without contacting the provider or changing the log.",
+  "/approve": "Approves a pending privileged tool call. Omit the id to list pending calls.",
+  "/branch": "Copies the current conversation into a new one while preserving the original.",
+  "/clear": "Clears the visible browser transcript without deleting stored history.",
+  "/commands": "Lists commands and descriptions. Add a filter to search them.",
+  "/compress": "Creates a local conversation summary without provider usage or changing the transcript.",
+  "/config": "Shows redacted runtime settings, paths, provider details, and secret status.",
+  "/conversations": "Lists recent stored conversations and their ids. Aliases: /history, /sessions.",
+  "/copy": "Copies a visible assistant response to the clipboard, defaulting to the latest.",
+  "/deny": "Rejects a pending privileged tool call. Omit the id to list pending calls.",
+  "/examples": "Shows bundled safe example prompts without sending them to the model.",
+  "/export": "Downloads the current conversation as Markdown and JSON. Alias: /save.",
+  "/fullwidth": "Toggles or explicitly sets full-width chat layout for this page.",
+  "/health": "Shows basic local system details without contacting the provider.",
+  "/help": "Shows command help by category or detailed help for one command.",
+  "/load": "Loads stored conversations: one id, several ids shown in order with the last made active, or last for the newest. Alias: /resume.",
+  "/logout": "Ends the current browser session and returns to the login prompt.",
+  "/local": "Discovers local OpenAI-compatible APIs or activates a selected server.",
+  "/locals": "Scans the local network for supported OpenAI-compatible model servers.",
+  "/model": "Lists available models or selects one for future turns.",
+  "/models": "Shows the active provider's model catalogue and selected model.",
+  "/new": "Starts a blank conversation without deleting stored conversations. Alias: /reset.",
+  "/password": "Sets, changes, or removes the chat password and invalidates existing sessions.",
+  "/policy": "Shows tool policies, approvals, mappings, rule counts, and safety budgets.",
+  "/profile": "Shows the active agent profile and loaded instruction metadata.",
+  "/purpose": "Shows the starter purpose buttons inline so more prompts can be picked in the same conversation.",
+  "/redraw": "Reloads the active conversation and tool events from local storage.",
+  "/reactivation": "Shows the single upcoming agent continuation, enables or disables scheduling, cancels it, resets the mechanism to a clean default state, or configures bounded minimum and maximum delays. Alias: /reactivate.",
+  "/rebrand": "Changes this browser's interface branding or resets it to Beep.",
+  "/reprompt": "Changes the prompt placeholder for this browser or resets it to the default.",
+  "/retry": "Branches before the latest user turn and submits that prompt again.",
+  "/shortcuts": "Lists keyboard shortcuts for sending, queueing, line breaks, and stopping.",
+  "/skills": "Lists installed skills or previews one skill's triggers and instructions.",
+  "/status": "Shows provider, model, host, resource, runtime, latency, and usage status.",
+  "/stop": "Requests cancellation of the active model response.",
+  "/title": "Changes the stored title of the current conversation.",
+  "/tools": "Lists registered tools, descriptions, and policy classifications.",
+  "/ttl": "Shows or changes the Time to Live kill switch.",
+  "/undo": "Creates a preserved branch rewound by one or more user turns.",
+  "/verbose": "Toggles detailed streaming, tool, byte, and timing activity; statistics start when verbose mode is enabled. \"/verbose api\" toggles API-call display within verbose; \"/verbose none\" suppresses all tool information, including in statuses.",
+  "/version": "Shows installed component versions and checks for newer releases.",
+  "/whoami": "Shows the local agent identity, host, provider, model, and instructions."
+};
+
+const COMMAND_ALIASES = {
+  "/exit": "/logout",
+  "/history": "/conversations",
+  "/quit": "/logout",
+  "/reset": "/new",
+  "/reactivate": "/reactivation",
+  "/resume": "/load",
+  "/save": "/export",
+  "/sessions": "/conversations"
+};
+
+function timestamp(value) {
+  if (typeof value === "number" && isFinite(value)) {
+    return new Date(value * 1000).toLocaleString();
+  }
+  return value ? String(value) : "";
+}
+
+function renderConversation(messages, events) {
+  // Replay a stored conversation faithfully: interleave chat messages
+  // and tool events by their recorded timestamp so a loaded transcript
+  // reads in the same order it happened live (rather than every message
+  // first, then every tool call bunched at the end). ``seq`` is a single
+  // counter spanning both arrays, so when two items share a timestamp
+  // the tiebreak is their original insertion order (messages are added
+  // before the tool events they trigger).
+  const items = [];
+  let seq = 0;
+  for (const m of messages || []) {
+    if (m.role === "user" || m.role === "assistant") {
+      // A stored message with no content (e.g. an empty final reply)
+      // would paint a blank bubble — an empty line in the transcript —
+      // so skip it entirely.
+      if (!m.content || !String(m.content).trim()) continue;
+      const auto = m.role === "user" && m.meta && m.meta.auto_reactivation;
+      items.push({ at: m.created_at, seq: seq++, node: () =>
+        addMessage(m.role, m.content, {
+          label: auto ? "queued by reactivation timer" : undefined,
+        })
+      });
+    }
+  }
+  for (const ev of events || []) {
+    items.push({ at: ev.created_at, seq: seq++, node: () => {
+      const n = renderEvent(ev);
+      if (n) log.appendChild(n);
+    }});
+  }
+  items.sort((a, b) => {
+    const at = (typeof a.at === "number") ? a.at : 0;
+    const bt = (typeof b.at === "number") ? b.at : 0;
+    return at === bt ? a.seq - b.seq : at - bt;
+  });
+  for (const item of items) item.node();
+}
+
+function uzClearLog() {
+  log.replaceChildren();
+  visibleMessages = [];
+}
+
+async function uzFetchJson(path) {
+  const r = await fetch(path);
+  const data = await r.json().catch(() => ({}));
+  if (!r.ok || data.error) throw new Error(data.error || `${path} -> HTTP ${r.status}`);
+  return data;
+}
+
+function showQueuedPrompt(prompt, replaced = null) {
+  if (!queuedBubble) {
+    queuedBubble = el("div", { class: "msg user queued" });
+    queuedBubble.appendChild(el("div", { class: "role", text: "queued" }));
+    log.appendChild(queuedBubble);
+  }
+  queuedBubble.replaceChildren(
+    el("div", { class: "role", text: "queued" }),
+    el("div", { text: replaced
+      ? "Queued - replaced the previous queued message shown below."
+      : "Queued - will be sent when the current turn finishes. A page refresh discards it." })
+  );
+  // Keep the transient queue bubble bounded; the full prompt is still
+  // sent from queuedPrompt, only the on-screen preview is clipped.
+  if (replaced) {
+    queuedBubble.appendChild(el("div", { class: "role", text: "replaced" }));
+    queuedBubble.appendChild(el("pre", { text: replaced.slice(0, QUEUED_PROMPT_PREVIEW_CHARS) }));
+    queuedBubble.appendChild(el("div", { class: "role", text: "will send next" }));
+  }
+  queuedBubble.appendChild(el("pre", { text: prompt.slice(0, QUEUED_PROMPT_PREVIEW_CHARS) }));
+  const actions = el("div", { class: "actions" });
+  const discard = el("button", { type: "button", text: "Discard queued message" });
+  discard.addEventListener("click", () => {
+    queuedPrompt = null;
+    if (queuedBubble) queuedBubble.remove();
+    queuedBubble = null;
+  });
+  actions.appendChild(discard);
+  queuedBubble.appendChild(actions);
+  scrollLog();
+}
+
+function queuePrompt(prompt) {
+  const previousPrompt = queuedPrompt;
+  queuedPrompt = prompt;
+  showQueuedPrompt(prompt, previousPrompt);
+}
+
+function drainQueuedPrompt() {
+  if (!queuedPrompt || turnBusy) return;
+  const next = queuedPrompt;
+  queuedPrompt = null;
+  if (queuedBubble) queuedBubble.remove();
+  queuedBubble = null;
+  // Let the DOM remove the queued bubble before the next turn appends
+  // its user message and starts streaming.
+  setTimeout(() => { uzSendPrompt(next); }, 0);
+}
+
+async function uzPostJson(path, body = {}) {
+  const r = await fetch(path, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  const data = await r.json().catch(() => ({}));
+  if (!r.ok || data.error) throw new Error(data.error || `${path} -> HTTP ${r.status}`);
+  return data;
+}
+
+function uzFormatSeconds(value) {
+  const seconds = Math.max(0, Number(value) || 0);
+  if (seconds < 60) return `${Math.ceil(seconds)}s`;
+  if (seconds < 3600) return `${Math.ceil(seconds / 60)}m`;
+  return `${Math.ceil(seconds / 3600)}h`;
+}
+
+function visibleReactivationReply(markdown) {
+  const marker = REACTIVATION_REQUEST_MARKER;
+  const markerAt = markdown.indexOf(marker);
+  if (markerAt >= 0) return markdown.slice(0, markerAt).replace(/\s+$/, "");
+  const limit = Math.min(markdown.length, marker.length - 1);
+  for (let suffixLength = limit; suffixLength > 0; suffixLength--) {
+    if (marker.startsWith(markdown.slice(-suffixLength))) {
+      return markdown.slice(0, -suffixLength).replace(/\s+$/, "");
+    }
+  }
+  return markdown;
+}
+
+// Stream a fired reactivation continuation live into the transcript. The
+// daemon already started the turn server-side; here the browser syncs the
+// conversation (so the synthetic queued-user bubble and prior history are
+// present) and then attaches to the running turn's SSE stream, reusing the
+// same live renderer as operator sends so tools and tokens appear in real
+// time instead of only after the turn finishes.
+async function uzStreamReactivationTurn(active) {
+  // Already streaming this continuation, or another turn currently owns the
+  // live stream: leave it running rather than attaching twice.
+  if (reactivationLiveTurnId === active.turn_id) return;
+  if (activeEventSource) return;
+  reactivationLiveTurnId = active.turn_id;
+  reactivationStreamPaused = false;
+  try {
+    await uzLoadConversation(active.conversation_id,
+      `Reactivation started for conversation #${active.conversation_id}.`);
+  } catch (_err) {
+    // A reload failure must not stop us from attaching to the live turn.
+  }
+  setBusy(true);
+  uzStreamLiveTurn(active.turn_id, {
+    finalize: () => {
+      reactivationLiveTurnId = null;
+      reactivationStreamPaused = false;
+      // Clear the tracked active turn so the completion branch does not
+      // reload and discard the freshly streamed transcript.
+      activeReactivation = null;
+      setBusy(false);
+      // A continuation may already be queued; surface it (and stream the
+      // next fired turn) without waiting for the slow poll interval.
+      void refreshReactivation();
+    },
+  });
+}
+
+async function uzResumeReactivationStream() {
+  if (activeReactivation) await uzStreamReactivationTurn(activeReactivation);
+}
+
+function showPendingReactivation(pending) {
+  reactivationTitle.textContent = "Reactivation queued";
+  pendingReactivation = pending;
+  const when = new Date(Number(pending.fire_at) * 1000);
+  const preview = String(pending.prompt || "").replace(/\s+/g, " ").slice(0, 100);
+  const remaining = Number.isFinite(Number(pending.remaining_seconds))
+    ? Number(pending.remaining_seconds)
+    : Math.max(0, Math.round(Number(pending.fire_at) - Date.now() / 1000));
+  reactivationDetail.textContent =
+    `${pending.reason} · ${when.toLocaleString()} ` +
+    `(${uzFormatSeconds(remaining)}) · ${preview}`;
+  cancelReactivationBtn.hidden = false;
+  pauseReactivationBtn.hidden = true;
+  stopReactivationBtn.hidden = true;
+  reactivationBanner.hidden = false;
+}
+
+async function refreshReactivation() {
+  try {
+    const data = await uzFetchJson("/api/reactivation");
+    const pending = data.pending;
+    const active = data.active;
+    if (active) {
+      reactivationTitle.textContent = "Reactivation processing";
+      reactivationDetail.textContent = active.reason || "Scheduled continuation";
+      cancelReactivationBtn.hidden = true;
+      pauseReactivationBtn.hidden = false;
+      pauseReactivationBtn.textContent = reactivationStreamPaused ? "Resume" : "Pause";
+      stopReactivationBtn.hidden = false;
+      reactivationBanner.hidden = false;
+      if (active.turn_id !== activeReactivation?.turn_id) {
+        const currentConversation =
+          Number(active.conversation_id) === Number(conversationId);
+        const startsLocalTurn = currentConversation && !activeEventSource;
+        if (startsLocalTurn) netStats.turn = newStatBucket();
+        tallyStat("reactivations", 1, startsLocalTurn);
+        appendVerboseActivity(
+          `Reactivation ${active.id || active.turn_id} started.`);
+        activeReactivation = active;
+        pendingReactivation = null;
+        if (currentConversation) {
+          await uzStreamReactivationTurn(active);
+        }
+      }
+      return data;
+    }
+    if (activeReactivation) {
+      const completed = activeReactivation;
+      activeReactivation = null;
+      if (Number(completed.conversation_id) === Number(conversationId)) {
+        await uzLoadConversation(completed.conversation_id,
+          "Reactivation finished.");
+      }
+    } else if (!pending && pendingReactivation) {
+      const completed = pendingReactivation;
+      pendingReactivation = null;
+      if (Number(completed.conversation_id) === Number(conversationId)) {
+        await uzLoadConversation(completed.conversation_id,
+          "Reactivation finished.");
+      }
+    }
+    if (!pending) {
+      const last = data.last;
+      if (last && last.status !== "fired" && last.error) {
+        // Keep the reason a chain stopped visible instead of silently
+        // hiding the banner.
+        reactivationTitle.textContent = "Reactivation stopped";
+        reactivationDetail.textContent =
+          `${last.status}: ${last.error} · ${last.reason || ""}`.trim();
+        cancelReactivationBtn.hidden = true;
+        pauseReactivationBtn.hidden = true;
+        stopReactivationBtn.hidden = true;
+        reactivationBanner.hidden = false;
+        return data;
+      }
+      reactivationBanner.hidden = true;
+      reactivationDetail.textContent = "";
+      pauseReactivationBtn.hidden = true;
+      stopReactivationBtn.hidden = true;
+      return data;
+    }
+    showPendingReactivation(pending);
+    return data;
+  } catch (_err) {
+    reactivationBanner.hidden = true;
+    return null;
+  }
+}
+
+cancelReactivationBtn.addEventListener("click", async () => {
+  cancelReactivationBtn.disabled = true;
+  try {
+    const data = await uzPostJson("/api/reactivation", { cancel: true });
+    reactivationBanner.hidden = true;
+    if (data.cancelled) addMessage("system", "Upcoming reactivation cancelled.");
+  } catch (err) {
+    addMessage("system", String(err), { error: true });
+  } finally {
+    cancelReactivationBtn.disabled = false;
+    await refreshReactivation();
+  }
+});
+
+pauseReactivationBtn.addEventListener("click", async () => {
+  if (!activeReactivation) return;
+  if (reactivationStreamPaused) {
+    await uzResumeReactivationStream();
+    return;
+  }
+  reactivationStreamPaused = true;
+  pauseReactivationBtn.textContent = "Resume";
+  if (activeEventSource) {
+    activeEventSource.close();
+    activeEventSource = null;
+  }
+  if (liveTurnCleanup) {
+    liveTurnCleanup("Paused — reactivation continues in the background.");
+  }
+  reactivationLiveTurnId = null;
+  setBusy(false);
+});
+
+stopReactivationBtn.addEventListener("click", async () => {
+  if (!activeReactivation) return;
+  stopReactivationBtn.disabled = true;
+  try {
+    await uzPostJson(
+      `/api/turn/${encodeURIComponent(activeReactivation.turn_id)}/stop`, {});
+    abortTurn("Reactivation stopped.");
+  } catch (err) {
+    addMessage("system", String(err), { error: true });
+  } finally {
+    stopReactivationBtn.disabled = false;
+    await refreshReactivation();
+  }
+});
+
+function uzCommandEntries(filter = "") {
+  const needle = filter.trim().toLowerCase();
+  const entries = SLASH_COMMANDS
+    .filter(([cmd, desc, group]) => !needle || cmd.toLowerCase().includes(needle) ||
+      desc.toLowerCase().includes(needle) || group.toLowerCase().includes(needle))
+    .slice()
+    .sort(([cmdA, , groupA], [cmdB, , groupB]) =>
+      groupA.localeCompare(groupB) || cmdA.localeCompare(cmdB));
+  return entries;
+}
+
+function uzCommandHelp(filter = "") {
+  if (!filter.trim()) {
+    const groups = new Map();
+    for (const [cmd, _description, group] of uzCommandEntries()) {
+      if (!groups.has(group)) groups.set(group, []);
+      groups.get(group).push(cmd.split(" ")[0]);
+    }
+    const lines = Array.from(groups, ([group, commands]) =>
+      `${group}: ${commands.join("  ")}`);
+    lines.push("", "Type /commands <filter> for descriptions.");
+    return lines;
+  }
+  const lines = [];
+  let group = "";
+  for (const [cmd, desc, nextGroup] of uzCommandEntries(filter)) {
+    if (nextGroup !== group) {
+      group = nextGroup;
+      if (lines.length) lines.push("");
+      lines.push(`${group}:`);
+    }
+    lines.push(`  ${cmd} - ${desc}`);
+  }
+  return lines;
+}
+
+function uzDetailedCommandHelp(query) {
+  const needle = query.trim().toLowerCase().replace(/^\/+/, "");
+  const commandNames = [
+    ...SLASH_COMMANDS.map(([signature]) => signature.split(" ")[0]),
+    ...Object.keys(COMMAND_ALIASES),
+  ].sort();
+  let matches;
+  if (needle === "all") {
+    matches = commandNames;
+  } else if (needle.includes("*")) {
+    const pattern = new RegExp("^" +
+      needle.replace(/[.+?^${}()|[\]\\]/g, "\\$&").replace(/\*/g, ".*") + "$");
+    matches = commandNames.filter(command => pattern.test(command.slice(1)));
+  } else {
+    const requested = `/${needle}`;
+    matches = commandNames.includes(requested) ? [requested] : [];
+  }
+  if (!matches.length) return null;
+  return matches.map(requested => {
+    const canonical = COMMAND_ALIASES[requested] || requested;
+    const entry = SLASH_COMMANDS.find(([signature]) =>
+      signature.split(" ")[0].toLowerCase() === canonical);
+    if (!entry) return "";
+    const [signature, description, group] = entry;
+    const command = signature.split(" ")[0];
+    const shownSignature = requested === canonical
+      ? signature
+      : requested + signature.slice(command.length);
+    const alias = requested === canonical ? "" : `\nAlias for: ${canonical}`;
+    return `${shownSignature}\nCategory: ${group}${alias}\n\n${description}\n` +
+      COMMAND_DETAILS[command];
+  }).filter(Boolean).join("\n\n---\n\n");
+}
+
+function uzCommandName(value) {
+  return value.trim().split(/\s+/, 1)[0].toLowerCase();
+}
+
+function uzExactCommandIndex(entries, input) {
+  const typed = uzCommandName(input);
+  return entries.findIndex(([signature]) =>
+    uzCommandName(signature) === typed);
+}
+
+let commandMatches = [];
+let commandSelection = 0;
+let commandMenuBlurTimer = null;
+
+function closeCommandMenu() {
+  commandMatches = [];
+  commandSelection = 0;
+  commandMenu.hidden = true;
+  commandMenu.replaceChildren();
+  promptEl.setAttribute("aria-expanded", "false");
+  promptEl.removeAttribute("aria-activedescendant");
+}
+
+function cancelCommandMenuBlur() {
+  if (commandMenuBlurTimer !== null) {
+    clearTimeout(commandMenuBlurTimer);
+    commandMenuBlurTimer = null;
+  }
+}
+
+function selectCommand(entry) {
+  cancelCommandMenuBlur();
+  const signature = entry[0];
+  const command = signature.split(" ")[0];
+  promptEl.value = command + (signature.includes(" ") ? " " : "");
+  closeCommandMenu();
+  resizePrompt();
+  promptEl.focus();
+}
+
+function paintCommandSelection() {
+  const options = Array.from(commandMenu.children);
+  options.forEach((option, index) => {
+    const selected = index === commandSelection;
+    option.setAttribute("aria-selected", String(selected));
+    if (selected) {
+      promptEl.setAttribute("aria-activedescendant", option.id);
+      option.scrollIntoView({ block: "nearest" });
+    }
+  });
+}
+
+function updateCommandMenu() {
+  const match = promptEl.value.match(/^\/[^\s/]*$/);
+  if (!match) {
+    closeCommandMenu();
+    return;
+  }
+  const typed = promptEl.value.toLowerCase();
+  const matches = SLASH_COMMANDS
+    .filter(([signature]) => signature.split(" ")[0].toLowerCase().startsWith(typed));
+  commandMatches = typed === "/" ? matches : matches.slice(0, MAX_COMMAND_MENU_ITEMS);
+  if (!commandMatches.length) {
+    closeCommandMenu();
+    return;
+  }
+  const exactSelection = uzExactCommandIndex(commandMatches, typed);
+  commandSelection = exactSelection >= 0
+    ? exactSelection
+    : Math.min(commandSelection, commandMatches.length - 1);
+  commandMenu.replaceChildren();
+  commandMatches.forEach((entry, index) => {
+    const option = el("div", {
+      class: "command-option", role: "option", id: `command-option-${index}`,
+      "aria-selected": String(index === commandSelection)
+    }, el("code", { text: entry[0] }), el("span", { text: entry[1] }));
+    option.addEventListener("mousedown", event => event.preventDefault());
+    option.addEventListener("click", () => selectCommand(entry));
+    commandMenu.appendChild(option);
+  });
+  commandMenu.hidden = false;
+  promptEl.setAttribute("aria-expanded", "true");
+  paintCommandSelection();
+}
+
+async function uzLoadConversation(id, notice = null) {
+  const data = await uzFetchJson(`/api/conversation/${id}`);
+  uzClearLog();
+  conversationId = id;
+  addMessage("system", notice || `Loaded conversation #${id}.`);
+  renderConversation(data.messages, data.events);
+  scrollLogToBottom();
+  return data;
+}
+
+function uzFormat(value, prefix = "") {
+  if (Array.isArray(value)) return value.map(v => `${prefix}- ${v}`).join("\n");
+  if (value && typeof value === "object") {
+    return Object.entries(value).map(([k, v]) => {
+      if (v && typeof v === "object") return `${prefix}${k}:\n${uzFormat(v, prefix + "  ")}`;
+      return `${prefix}${k}: ${v}`;
+    }).join("\n");
+  }
+  return `${prefix}${value}`;
+}
+
+function uzSafeName(value) {
+  return String(value || "conversation").toLowerCase()
+    .replace(/[^a-z0-9._-]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 80) || "conversation";
+}
+
+const BRAND_STORAGE_KEY = "beep.brandTitle";
+const DEFAULT_BRAND_TITLE = "Beep";
+const PROMPT_STORAGE_KEY = "beep.promptPlaceholder";
+const DEFAULT_PROMPT_PLACEHOLDER = "AI System Administrator";
+const FULLWIDTH_STORAGE_KEY = "beep.fullWidth";
+
+function uzStorageGet(key) {
+  try { return window.localStorage.getItem(key); }
+  catch (_e) { return null; }
+}
+
+function uzStorageSet(key, value) {
+  try { window.localStorage.setItem(key, value); }
+  catch (_e) { /* ignore private/locked storage */ }
+}
+
+function uzStorageRemove(key) {
+  try { window.localStorage.removeItem(key); }
+  catch (_e) { /* ignore private/locked storage */ }
+}
+
+function cleanBrandTitle(value) {
+  return String(value || "").replace(/\s+/g, " ").trim().slice(0, 80);
+}
+
+function cleanPromptPlaceholder(value) {
+  return String(value || "").replace(/\s+/g, " ").trim()
+    .slice(0, MAX_PROMPT_PLACEHOLDER_CHARS);
+}
+
+function applyPromptPlaceholder(value, persist = true) {
+  const placeholder = cleanPromptPlaceholder(value) || DEFAULT_PROMPT_PLACEHOLDER;
+  if (persist) {
+    if (placeholder === DEFAULT_PROMPT_PLACEHOLDER) uzStorageRemove(PROMPT_STORAGE_KEY);
+    else uzStorageSet(PROMPT_STORAGE_KEY, placeholder);
+  }
+  promptEl.placeholder = placeholder;
+}
+
+function applyFullWidth(enabled, persist = true) {
+  fullWidthMode = Boolean(enabled);
+  if (persist) {
+    if (fullWidthMode) uzStorageSet(FULLWIDTH_STORAGE_KEY, "on");
+    else uzStorageRemove(FULLWIDTH_STORAGE_KEY);
+  }
+  document.body.classList.toggle("fullwidth", fullWidthMode);
+}
+
+function brandWordmark(title) {
+  const line1 = cleanBrandTitle(title).toUpperCase() || DEFAULT_BRAND_TITLE.toUpperCase();
+  const line2 = "AI SYSTEMS ADMINISTRATOR";
+  const width = Math.max(line1.length, line2.length) + 4;
+  const rule = "─".repeat(width);
+  const row = text => `│  ${text.padEnd(width - 4)}  │`;
+  return `╭${rule}╮\n${row(line1)}\n${row(line2)}\n╰${rule}╯`;
+}
+
+function applyBrandTitle(title, persist = true) {
+  brandTitle = cleanBrandTitle(title) || DEFAULT_BRAND_TITLE;
+  if (persist) {
+    if (brandTitle === DEFAULT_BRAND_TITLE) uzStorageRemove(BRAND_STORAGE_KEY);
+    else uzStorageSet(BRAND_STORAGE_KEY, brandTitle);
+  }
+  document.title = brandTitle;
+  const heading = document.getElementById("brand-heading");
+  if (heading) {
+    if (heading.firstChild) heading.firstChild.nodeValue = `${brandTitle} `;
+    heading.setAttribute("aria-label",
+      `${brandTitle} on {{HOSTNAME}}, user {{USERNAME}}`);
+  }
+  const wordmark = document.getElementById("brand-wordmark");
+  if (wordmark) wordmark.textContent = brandWordmark(brandTitle);
+  const loginTitle = document.getElementById("login-brand-title");
+  if (loginTitle) loginTitle.textContent = brandTitle;
+  const tombTitle = document.getElementById("tomb-brand-title");
+  if (tombTitle) tombTitle.textContent = `This ${brandTitle} is dead`;
+}
+
+function uzConversationMarkdown(data) {
+  const conv = data.conversation || {};
+  const title = conv.title || `Conversation #${conv.id || conversationId || "unknown"}`;
+  const lines = [`# ${title}`, ""];
+  if (conv.id) lines.push(`Conversation: #${conv.id}`);
+  if (conv.created_at) lines.push(`Created: ${timestamp(conv.created_at)}`);
+  lines.push("", "## Transcript", "");
+  for (const m of data.messages || []) {
+    if (m.role !== "user" && m.role !== "assistant") continue;
+    lines.push(`### ${m.role}`, "", m.content || "", "");
+  }
+  return lines.join("\n");
+}
+
+function uzDownload(name, content, type) {
+  const blob = new Blob([content], { type });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = name;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
+async function uzExportConversation() {
+  if (!conversationId) throw new Error("No active conversation to export.");
+  const data = await uzFetchJson(`/api/conversation/${conversationId}`);
+  const conv = data.conversation || {};
+  const base = `beep-${uzSafeName(conv.title || `conversation-${conversationId}`)}`;
+  uzDownload(`${base}.md`, uzConversationMarkdown(data), "text/markdown;charset=utf-8");
+  uzDownload(`${base}.json`, JSON.stringify(data, null, 2), "application/json;charset=utf-8");
+}
+
+async function uzCopyText(text) {
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    await navigator.clipboard.writeText(text);
+    return;
+  }
+  const area = document.createElement("textarea");
+  area.value = text;
+  area.style.position = "fixed";
+  area.style.left = "-9999px";
+  document.body.appendChild(area);
+  area.focus();
+  area.select();
+  document.execCommand("copy");
+  area.remove();
+}
+
+function uzPendingSummary(p) {
+  return `id=${p.id || p.tool_call_id} ${p.tool || "?"} ${p.classification || "?"} ` +
+    JSON.stringify(p.args || {});
+}
+
+async function uzDecidePending(decision, arg) {
+  const data = await uzFetchJson("/api/pending");
+  const pending = data.pending || [];
+  if (!pending.length) {
+    addMessage("system", "No tool calls are awaiting approval.");
+    return;
+  }
+  let selected = null;
+  let phrase = "";
+  if (pending.length === 1) {
+    selected = pending[0];
+    const parts = arg.split(/\s+/).filter(Boolean);
+    if (parts[0] === selected.id || parts[0] === selected.tool_call_id) {
+      parts.shift();
+    }
+    phrase = parts.join(" ");
+  } else {
+    const parts = arg.split(/\s+/).filter(Boolean);
+    const id = parts.shift();
+    selected = pending.find(p => p.id === id || p.tool_call_id === id);
+    phrase = parts.join(" ");
+    if (!selected) {
+      addMessage("system",
+        "Multiple pending calls. Use /approve <id> or /deny <id>:\n" +
+        pending.map(uzPendingSummary).join("\n"), { error: true });
+      return;
+    }
+  }
+  if (decision === "approve" && selected.requires_phrase &&
+      phrase !== selected.confirm_phrase) {
+    addMessage("system",
+      `This action requires the exact phrase:\n${selected.confirm_phrase}\n` +
+      `Use: /approve ${selected.confirm_phrase}`, { error: true });
+    return;
+  }
+  const result = await uzPostJson("/api/approve", {
+    tool_call_id: selected.id || selected.tool_call_id,
+    decision,
+    phrase,
+  });
+  addMessage("system", `${decision === "approve" ? "Approved" : "Denied"} ${selected.tool}.`);
+  if (result.result) log.appendChild(renderResult(result.result));
+}
+
+function applyTurnPayload(data, preserveTranscript = false) {
+  if (!data) return data;
+  if (data.dead) showTombstone(data);
+  conversationId = data.conversation_id ?? conversationId;
+  if (!preserveTranscript && (data.messages || data.events)) {
+    uzClearLog();
+    renderConversation(data.messages || [], data.events || []);
+  } else if (!preserveTranscript && data.reply) {
+    addMessage("assistant", data.reply);
+  } else if (preserveTranscript && data.reply) {
+    // Streamed replies are painted straight into the live bubble, so
+    // ``addMessage`` never sees them. Record the final text here or
+    // transcript-aware commands (``/copy``) would miss every streamed
+    // turn.
+    visibleMessages.push({ role: "assistant", content: data.reply });
+  }
+  const events = data.events || [];
+  if (!preserveTranscript && events.some(ev => ev.kind === "tool_call")) {
+    log.appendChild(renderTurnCounter(events));
+  }
+  // Render the error exactly once, after any transcript re-render (which
+  // clears the log and would otherwise wipe an earlier error bubble).
+  if (data.error) addMessage("system", data.error, { error: true });
+  // A turn that scheduled (or rejected) a continuation carries the canonical
+  // outcome in its terminal payload. Show it immediately; polling remains
+  // the fallback and will reconcile active/fired state shortly after.
+  if (data.reactivation) {
+    if (data.reactivation.reactivation) {
+      showPendingReactivation(data.reactivation.reactivation);
+    }
+    void refreshReactivation();
+  }
+  // In verbose mode every completed turn ends with its background
+  // activity tally so the operator can see what the turn cost.
+  appendVerboseTally();
+  scrollLog();
+  return data;
+}
+
+async function uzSendPromptSync(prompt, convId = conversationId) {
+  netStats.turn = newStatBucket();
+  addMessage("user", prompt);
+  scrollLogToBottom();
+  setBusy(true);
+  thinkingEl = showThinking();
+  turnController = new AbortController();
+  const timeoutId = setTimeout(
+    () => abortTurn(`No response after ${Math.round(CLIENT_TURN_TIMEOUT_MS / 1000)}s - giving up.`),
+    CLIENT_TURN_TIMEOUT_MS);
+  try {
+    const r = await fetch("/api/message", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ prompt, conversation_id: convId }),
+      signal: turnController.signal,
+    });
+    const data = await r.json();
+    clearThinking();
+    if (r.status === 410 || data.dead) {
+      showTombstone(data);
+    }
+    if (r.status === 401) {
+      setAuthState(true, false);
+      showLogin(true);
+    }
+    return applyTurnPayload(data);
+  } catch (err) {
+    clearThinking();
+    if (err && err.name === "AbortError") {
+      addMessage("system",
+        "Request cancelled. The agent may still finish in the background; " +
+        "reload to see the latest conversation.", { error: true });
+    } else {
+      addMessage("system", String(err), { error: true });
+    }
+    return null;
+  } finally {
+    clearTimeout(timeoutId);
+    clearThinking();
+    turnController = null;
+    setBusy(false);
+    promptEl.focus();
+    drainQueuedPrompt();
+  }
+}
+
+// Render one already-started turn live into the transcript: a compact
+// tool-activity feed plus the streamed reply text, driven entirely by the
+// turn's SSE stream. Shared by operator sends and fired reactivation
+// continuations so both surface tools and tokens as they happen.
+function uzStreamLiveTurn(turnId, { armTimeout = () => {}, finalize = () => {} } = {}) {
+  let completed = false;
+    // Live turn bubble: a compact activity feed (tool lines updated in
+    // place), the streamed reply text (thinking dots until the first
+    // token arrives) and a status row with a spinner plus an elapsed
+    // timer — the operator always sees *something* moving.
+    const live = el("div", { class: "msg assistant" });
+    live.appendChild(el("div", { class: "role", text: "assistant" }));
+    const activity = el("div", { class: "live-activity" });
+    live.appendChild(activity);
+    const body = el("div", { class: "md" });
+    live.appendChild(body);
+    let liveMarkdown = "";
+    let livePaintPending = null;
+    const dots = el("div", { class: "thinking" },
+      el("div", { class: "dots" }, el("i", {}), el("i", {}), el("i", {})));
+    live.appendChild(dots);
+    const status = el("div", { class: "live-status" });
+    const spinner = el("span", { class: "spin" });
+    const statusLabel = el("span", { text: "Connecting to live turn…" });
+    status.appendChild(spinner);
+    status.appendChild(statusLabel);
+    live.appendChild(status);
+    log.appendChild(live);
+    scrollLog();
+    const liveStarted = Date.now();
+    let statusText = "Connecting to live turn…";
+    const paintStatus = () => {
+      const secs = Math.round((Date.now() - liveStarted) / 1000);
+      statusLabel.textContent = `${statusText} ${secs}s`;
+    };
+    const setStatus = (text) => { statusText = text; paintStatus(); };
+    let liveTimer = setInterval(paintStatus, 1000);
+    paintStatus();
+    // Keep one inspectable activity record per execution. The summary
+    // changes as the call advances, while its identifier, arguments and
+    // outcome remain in the expandable detail instead of being replaced.
+    const toolLineStacks = new Map();
+    // ``track: false`` renders a line without registering it in the
+    // per-tool stack — used when a tool_end has no matching tool_start,
+    // so the orphan line cannot swallow a later result for the tool.
+    const startToolLine = (key, note, detail, track = true, inputBytes = 0,
+                           preview = "") => {
+      const line = el("div", { class: "act running verbose-tool-activity" });
+      line.hidden = !verboseMode;
+      line.appendChild(el("span", { class: "icon", text: "⏳" }));
+      const label = el("span", { text: note });
+      line.appendChild(label);
+      const inspector = el("details", {});
+      // The disclosure arrow at the end of the line is the whole
+      // affordance; assistive tech still hears "Inspect tool call".
+      inspector.appendChild(el("summary", {
+        text: "", title: "Inspect tool call",
+        "aria-label": "Inspect tool call",
+      }));
+      const detailBody = el("pre", { text: detail });
+      inspector.appendChild(detailBody);
+      line.appendChild(inspector);
+      activity.appendChild(line);
+      const record = { line, label, detailBody, inputBytes, preview };
+      if (track) {
+        const stack = toolLineStacks.get(key) || [];
+        stack.push(record);
+        toolLineStacks.set(key, stack);
+      }
+      scrollLog();
+      return record;
+    };
+    const endToolLine = (key, ok, noteOrProvider, detail, stateOverride = null) => {
+      // A tool_end without a matching tool_start (out-of-order or
+      // dropped frame) still gets a completed line so it is visible.
+      const stack = toolLineStacks.get(key);
+      const record = stack?.shift() || startToolLine(
+        key, typeof noteOrProvider === "function" ? key : noteOrProvider,
+        "Start event was not received.", false);
+      const { line, label, detailBody } = record;
+      const state = stateOverride || (ok === false ? "failed" : "done");
+      const icons = { failed: "✗", warning: "!", done: "✓" };
+      const icon = icons[state] || "✓";
+      line.className = `act ${state} verbose-tool-activity`;
+      line.firstElementChild.textContent = icon;
+      label.textContent = typeof noteOrProvider === "function"
+        ? noteOrProvider(record)
+        : noteOrProvider;
+      detailBody.textContent += "\n\nOutcome:\n" +
+        (typeof detail === "function" ? detail(record) : detail);
+      scrollLog();
+      return line;
+    };
+    const settleLive = (finalStatus) => {
+      if (liveTimer !== null) { clearInterval(liveTimer); liveTimer = null; }
+      if (livePaintPending !== null) {
+        cancelAnimationFrame(livePaintPending);
+        livePaintPending = null;
+      }
+      dots.remove();
+      spinner.remove();
+      liveTurnCleanup = null;
+      // Streamed replies routinely end with a trailing newline; inside
+      // a pre-wrap bubble that paints as an extra blank line, so trim it.
+      liveMarkdown = liveMarkdown.replace(/\s+$/, "");
+      body.innerHTML = renderMarkdown(visibleReactivationReply(liveMarkdown));
+      if (finalStatus === null) return;
+      if (!liveMarkdown && !activity.childElementCount) {
+        live.remove();
+        return;
+      }
+      if (finalStatus) statusLabel.textContent = finalStatus;
+      else status.remove();
+    };
+    liveTurnCleanup = settleLive;
+    // Never leave a previous stream open: an abandoned EventSource keeps
+    // reconnecting and writes into an orphaned bubble.
+    if (activeEventSource) activeEventSource.close();
+    activeEventSource = new EventSource(`/api/stream/${encodeURIComponent(turnId)}`);
+
+    const completeUi = (finalStatus = null) => {
+      settleLive(finalStatus);
+      finalize();
+    };
+    const finish = (payload) => {
+      completed = true;
+      if (activeEventSource) activeEventSource.close();
+      activeEventSource = null;
+      // Keep whatever was streamed if the terminal payload carries no
+      // text: overwriting with "" would blank a visible reply.
+      if (typeof payload.reply === "string" && payload.reply) {
+        liveMarkdown = payload.reply;
+      }
+      // Keep the live tool inspectors, phase records and stat snapshots;
+      // rebuilding from stored history would discard display-only details.
+      applyTurnPayload(payload, true);
+      completeUi("Done.");
+    };
+    const PHASE_LABELS = {
+      model: "Model is thinking…",
+      tools: "Running tools…",
+      finalising: "Finalising the reply…",
+    };
+    const isCommandStatusExit = (payload) => {
+      return payload && payload.command_status === true && payload.ok === false;
+    };
+    // ``/verbose none`` keeps even the status line free of tool
+    // information; ordinary mode stays generic unless verbose is on.
+    const toolStatus = (verboseText, quietText = "Working…") => {
+      if (verboseSuppressAll) return "Working…";
+      return verboseMode ? verboseText : quietText;
+    };
+    activeEventSource.addEventListener("phase", (ev) => {
+      armTimeout();
+      tallyStat("sseEvents");
+      tallyStat("bytesIn", byteLength(ev.data || ""));
+      const p = JSON.parse(ev.data || "{}");
+      const phase = PHASE_LABELS[p.phase] || "Working…";
+      setStatus(p.phase === "tools" && verboseSuppressAll ? "Working…" : phase);
+      appendVerboseActivity(`Turn phase: ${p.phase || "unknown"} — ${phase}`);
+    });
+    activeEventSource.addEventListener("token", (ev) => {
+      armTimeout();
+      tallyStat("sseEvents");
+      tallyStat("bytesIn", byteLength(ev.data || ""));
+      const p = JSON.parse(ev.data || "{}");
+      if (!p.delta) return;
+      tallyStat("streamChars", p.delta.length);
+      dots.remove();
+      liveMarkdown += p.delta;
+      // Throttle to one markdown re-render per animation frame; a full
+      // re-parse per token is O(n^2) over a long streamed reply.
+      if (livePaintPending === null) {
+        livePaintPending = requestAnimationFrame(() => {
+          livePaintPending = null;
+          body.innerHTML = renderMarkdown(visibleReactivationReply(liveMarkdown));
+          scrollLog();
+        });
+      }
+      setStatus("Streaming the reply…");
+      scrollLog();
+    });
+    activeEventSource.addEventListener("tool_start", (ev) => {
+      armTimeout();
+      tallyStat("sseEvents");
+      tallyStat("bytesIn", byteLength(ev.data || ""));
+      tallyStat("toolCalls");
+      const p = JSON.parse(ev.data || "{}");
+      const tool = p.tool || "tool";
+      const key = p.tool_call_id || p.id || tool;
+      const detail = (p.classification && p.classification !== "bridge")
+        ? ` · ${p.classification}` : "";
+      const args = toolArgumentPayload(p);
+      const argsText = formatToolArguments(args);
+      const inputBytes = toolArgumentBytes(args);
+      const preview = toolArgumentPreview(args);
+      startToolLine(
+        key,
+        `${tool}${detail}${preview ? ` · ${preview}` : ""} — running…`,
+        `Tool: ${tool}\nCall id: ${key}\nClassification: ` +
+        `${p.classification || "unknown"}\nDecision: ${p.decision || "unknown"}` +
+        (argsText ? `\nArguments:\n${argsText}` : "\nArguments: (none reported)"),
+        true,
+        inputBytes,
+        preview
+      );
+      setStatus(toolStatus(`Running ${tool}…`));
+    });
+    activeEventSource.addEventListener("tool_end", (ev) => {
+      armTimeout();
+      tallyStat("sseEvents");
+      tallyStat("bytesIn", byteLength(ev.data || ""));
+      const p = JSON.parse(ev.data || "{}");
+      const tool = p.tool || "tool";
+      const key = p.tool_call_id || p.id || tool;
+      const moved = (typeof p.stdout_bytes === "number" ? p.stdout_bytes : 0) +
+                    (typeof p.stderr_bytes === "number" ? p.stderr_bytes : 0);
+      tallyStat("toolOutputBytes", moved);
+      const outcome = JSON.stringify(p, null, 2);
+      // Byte accounting stays out of the tool line to keep it tight;
+      // it is viewable on click alongside the raw outcome payload.
+      const outcomeWithBytes = (record) => outcome +
+        `\n\nBytes moved: ${formatBytes(record.inputBytes)} in · ` +
+        `${formatBytes(moved)} out`;
+      if (isCommandStatusExit(p)) {
+        endToolLine(
+          key, true,
+          record => formatToolDoneNote(
+            tool, "completed with non-zero status",
+            buildToolMetricParts(p), record.preview),
+          outcomeWithBytes, "warning");
+      } else if (p.ok === false) {
+        tallyStat("toolFailures");
+        endToolLine(key, false,
+          record => `${tool}${record.preview ? ` · ${record.preview}` : ""}` +
+            ` — ${p.error || "failed"}`,
+          outcomeWithBytes);
+      } else {
+        // Verbose accounts for the output even when nothing moved, so
+        // "done" is never the whole story.
+        endToolLine(
+          key, true,
+          record => {
+            return formatToolDoneNote(
+              tool,
+              "done",
+              buildToolMetricParts(p),
+              record.preview
+            );
+          },
+          outcomeWithBytes
+        );
+      }
+      setStatus(toolStatus(`Finished ${tool}.`));
+    });
+    activeEventSource.addEventListener("pending_approval", (ev) => {
+      armTimeout();
+      tallyStat("sseEvents");
+      tallyStat("bytesIn", byteLength(ev.data || ""));
+      const p = JSON.parse(ev.data || "{}");
+      const tool = p.tool || "tool";
+      const key = p.tool_call_id || p.id || tool;
+      endToolLine(
+        key, true, `${tool} — queued for operator approval`,
+        JSON.stringify(p, null, 2)
+      );
+      setStatus(verboseSuppressAll
+        ? "Approval required."
+        : `Approval required for ${tool}.`);
+      log.appendChild(renderPendingToolCall(p));
+      scrollLog();
+    });
+    activeEventSource.addEventListener("turn_done", (ev) => {
+      armTimeout();
+      tallyStat("sseEvents");
+      tallyStat("bytesIn", byteLength(ev.data || ""));
+      finish(JSON.parse(ev.data || "{}"));
+    });
+    activeEventSource.addEventListener("turn_error", (ev) => {
+      armTimeout();
+      tallyStat("sseEvents");
+      tallyStat("bytesIn", byteLength(ev.data || ""));
+      completed = true;
+      const p = JSON.parse(ev.data || "{}");
+      if (activeEventSource) activeEventSource.close();
+      activeEventSource = null;
+      settleLive("Turn failed.");
+      if (p.dead) showTombstone(p);
+      if (p.error) addMessage("system", p.error, { error: true });
+      appendVerboseTally();
+      completeUi();
+    });
+    activeEventSource.onerror = async () => {
+      if (completed) return;
+      // EventSource.readyState is 0 CONNECTING, 1 OPEN, 2 CLOSED.
+      // CONNECTING means the browser is auto-reconnecting after a
+      // transient drop; the server releases the attachment on a broken
+      // connection so the reconnect can resume the stream. Only treat
+      // a CLOSED source as fatal.
+      const states = ["connecting", "open", "closed"];
+      const readyState = activeEventSource ? activeEventSource.readyState : 2;
+      if (readyState === 0) {
+        statusEl.textContent = "Live stream interrupted; reconnecting…";
+        return;
+      }
+      const stateName = states[readyState] || "unknown";
+      if (activeEventSource) activeEventSource.close();
+      activeEventSource = null;
+      clearThinking();
+      statusEl.textContent =
+        `Live stream interrupted (${stateName}); reloading conversation…`;
+      if (conversationId) {
+        try { await uzLoadConversation(conversationId, "Reloaded after streaming interruption."); }
+        catch (err) { addMessage("system", String(err), { error: true }); }
+      } else {
+        addMessage("system",
+          "Live stream interrupted before the server returned a conversation id.",
+          { error: true });
+      }
+      completeUi();
+    };
+}
+
+async function uzSendPrompt(prompt, convId = conversationId) {
+  if (!window.EventSource) return uzSendPromptSync(prompt, convId);
+  netStats.turn = newStatBucket();
+  addMessage("user", prompt);
+  scrollLogToBottom();
+  setBusy(true);
+  thinkingEl = showThinking();
+  turnController = new AbortController();
+  const armTimeout = () => {
+    if (turnTimeoutId !== null) clearTimeout(turnTimeoutId);
+    turnTimeoutId = setTimeout(
+      () => abortTurn(`No response after ${Math.round(CLIENT_TURN_TIMEOUT_MS / 1000)}s - giving up.`),
+      CLIENT_TURN_TIMEOUT_MS);
+  };
+  armTimeout();
+  try {
+    const r = await fetch("/api/message", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ prompt, conversation_id: convId, stream: true }),
+      signal: turnController.signal,
+    });
+    const data = await r.json().catch(() => ({}));
+    if (r.status === 401) {
+      clearThinking();
+      setAuthState(true, false);
+      showLogin(true);
+      return data;
+    }
+    if (r.status === 410 || data.dead) {
+      clearThinking();
+      showTombstone(data);
+      return data;
+    }
+    if (!r.ok || data.error || !data.turn_id) {
+      clearThinking();
+      return applyTurnPayload(data);
+    }
+    conversationId = data.conversation_id ?? conversationId;
+    clearThinking();
+    uzStreamLiveTurn(data.turn_id, {
+      armTimeout,
+      finalize: () => {
+        if (turnTimeoutId !== null) { clearTimeout(turnTimeoutId); turnTimeoutId = null; }
+        turnController = null;
+        setBusy(false);
+        promptEl.focus();
+        drainQueuedPrompt();
+      },
+    });
+    return data;
+  } catch (err) {
+    clearThinking();
+    if (err && err.name === "AbortError") {
+      addMessage("system",
+        "Request cancelled. The agent may still finish in the background; " +
+        "reload to see the latest conversation.", { error: true });
+    } else {
+      addMessage("system", String(err), { error: true });
+    }
+    return null;
+  } finally {
+    if (!activeEventSource) {
+      if (turnTimeoutId !== null) { clearTimeout(turnTimeoutId); turnTimeoutId = null; }
+      turnController = null;
+      setBusy(false);
+      promptEl.focus();
+      drainQueuedPrompt();
+    }
+  }
+}
+
+function uzParseSlashCommand(input) {
+  if (!input.startsWith("/") || input.startsWith("//")) return null;
+  const match = input.match(/^(\S+)(?:\s+([\s\S]*))?$/);
+  if (!match) return null;
+  return { cmd: match[1].toLowerCase(), arg: match[2] || "" };
+}
+
+function uzPositiveInteger(value) {
+  if (!/^[1-9]\d*$/.test(value)) return null;
+  const parsed = Number(value);
+  return Number.isSafeInteger(parsed) ? parsed : null;
+}
+
+function uzParseLoadArgs(arg) {
+  // "/load last" targets the newest stored conversation; otherwise the
+  // argument is one or more whitespace-separated conversation ids.
+  const tokens = String(arg || "").trim().split(/\s+/).filter(Boolean);
+  if (!tokens.length) return null;
+  if (tokens.length === 1 && tokens[0].toLowerCase() === "last") {
+    return { last: true, ids: [] };
+  }
+  const ids = [];
+  for (const token of tokens) {
+    const id = uzPositiveInteger(token);
+    if (id === null) return null;
+    ids.push(id);
+  }
+  return { last: false, ids };
+}
+
+async function handleSlashCommand(input) {
+  const parsed = uzParseSlashCommand(input);
+  if (!parsed) return false;
+  const cmd = COMMAND_ALIASES[parsed.cmd] || parsed.cmd;
+  const { arg } = parsed;
+  switch (cmd) {
+    case "/help":
+    case "/commands": {
+      addMessage("user", input);
+      if (cmd === "/help" && arg) {
+        const detail = uzDetailedCommandHelp(arg);
+        addMessage("system", detail ||
+          `No command named "${arg}". Type /help to see all commands.`,
+          detail ? {} : { error: true });
+        return true;
+      }
+      const filter = cmd === "/commands" ? arg : "";
+      const lines = uzCommandHelp(filter);
+      const title = filter
+        ? `Available commands matching "${filter}":`
+        : "Commands by category:";
+      addMessage("system", lines.length ? title + "\n" + lines.join("\n")
+        : "No commands matched.");
+      return true;
+    }
+    case "/clear": {
+      uzClearLog();
+      return true;
+    }
+    case "/fullwidth": {
+      addMessage("user", input);
+      const want = arg.toLowerCase();
+      let enabled;
+      if (want === "on") enabled = true;
+      else if (want === "off") enabled = false;
+      else if (!want) enabled = !fullWidthMode;
+      else {
+        addMessage("system", "Usage: /fullwidth [on|off]", { error: true });
+        return true;
+      }
+      applyFullWidth(enabled);
+      addMessage("system",
+        `Full-width display ${fullWidthMode ? "on" : "off"}.`);
+      return true;
+    }
+    case "/redraw": {
+      addMessage("user", input);
+      if (!conversationId) addMessage("system", "No active conversation to redraw.", { error: true });
+      else {
+        try { await uzLoadConversation(conversationId, `Redrew conversation #${conversationId}.`); }
+        catch (err) { addMessage("system", String(err), { error: true }); }
+      }
+      return true;
+    }
+    case "/rebrand": {
+      addMessage("user", input);
+      const requested = cleanBrandTitle(arg);
+      if (!requested) {
+        applyBrandTitle(DEFAULT_BRAND_TITLE);
+        addMessage("system", "Title reset to Beep.");
+      } else {
+        applyBrandTitle(requested);
+        addMessage("system", `Title set to ${brandTitle}.`);
+      }
+      return true;
+    }
+    case "/reprompt": {
+      addMessage("user", input);
+      const requested = cleanPromptPlaceholder(arg);
+      applyPromptPlaceholder(requested);
+      addMessage("system", requested
+        ? `Prompt placeholder set to ${requested}.`
+        : `Prompt placeholder reset to ${DEFAULT_PROMPT_PLACEHOLDER}.`);
+      return true;
+    }
+    case "/new": {
+      conversationId = null;
+      uzClearLog();
+      addMessage("system", "Started a new conversation.");
+      return true;
+    }
+    case "/examples": {
+      addMessage("user", input);
+      const pre = document.getElementById("examples");
+      addMessage("system", pre && pre.textContent.trim()
+        ? pre.textContent
+        : "No example prompts are available.");
+      return true;
+    }
+    case "/purpose": {
+      addMessage("user", input);
+      const starters = document.querySelectorAll("#welcome [data-starter]");
+      if (!starters.length) {
+        addMessage("system", "No starter purposes are available.", { error: true });
+        return true;
+      }
+      const wrap = addMessage("system",
+        "Pick a purpose to prefill the prompt - the conversation continues here.");
+      const actions = el("div", { class: "starter-actions" });
+      for (const source of starters) {
+        const prompt = source.dataset.starter || "";
+        const button = el("button", { type: "button", text: source.textContent });
+        button.addEventListener("click", () => {
+          promptEl.value = prompt;
+          resizePrompt();
+          promptEl.focus();
+        });
+        actions.appendChild(button);
+      }
+      wrap.appendChild(actions);
+      scrollLog();
+      return true;
+    }
+    case "/shortcuts": {
+      addMessage("user", input);
+      addMessage("system",
+        "Keyboard shortcuts:\n" +
+        "Enter - send the current message\n" +
+        "Shift+Enter (or Ctrl/Cmd+Enter) - insert a newline\n" +
+        "Enter during a running turn - queue one next message\n" +
+        "/stop - cancel the in-flight turn\n" +
+        "//<text> - send a message that starts with a literal slash");
+      return true;
+    }
+    case "/stop": {
+      addMessage("user", input);
+      if (turnController) {
+        abortTurn("Stopped.");
+        addMessage("system", "Cancelling the current turn...");
+      } else {
+        addMessage("system", "Nothing is running.");
+      }
+      return true;
+    }
+    case "/exit":
+    case "/logout":
+    case "/quit": {
+      addMessage("user", input);
+      await logoutChat(true);
+      return true;
+    }
+    case "/password": {
+      addMessage("user", arg ? "/password ********" : "/password");
+      const removing = !arg;
+      const prompt = removing
+        ? "Remove the chat password? Local users will not need to log in."
+        : "Set a new chat password? Current browser sessions will be logged out.";
+      if (!window.confirm(prompt)) {
+        addMessage("system", "Password change cancelled.");
+        return true;
+      }
+      try {
+        const data = await uzPostJson("/api/password", { password: arg });
+        if (data.required) {
+          addMessage("system", "Password updated. Please log in with the new password.");
+          await logoutChat(true);
+        } else {
+          setAuthState(false, false);
+          showLogin(false);
+          addMessage("system", "Password removed. Logoff is not required.");
+        }
+      } catch (err) { addMessage("system", String(err), { error: true }); }
+      return true;
+    }
+    case "/tools": {
+      addMessage("user", input);
+      try {
+        const data = await uzFetchJson("/api/tools");
+        const tools = data.tools || [];
+        addMessage("system", tools.length
+          ? "Agent tools:\n" + tools.map(t => `${t.name} - ${t.classification}` +
+            (t.description ? ` - ${t.description}` : "")).join("\n")
+          : "No tools are registered.");
+      } catch (err) { addMessage("system", String(err), { error: true }); }
+      return true;
+    }
+    case "/skills": {
+      addMessage("user", input);
+      try {
+        if (!arg) {
+          const data = await uzFetchJson("/api/skills");
+          const skills = data.skills || [];
+          addMessage("system", skills.length
+            ? "Skills:\n" + skills.map(s => `${s.name} - ${s.path}`).join("\n")
+            : "No skills are available.");
+        } else {
+          const s = await uzFetchJson(`/api/skill/${encodeURIComponent(arg)}`);
+          addMessage("system",
+            `${s.name} - ${s.path}\nTriggers: ${(s.triggers || []).join(", ")}\n\n${s.content || ""}`);
+        }
+      } catch (err) { addMessage("system", String(err), { error: true }); }
+      return true;
+    }
+    case "/health": {
+      addMessage("user", input);
+      try {
+        const data = await uzFetchJson("/api/health");
+        addMessage("system", "Machine facts:\n" + uzFormat(data.facts || {}));
+      } catch (err) { addMessage("system", String(err), { error: true }); }
+      return true;
+    }
+    case "/status": {
+      addMessage("user", input);
+      try {
+        const data = await uzFetchJson("/api/status");
+        const machine = data.machine || {};
+        const resources = data.resources || {};
+        const connectivity = data.connectivity || {};
+        const runtime = data.runtime || {};
+        const usage = data.usage || {};
+        const life = data.lifecycle || {};
+        const memoryUsed = Number(resources.memory_total_bytes || 0) -
+                           Number(resources.memory_available_bytes || 0);
+        const lines = [
+          "Beep proof of life",
+          `Checked: ${timestamp(data.checked_at) || "now"}`,
+          "",
+          "Provider",
+          `  Connectivity: ${connectivity.ok ? "ONLINE" : "FAILED"} ` +
+            `(${connectivity.latency_ms ?? "?"} ms` +
+            `${connectivity.cached ? ", recent cached probe" : ""})`,
+          `  Provider: ${data.provider || "none"}`,
+          `  Model: ${data.model || "not configured"}`,
+        ];
+        if (connectivity.error) lines.push(`  Detail: ${connectivity.error}`);
+        lines.push(
+          "",
+          "Host",
+          `  ${machine.hostname || "?"} · ${machine.ip_address || "unknown"}`,
+          `  ${machine.os || "Ubuntu"} · ${machine.kernel || "?"} · ` +
+            `${machine.arch || "?"}`,
+          `  System uptime: ${formatDuration(resources.system_uptime_seconds)}`,
+          `  Load (1/5/15m): ${(resources.load_average || []).join(" / ") || "unknown"}`,
+          `  Memory: ${formatBytes(memoryUsed)} used / ` +
+            `${formatBytes(Number(resources.memory_total_bytes || 0))}`,
+          `  Disk: ${formatBytes(Number(resources.disk_free_bytes || 0))} free / ` +
+            `${formatBytes(Number(resources.disk_total_bytes || 0))}`,
+          "",
+          "Service",
+          `  Server uptime: ${formatDuration(runtime.server_uptime_seconds)}`,
+          `  Active turns: ${runtime.active_turns || 0} · retained: ` +
+            `${runtime.retained_turns || 0} · pending approvals: ` +
+            `${runtime.pending_approvals || 0}`,
+          `  Time to Live: ${life.dead ? "DEAD" :
+            (life.remaining_human || "not configured")}`,
+          "",
+          "Persistent usage",
+          `  Conversations: ${usage.conversations || 0} · messages: ` +
+            `${usage.messages || 0} (${usage.user_messages || 0} user / ` +
+            `${usage.assistant_messages || 0} assistant)`,
+          `  Tool calls: ${usage.tool_calls || 0} · observations: ` +
+            `${usage.tool_observations || 0}`,
+          "",
+          `Browser session: ${statsSummary(netStats.session)}`
+        );
+        addMessage("system", lines.join("\n"),
+          connectivity.ok ? {} : { error: true });
+      } catch (err) { addMessage("system", String(err), { error: true }); }
+      return true;
+    }
+    case "/verbose": {
+      addMessage("user", input);
+      const want = arg.toLowerCase();
+      if (want === "api") {
+        verboseApi = !verboseApi;
+        document.querySelectorAll(".verbose-api-activity")
+          .forEach(node => { node.hidden = !(verboseMode && verboseApi); });
+        addMessage("system",
+          `Verbose API display ${verboseApi ? "on" : "off"}.` +
+          (verboseApi
+            ? " API calls will now be logged while verbose mode is on."
+            : " API calls are no longer logged or shown."));
+        return true;
+      }
+      if (want === "on") { verboseMode = true; verboseSuppressAll = false; }
+      else if (want === "off") { verboseMode = false; verboseSuppressAll = false; }
+      else if (want === "none") { verboseMode = false; verboseSuppressAll = true; }
+      else if (!want) { verboseMode = !verboseMode; verboseSuppressAll = false; }
+      else {
+        addMessage("system", "Usage: /verbose [on|off|none|api]", { error: true });
+        return true;
+      }
+      document.querySelectorAll(".verbose-tool-activity")
+        .forEach(node => { node.hidden = !verboseMode; });
+      document.querySelectorAll(".verbose-api-activity")
+        .forEach(node => { node.hidden = !(verboseMode && verboseApi); });
+      if (!verboseMode) {
+        if (turnBusy) statusEl.textContent = "Agent is working…";
+      }
+      if (verboseSuppressAll) {
+        addMessage("system",
+          "Verbose mode none. All tool information is suppressed," +
+          " including tool names in the status line." +
+          " Approval prompts remain visible.");
+        return true;
+      }
+      addMessage("system",
+        `Verbose mode ${verboseMode ? "on" : "off"}.` +
+        (verboseMode
+          ? " Tool activity is now tracked, logged in the transcript," +
+            " and shown with arguments, outcomes, timings, and byte counts." +
+            " Activity already observed on this page is retained, and each turn ends with a" +
+            " background-activity tally." +
+            " API calls stay hidden unless /verbose api is on." +
+            " Verbose resets to off when the page reloads."
+          : " Tool activity is hidden; approval prompts remain visible."));
+      return true;
+    }
+    case "/version": {
+      addMessage("user", input);
+      try {
+        const data = await uzFetchJson("/api/version");
+        const lines = ["Installed < latest available"];
+        for (const component of data.components || []) {
+          if (component.latest) {
+            if (component.installed === "unknown" ||
+                component.installed === "not installed") {
+              lines.push(`${component.name}: ${component.installed} ` +
+                `(latest: ${component.latest})`);
+            } else {
+              lines.push(`${component.name}: ${component.installed} ` +
+                `${versionRelation(component.installed, component.latest)} ` +
+                `${component.latest}`);
+            }
+          } else {
+            const suffix = data.latest_checked &&
+              ["beep", "pi-mono", "pi-ai"].includes(component.name)
+              ? "latest unavailable"
+              : component.source;
+            lines.push(`${component.name}: ${component.installed} (${suffix})`);
+          }
+        }
+        addMessage("system", lines.join("\n"));
+      } catch (err) { addMessage("system", String(err), { error: true }); }
+      return true;
+    }
+    case "/reactivation": {
+      addMessage("user", input);
+      try {
+        const match = arg.match(/^(\S+)(?:\s+([\s\S]+))?$/);
+        const action = match ? match[1].toLowerCase() : "status";
+        const value = match ? (match[2] || "").trim() : "";
+        let data;
+        if (action === "status") {
+          data = await uzFetchJson("/api/reactivation");
+        } else if (action === "on" || action === "off") {
+          data = await uzPostJson("/api/reactivation",
+            { enabled: action === "on" });
+        } else if (action === "cancel") {
+          data = await uzPostJson("/api/reactivation", { cancel: true });
+        } else if (action === "reset") {
+          data = await uzPostJson("/api/reactivation", { reset: true });
+          if (activeReactivation) abortTurn("Reactivation reset.");
+          pendingReactivation = null;
+          activeReactivation = null;
+          reactivationLiveTurnId = null;
+          reactivationStreamPaused = false;
+        } else if (action === "minimum" || action === "maximum") {
+          if (!value) throw new Error(`${action} requires a duration`);
+          data = await uzPostJson("/api/reactivation", { [action]: value });
+        } else {
+          throw new Error(
+            "Usage: /reactivation [on|off|cancel|reset|minimum <duration>|maximum <duration>]"
+          );
+        }
+        const state = await refreshReactivation() || data;
+        const lines = [
+          `Reactivation: ${state.enabled ? "on" : "off"}.`,
+          `Delay bounds: ${uzFormatSeconds(state.minimum_seconds)} to ` +
+            `${uzFormatSeconds(state.maximum_seconds)}.`,
+        ];
+        if (data.reset) {
+          lines.push(
+            "Reactivation mechanism reset to defaults; queued and active " +
+            "continuations were cleared."
+          );
+        }
+        if (state.pending) {
+          lines.push(
+            `Upcoming #${state.pending.id.slice(0, 8)}: ` +
+            `${state.pending.reason} at ` +
+            `${new Date(state.pending.fire_at * 1000).toLocaleString()}.`
+          );
+        } else {
+          lines.push("No reactivation is queued.");
+        }
+        if (state.last) {
+          const outcome = state.last.error
+            ? `${state.last.status} (${state.last.error})`
+            : state.last.status;
+          lines.push(
+            `Last continuation #${String(state.last.id).slice(0, 8)}: ${outcome}.`
+          );
+        }
+        addMessage("system", lines.join("\n"));
+      } catch (err) { addMessage("system", String(err), { error: true }); }
+      return true;
+    }
+    case "/ttl": {
+      addMessage("user", input);
+      try {
+        if (!arg) {
+          const data = await uzFetchJson("/api/ttl");
+          if (data.dead) {
+            showTombstone(data);
+            addMessage("system",
+              `The Beep is permanently disabled (${data.dead_reason || "expired"}).`,
+              { error: true });
+          } else {
+            addMessage("system", `Time to Live: ${data.remaining_human}.`);
+          }
+          return true;
+        }
+        if (arg === "--die" || arg.toLowerCase() === "die") {
+          const data = await uzPostJson("/api/ttl", { die: true });
+          addMessage("system", "The Beep has been killed. It is now " +
+            "permanently disabled until a reinstall.", { error: true });
+          showTombstone(data);
+          return true;
+        }
+        const reset = arg.toLowerCase() === "reset" ||
+          arg.toLowerCase().startsWith("reset ");
+        const duration = reset ? arg.slice("reset".length).trim() : arg;
+        let data;
+        if (reset) {
+          data = await uzPostJson("/api/ttl", { reset: true, duration });
+        } else {
+          data = await uzPostJson("/api/ttl", { duration });
+        }
+        addMessage("system", `Time to Live now ${data.remaining_human}.`);
+      } catch (err) { addMessage("system", String(err), { error: true }); }
+      return true;
+    }
+    case "/models":
+    case "/model": {
+      addMessage("user", input);
+      if (cmd === "/models" || !arg) {
+        try {
+          const data = await uzFetchJson("/api/models");
+          const models = data.models || [];
+          if (data.error && !models.length) {
+            addMessage("system", data.error, { error: true });
+            return true;
+          }
+          if (!models.length) {
+            addMessage("system",
+              `Provider ${data.provider || "?"} exposes no model catalogue` +
+              (data.current ? ` (current: ${data.current})` : "") +
+              ". Set the id your server serves with /model <id>." +
+              (data.error ? `\n${data.error}` : ""));
+            return true;
+          }
+          const lines = models.map(m => {
+            const mark = (data.current && m.id === data.current) ? "* " : "  ";
+            const extra = [
+              m.reasoning ? "reasoning" : null,
+              m.context_window ? `${m.context_window} ctx` : null,
+            ].filter(Boolean).join(", ");
+            return `${mark}${m.id}` + (extra ? ` - ${extra}` : "");
+          });
+          addMessage("system",
+            `Models for ${data.provider} (use /model <id> to switch` +
+            (data.current ? "; * = current" : "") + "):\n" + lines.join("\n"));
+        } catch (err) { addMessage("system", String(err), { error: true }); }
+        return true;
+      }
+      try {
+        const data = await uzPostJson("/api/model", { model: arg });
+        addMessage("system", `Model set to ${data.model} (provider ${data.provider}).`);
+        const banner = document.getElementById("provider-status");
+        if (banner && data.provider && data.model) {
+          banner.textContent = data.model +
+            (data.address ? ` at ${data.address}` : "");
+        }
+      } catch (err) { addMessage("system", String(err), { error: true }); }
+      return true;
+    }
+    case "/locals":
+    case "/local": {
+      addMessage("user", input);
+      const listOnly = cmd === "/locals" || (cmd === "/local" && arg === "");
+      if (listOnly) {
+        addMessage("system", "Scanning the local network for local APIs...");
+        try {
+          const data = await uzFetchJson("/api/locals");
+          const locals = data.locals || [];
+          if (data.error) {
+            addMessage("system", data.error, { error: true });
+            return true;
+          }
+          if (!locals.length) {
+            addMessage("system", "No local APIs were found.");
+            return true;
+          }
+          const currentFound = data.current && locals.includes(data.current);
+          const lines = locals.map(url =>
+            `${currentFound && url === data.current ? "* " : "  "}${url}`);
+          addMessage("system",
+            "Local APIs (use /local <url> to switch" +
+            (currentFound ? "; * = current" : "") + "):\n" +
+            lines.join("\n"));
+        } catch (err) { addMessage("system", String(err), { error: true }); }
+        return true;
+      }
+      addMessage("system", `Checking for a local API at ${arg}...`);
+      try {
+        const data = await uzPostJson("/api/local", { url: arg });
+        addMessage("system",
+          `Local API set to ${data.url} with model ${data.model}.`);
+        const banner = document.getElementById("provider-status");
+        if (banner) {
+          banner.textContent = data.model +
+            (data.address ? ` at ${data.address}` : "");
+        }
+      } catch (err) { addMessage("system", String(err), { error: true }); }
+      return true;
+    }
+    case "/config":
+    case "/profile":
+    case "/whoami": {
+      addMessage("user", input);
+      try {
+        const endpoint = cmd === "/config"
+          ? "/api/config"
+          : (cmd === "/whoami" ? "/api/whoami" : "/api/profile");
+        const data = await uzFetchJson(endpoint);
+        if (cmd === "/whoami") {
+          addMessage("system",
+            `agent_user: ${data.agent_user}\n` +
+            `hostname: ${data.hostname}\n` +
+            `chat_url: ${data.chat_url}\n` +
+            `loopback_only: ${data.loopback_only}`);
+        } else {
+          addMessage("system", uzFormat(data));
+        }
+      } catch (err) { addMessage("system", String(err), { error: true }); }
+      return true;
+    }
+    case "/policy": {
+      addMessage("user", input);
+      try { addMessage("system", uzFormat(await uzFetchJson("/api/policy"))); }
+      catch (err) { addMessage("system", String(err), { error: true }); }
+      return true;
+    }
+    case "/audit": {
+      addMessage("user", input);
+      try {
+        const data = await uzFetchJson("/api/audit");
+        const entries = data.entries || [];
+        if (!entries.length) { addMessage("system", "The audit log is empty."); return true; }
+        const lines = entries.slice(-25).map(e => {
+          const head = `${e.ts || ""} ${e.type || "?"}`.trim();
+          const detail = [e.tool, e.decision, e.classification,
+            (typeof e.exit_code !== "undefined" ? `exit ${e.exit_code}` : null)]
+            .filter(Boolean).join(" - ");
+          return detail ? `${head} - ${detail}` : head;
+        });
+        addMessage("system", "Recent audit entries:\n" + lines.join("\n"));
+      } catch (err) { addMessage("system", String(err), { error: true }); }
+      return true;
+    }
+    case "/conversations": {
+      addMessage("user", input);
+      try {
+        const data = await uzFetchJson("/api/conversations");
+        const convs = data.conversations || [];
+        if (!convs.length) { addMessage("system", "No conversations yet."); return true; }
+        const lines = convs.map(c =>
+          `#${c.id} - ${timestamp(c.created_at)} - ${c.title || "(untitled)"}`);
+        addMessage("system", "Recent conversations (use /load <id>):\n" + lines.join("\n"));
+      } catch (err) { addMessage("system", String(err), { error: true }); }
+      return true;
+    }
+    case "/load": {
+      addMessage("user", input);
+      const request = uzParseLoadArgs(arg);
+      if (!request) {
+        addMessage("system", `Usage: ${cmd} <id> [id ...] or ${cmd} last`, { error: true });
+        return true;
+      }
+      try {
+        let ids = request.ids;
+        if (request.last) {
+          const data = await uzFetchJson("/api/conversations");
+          const convs = data.conversations || [];
+          if (!convs.length) {
+            addMessage("system", "No stored conversations to load.", { error: true });
+            return true;
+          }
+          ids = [convs[0].id];
+        }
+        if (ids.length === 1) {
+          await uzLoadConversation(ids[0]);
+          return true;
+        }
+        // Fetch every conversation before touching the transcript so a
+        // bad id fails without wiping the current view.
+        const loaded = [];
+        for (const id of ids) {
+          loaded.push({ id, data: await uzFetchJson(`/api/conversation/${id}`) });
+        }
+        uzClearLog();
+        for (const entry of loaded) {
+          addMessage("system", `Loaded conversation #${entry.id}.`);
+          renderConversation(entry.data.messages, entry.data.events);
+        }
+        conversationId = ids[ids.length - 1];
+        addMessage("system",
+          `Conversation #${conversationId} is now active; new messages continue it.`);
+        scrollLogToBottom();
+      } catch (err) { addMessage("system", String(err), { error: true }); }
+      return true;
+    }
+    case "/title": {
+      addMessage("user", input);
+      if (!conversationId) {
+        addMessage("system", "No active conversation to title.", { error: true });
+        return true;
+      }
+      if (!arg) {
+        addMessage("system", "Usage: /title <text>", { error: true });
+        return true;
+      }
+      try {
+        const data = await uzPostJson(`/api/conversation/${conversationId}/title`, { title: arg });
+        addMessage("system", `Conversation #${data.conversation_id} title set to: ${data.title}`);
+      } catch (err) { addMessage("system", String(err), { error: true }); }
+      return true;
+    }
+    case "/branch": {
+      addMessage("user", input);
+      if (!conversationId) {
+        addMessage("system", "No active conversation to branch.", { error: true });
+        return true;
+      }
+      try {
+        const data = await uzPostJson(`/api/conversation/${conversationId}/branch`, { title: arg });
+        await uzLoadConversation(data.conversation_id, `Created branch #${data.conversation_id}.`);
+      } catch (err) { addMessage("system", String(err), { error: true }); }
+      return true;
+    }
+    case "/retry": {
+      addMessage("user", input);
+      if (!conversationId) {
+        addMessage("system", "No active conversation to retry.", { error: true });
+        return true;
+      }
+      if (turnBusy) {
+        // Retrying mid-turn would start a second stream over the top of
+        // the live one, orphaning its EventSource and Stop button.
+        addMessage("system",
+          "A turn is still running. Stop it before retrying.",
+          { error: true });
+        return true;
+      }
+      try {
+        const data = await uzPostJson(`/api/conversation/${conversationId}/retry`);
+        await uzLoadConversation(data.conversation_id, data.warning);
+        await uzSendPrompt(data.prompt, data.conversation_id);
+      } catch (err) { addMessage("system", String(err), { error: true }); }
+      return true;
+    }
+    case "/undo": {
+      addMessage("user", input);
+      if (!conversationId) {
+        addMessage("system", "No active conversation to undo.", { error: true });
+        return true;
+      }
+      const turns = arg ? uzPositiveInteger(arg) : 1;
+      if (turns === null) {
+        addMessage("system", "Usage: /undo [positive-turn-count]", { error: true });
+        return true;
+      }
+      try {
+        const data = await uzPostJson(`/api/conversation/${conversationId}/undo`, { turns });
+        await uzLoadConversation(data.conversation_id, data.warning);
+      } catch (err) { addMessage("system", String(err), { error: true }); }
+      return true;
+    }
+    case "/compress": {
+      addMessage("user", input);
+      if (!conversationId) {
+        addMessage("system", "No active conversation to compress.", { error: true });
+        return true;
+      }
+      try {
+        const data = await uzPostJson(`/api/conversation/${conversationId}/compress`);
+        addMessage("system", "Stored local conversation summary:\n" + data.summary);
+      } catch (err) { addMessage("system", String(err), { error: true }); }
+      return true;
+    }
+    case "/export": {
+      addMessage("user", input);
+      try {
+        await uzExportConversation();
+        addMessage("system", "Exported Markdown and JSON transcript files.");
+      } catch (err) { addMessage("system", String(err), { error: true }); }
+      return true;
+    }
+    case "/copy": {
+      addMessage("user", input);
+      const n = arg ? uzPositiveInteger(arg) : 1;
+      if (n === null) {
+        addMessage("system", "Usage: /copy [positive-response-number]", { error: true });
+        return true;
+      }
+      const replies = visibleMessages.filter(m => m.role === "assistant" && m.content);
+      const selected = replies[replies.length - n];
+      if (!selected) {
+        addMessage("system", "No assistant response matched that number.", { error: true });
+        return true;
+      }
+      try {
+        await uzCopyText(selected.content);
+        addMessage("system", `Copied assistant response ${n}.`);
+      } catch (err) { addMessage("system", String(err), { error: true }); }
+      return true;
+    }
+    case "/approve": {
+      addMessage("user", input);
+      try { await uzDecidePending("approve", arg); }
+      catch (err) { addMessage("system", String(err), { error: true }); }
+      return true;
+    }
+    case "/deny": {
+      addMessage("user", input);
+      try { await uzDecidePending("deny", arg); }
+      catch (err) { addMessage("system", String(err), { error: true }); }
+      return true;
+    }
+    default: {
+      addMessage("user", input);
+      addMessage("system",
+        `Unknown command: ${cmd}. Type /help to see the available commands.`,
+        { error: true });
+      return true;
+    }
+  }
+}
+
+form.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  closeCommandMenu();
+  let prompt = promptEl.value.trim();
+  if (!prompt) return;
+  if (await handleSlashCommand(prompt)) {
+    promptEl.value = "";
+    resizePrompt();
+    promptEl.focus();
+    return;
+  }
+  if (prompt.startsWith("//")) prompt = prompt.slice(1);
+  if (turnBusy) {
+    promptEl.value = "";
+    resizePrompt();
+    queuePrompt(prompt);
+    promptEl.focus();
+    return;
+  }
+  promptEl.value = "";
+  resizePrompt();
+  await uzSendPrompt(prompt);
+});
+
+function resizePrompt() {
+  promptEl.style.height = "auto";
+  // CSS owns the visual cap; using the measured content height here keeps
+  // JavaScript from duplicating the ``max-height`` design token.
+  promptEl.style.height = `${promptEl.scrollHeight}px`;
+}
+
+promptEl.addEventListener("input", () => {
+  cancelCommandMenuBlur();
+  resizePrompt();
+  updateCommandMenu();
+});
+promptEl.addEventListener("focus", () => {
+  cancelCommandMenuBlur();
+  updateCommandMenu();
+});
+promptEl.addEventListener("keydown", (event) => {
+  if (!commandMenu.hidden) {
+    const selectedCommand =
+      uzCommandName(commandMatches[commandSelection][0]);
+    if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+      event.preventDefault();
+      const direction = event.key === "ArrowDown" ? 1 : -1;
+      commandSelection =
+        (commandSelection + direction + commandMatches.length) % commandMatches.length;
+      paintCommandSelection();
+      return;
+    }
+    // An exact command should submit normally; a partial command completes.
+    if (event.key === "Tab" ||
+        (event.key === "Enter" &&
+         promptEl.value.trim().toLowerCase() !== selectedCommand)) {
+      event.preventDefault();
+      selectCommand(commandMatches[commandSelection]);
+      return;
+    }
+    if (event.key === "Escape") {
+      event.preventDefault();
+      closeCommandMenu();
+      return;
+    }
+  }
+  // Enter sends; Shift+Enter (or Ctrl/Meta+Enter) inserts a newline —
+  // the standard chat affordance, so a one-word "Hello" just works.
+  if (event.key === "Enter" && !event.isComposing &&
+      !event.shiftKey && !event.ctrlKey && !event.metaKey) {
+    event.preventDefault();
+    form.requestSubmit();
+  }
+});
+promptEl.addEventListener("blur", () => {
+  cancelCommandMenuBlur();
+  commandMenuBlurTimer = setTimeout(() => {
+    commandMenuBlurTimer = null;
+    closeCommandMenu();
+  }, COMMAND_MENU_BLUR_DELAY_MS);
+});
+
+for (const starter of document.querySelectorAll("[data-starter]")) {
+  starter.addEventListener("click", () => {
+    promptEl.value = starter.dataset.starter || "";
+    resizePrompt();
+    promptEl.focus();
+  });
+}
+
+// Keep the welcome useful on an empty view, then get it out of the way as
+// soon as a transcript starts. A MutationObserver also covers direct event
+// rendering and conversation reloads without coupling each path to the shell.
+const welcomeObserver = new MutationObserver(() => {
+  welcomeEl.hidden = log.childElementCount > 0;
+});
+welcomeObserver.observe(log, { childList: true });
+
+// --- Password gate + TTL tombstone ----------------------------------
+const loginOverlay = document.getElementById("login-overlay");
+const loginForm = document.getElementById("login-form");
+const loginPassword = document.getElementById("login-password");
+const loginError = document.getElementById("login-error");
+const tombOverlay = document.getElementById("tomb-overlay");
+const tombMessage = document.getElementById("tomb-message");
+
+function setAuthState(required, authenticated) {
+  // This is the single client-side authority for password-gate visibility.
+  // When ``required`` is false (for example after ``/password`` removes the
+  // hash), Logoff is always hidden even if this browser previously had a
+  // valid session token.
+  authRequired = Boolean(required);
+  logoutBtn.hidden = !(authRequired && authenticated);
+}
+
+function showLogin(show) {
+  loginOverlay.hidden = !show;
+  if (show) {
+    setAuthState(authRequired, false);
+    loginPassword.value = "";
+    loginError.textContent = "";
+    setTimeout(() => loginPassword.focus(), 0);
+  }
+}
+
+function showTombstone(status) {
+  // A dead beep can never be revived from the browser; lock the UI.
+  if (status && status.dead_reason === "killed") {
+    tombMessage.textContent =
+      `The ${brandTitle} Systems Administrator has been killed and is ` +
+      `permanently disabled. Reinstall ${brandTitle} to bring it back.`;
+  } else {
+    tombMessage.textContent =
+      `The ${brandTitle} Systems Administrator has reached ` +
+      `the end of its time to live and is permanently disabled. ` +
+      `Reinstall ${brandTitle} to bring it back.`;
+  }
+  tombOverlay.hidden = false;
+  showLogin(false);
+  chatDisabled = true;
+  sendBtn.disabled = true;
+  promptEl.disabled = true;
+}
+
+loginForm.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  loginError.textContent = "";
+  try {
+    const r = await fetch("/api/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ password: loginPassword.value }),
+    });
+    if (r.ok) {
+      loginPassword.value = "";
+      setAuthState(true, true);
+      showLogin(false);
+      await refreshReactivation();
+      promptEl.focus();
+      return;
+    }
+    const data = await r.json().catch(() => ({}));
+    loginPassword.value = "";
+    loginError.textContent = data.error || "Sign in failed.";
+  } catch (err) {
+    loginPassword.value = "";
+    loginError.textContent = String(err);
+  }
+});
+
+async function logoutChat(announce) {
+  if (!authRequired) {
+    if (announce) addMessage("system", "Authentication is not required for this session.");
+    return;
+  }
+  if (turnController) {
+    // Synchronous local abort; the server-side turn may still finish later.
+    abortTurn("Logged out.");
+  }
+  try {
+    await uzPostJson("/api/logout");
+    setAuthState(true, false);
+    showLogin(true);
+    if (announce) addMessage("system", "Logged out. Enter the chat password to continue.");
+  } catch (err) {
+    if (announce) addMessage("system", String(err), { error: true });
+  }
+}
+
+logoutBtn.addEventListener("click", () => {
+  void logoutChat(true);
+});
+
+async function bootstrap() {
+  try {
+    const r = await fetch("/api/session");
+    const data = await r.json().catch(() => ({}));
+    setAuthState(data.required, data.authenticated);
+    if (data.dead) {
+      showTombstone(data);
+      return;
+    }
+    if (data.required && !data.authenticated) {
+      showLogin(true);
+    } else {
+      await refreshReactivation();
+    }
+  } catch (_err) {
+    // Network/parse failure: leave the UI usable; the first prompt
+    // will surface any real authentication error.
+  }
+}
+
+applyBrandTitle(uzStorageGet(BRAND_STORAGE_KEY) || DEFAULT_BRAND_TITLE, false);
+applyPromptPlaceholder(
+  uzStorageGet(PROMPT_STORAGE_KEY) || DEFAULT_PROMPT_PLACEHOLDER, false);
+applyFullWidth(uzStorageGet(FULLWIDTH_STORAGE_KEY) === "on", false);
+bootstrap();
+// Poll reactivation state on a steady cadence, but tighten to ~1s while a
+// continuation is queued and about to fire or a fired turn is streaming, so
+// the browser attaches to the live turn early enough to show tools and text
+// arriving rather than only the finished result.
+const REACTIVATION_POLL_IDLE_MS = 5000;
+const REACTIVATION_POLL_ACTIVE_MS = 1000;
+// When a pending continuation is within this many seconds of firing, poll
+// quickly so the browser is ready to attach to the live turn as it starts.
+const REACTIVATION_POLL_TIGHTEN_THRESHOLD_SECONDS = 8;
+let reactivationPollTimer = null;
+function scheduleReactivationPoll(delayMs = REACTIVATION_POLL_IDLE_MS) {
+  if (reactivationPollTimer !== null) clearTimeout(reactivationPollTimer);
+  reactivationPollTimer = setTimeout(async () => {
+    let next = REACTIVATION_POLL_IDLE_MS;
+    try {
+      const data = await refreshReactivation();
+      if (data && (data.active ||
+          (data.pending && Number(data.pending.remaining_seconds) <=
+            REACTIVATION_POLL_TIGHTEN_THRESHOLD_SECONDS))) {
+        next = REACTIVATION_POLL_ACTIVE_MS;
+      }
+    } finally {
+      scheduleReactivationPoll(next);
+    }
+  }, delayMs);
+}
+scheduleReactivationPoll(REACTIVATION_POLL_IDLE_MS);
+</script>
+</body>
+</html>

@@ -1,0 +1,146 @@
+#!/usr/bin/env bash
+# audit-recent — pretty-print recent JSON-lines audit entries.
+set -euo pipefail
+
+AUDIT_LOG="${ZOMBIE_AUDIT_LOG:-/var/log/ubuntu-zombie/audit.log}"
+
+usage() {
+  cat <<EOF
+audit-recent — show recent Ubuntu Zombie audit entries.
+
+Usage:
+  audit-recent [-n N] [--all] [-t TYPE] [-f|--follow]
+
+Options:
+  -n N            Show the last N entries (default 25).
+  --all           Show the entire log.
+  -t, --type T    Only show entries whose 'type' field equals T (repeatable).
+                  Example: -t tool_call -t provider_error
+  -f, --follow    Tail the log and stream new entries as they appear.
+                  Set ZOMBIE_AUDIT_VERBOSE=1 on the chat service to also
+                  see redacted stdout/stderr previews in tool_call entries.
+  -h, --help      Show this help.
+EOF
+}
+
+N=25
+SHOW_ALL=0
+FOLLOW=0
+TYPES=()
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    -h|--help) usage; exit 0 ;;
+    --all)     SHOW_ALL=1; shift ;;
+    -f|--follow) FOLLOW=1; shift ;;
+    -t|--type)
+      if [[ -z "${2:-}" ]]; then
+        echo "audit-recent: ${1} requires an event type" >&2
+        usage >&2
+        exit 2
+      fi
+      TYPES+=("$2"); shift 2 ;;
+    -n)
+      # FIX-3-21: validate the argument up-front so we surface a
+      # friendly error instead of `tail`'s `invalid number of lines`.
+      if [[ -z "${2:-}" ]]; then
+        echo "audit-recent: -n requires a positive integer" >&2
+        usage >&2
+        exit 2
+      fi
+      if [[ ! "$2" =~ ^[0-9]+$ ]] || [[ "$2" -lt 1 ]]; then
+        echo "audit-recent: -n requires a positive integer, got '$2'" >&2
+        usage >&2
+        exit 2
+      fi
+      N="$2"; shift 2 ;;
+    *)         echo "Unknown argument: $1" >&2; usage >&2; exit 2 ;;
+  esac
+done
+
+if [[ ! -r "${AUDIT_LOG}" ]]; then
+  echo "Audit log not readable at ${AUDIT_LOG}." >&2
+  echo "Hint: run with sudo, or add yourself to the log's group." >&2
+  exit 1
+fi
+
+# Build the jq filter once. If --type was supplied, drop everything
+# that does not match. Then format each entry for human eyes. When
+# stdout_preview / stderr_preview is present (ZOMBIE_AUDIT_VERBOSE=1
+# on the writer side), show a trimmed first line so testers see what
+# the AI actually ran without grepping by SHA-256.
+build_jq_filter() {
+  local type_filter=""
+  if (( ${#TYPES[@]} > 0 )); then
+    local conds=""
+    local t
+    for t in "${TYPES[@]}"; do
+      if [[ -n "${conds}" ]]; then conds="${conds} or "; fi
+      conds="${conds}.type == \"${t}\""
+    done
+    type_filter="select(${conds}) |"
+  fi
+  cat <<JQ
+${type_filter}
+def color(t):
+  if t == "prompt"          then "\u001b[36m"
+  elif t == "proposal"      then "\u001b[33m"
+  elif t == "approval"      then "\u001b[35m"
+  elif t == "execution"     then "\u001b[32m"
+  elif t == "tool_call"     then "\u001b[34m"
+  elif t == "provider_error" then "\u001b[31m"
+  else "\u001b[0m" end;
+def oneline(s): (s | tostring | gsub("\n";" ⏎ ") | .[0:160]);
+"\(color(.type))[\(.ts)] \(.type)\u001b[0m " +
+  (if .pid           then " pid=\(.pid)"           else "" end) +
+  (if .tool          then " tool=\(.tool)"         else "" end) +
+  (if .classification then " class=\(.classification)" else "" end) +
+  (if .decision      then " decision=\(.decision)" else "" end) +
+  (if .command       then " cmd=\(.command)"       else "" end) +
+  (if .exit_code != null then " exit=\(.exit_code)" else "" end) +
+  (if .duration_ms != null then " dur=\(.duration_ms)ms" else "" end) +
+  (if .prompt        then " prompt=\(oneline(.prompt))" else "" end) +
+  (if .error         then " error=\(oneline(.error))" else "" end) +
+  (if .stdout_preview then "\n    stdout> \(oneline(.stdout_preview))" else "" end) +
+  (if .stderr_preview then "\n    stderr> \(oneline(.stderr_preview))" else "" end)
+JQ
+}
+
+format_lines() {
+  if command -v jq >/dev/null 2>&1; then
+    jq -r "$(build_jq_filter)"
+  else
+    # No jq → fall back to raw JSONL, but still honour --type by
+    # grepping on the serialised "type":"..." field. This is a
+    # best-effort match; jq is the recommended path.
+    if (( ${#TYPES[@]} > 0 )); then
+      local pat=""
+      local t
+      for t in "${TYPES[@]}"; do
+        if [[ -n "${pat}" ]]; then pat="${pat}|"; fi
+        pat="${pat}\"type\":\"${t}\""
+      done
+      grep -E -- "${pat}" || true
+    else
+      cat
+    fi
+  fi
+}
+
+if (( FOLLOW )); then
+  # tail -F follows across logrotate; -n is reused as the seed window.
+  tail -n "${N}" -F "${AUDIT_LOG}" | format_lines
+  exit 0
+fi
+
+if [[ "${SHOW_ALL}" == "1" ]]; then
+  LINES="$(cat "${AUDIT_LOG}")"
+else
+  LINES="$(tail -n "${N}" "${AUDIT_LOG}")"
+fi
+
+if [[ -z "${LINES}" ]]; then
+  echo "(audit log is empty)"
+  exit 0
+fi
+
+printf '%s\n' "${LINES}" | format_lines

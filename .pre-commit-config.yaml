@@ -1,0 +1,84 @@
+# Pre-commit configuration for Ubuntu Zombie.
+#
+# Install once on your workstation:
+#
+#   pipx install pre-commit            # (or: pip install --user pre-commit)
+#   pre-commit install
+#
+# Hooks now run on every `git commit`. Run the whole suite manually:
+#
+#   pre-commit run --all-files
+#
+# CI runs the same checks (shellcheck, bash -n, py_compile, smoke
+# repository standards) so a clean pre-commit run is a strong predictor
+# of a green PR.
+
+default_install_hook_types: [pre-commit, commit-msg]
+fail_fast: false
+minimum_pre_commit_version: "3.5.0"
+
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: trailing-whitespace
+        exclude: '^docs/.*\.md$|^CHANGELOG\.md$|^LOGO\.png$'
+      - id: end-of-file-fixer
+        exclude: '^LOGO\.png$'
+      - id: check-yaml
+      - id: check-json
+      - id: check-merge-conflict
+      - id: check-added-large-files
+        args: ["--maxkb=500"]
+      - id: check-executables-have-shebangs
+      - id: check-shebang-scripts-are-executable
+      - id: mixed-line-ending
+        args: ["--fix=lf"]
+
+  - repo: https://github.com/shellcheck-py/shellcheck-py
+    rev: v0.10.0.1
+    hooks:
+      - id: shellcheck
+        args: ["--severity=warning"]
+        # The .sh files plus the payload/bin/* helpers (no .sh extension).
+        files: '\.(sh|bash)$|^payload/bin/'
+        exclude: '^payload/agent/templates/'
+
+  - repo: https://github.com/scop/pre-commit-shfmt
+    rev: v3.10.0-2
+    hooks:
+      - id: shfmt
+        args: ["-i", "2", "-ci", "-sr", "-d"]
+        files: '\.(sh|bash)$|^payload/bin/'
+        exclude: '^payload/agent/templates/'
+        # Diff-only by default; flip to -w locally to apply.
+
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.7.4
+    hooks:
+      - id: ruff
+        args: ["--fix"]
+        files: '^payload/agent/.*\.py$|^tests/.*\.py$'
+      - id: ruff-format
+        files: '^payload/agent/.*\.py$|^tests/.*\.py$'
+
+  - repo: local
+    hooks:
+      - id: smoke-syntax
+        name: smoke: bash -n
+        language: system
+        entry: bash tests/smoke.sh syntax
+        pass_filenames: false
+        files: '\.(sh|bash)$|^payload/bin/'
+      - id: smoke-python
+        name: smoke: python compile + policy regressions
+        language: system
+        entry: bash tests/smoke.sh python
+        pass_filenames: false
+        files: '^payload/agent/.*\.py$|^payload/etc/policy\.yaml$'
+      - id: smoke-standards
+        name: smoke: repository standards
+        language: system
+        entry: bash tests/smoke.sh standards
+        pass_filenames: false
+        always_run: true

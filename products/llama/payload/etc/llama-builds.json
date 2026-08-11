@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "release": "b10054",
+  "commit": "ac2557cb24def295888ef47f1a35b401d978c510",
+  "assets": {
+    "amd64": {
+      "url": "https://github.com/ggml-org/llama.cpp/releases/download/b10054/llama-b10054-bin-ubuntu-x64.tar.gz",
+      "sha256": "dbfcbd71bafb5ff6ab57ed9a9f62c2a7522401986edf7f44b30a366ebcf86c71",
+      "archive_root": "llama-b10054"
+    },
+    "arm64": {
+      "url": "https://github.com/ggml-org/llama.cpp/releases/download/b10054/llama-b10054-bin-ubuntu-arm64.tar.gz",
+      "sha256": "dfd447221215edc3866bbf6e3034117d01242db682fb559e4152bb4772d4d3bd",
+      "archive_root": "llama-b10054"
+    }
+  }
+}

@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Security vulnerability
+    url: https://github.com/japer-technology/ubuntu-zombie/security/advisories/new
+    about: Please report security vulnerabilities privately. See SECURITY.md for details.
+  - name: Questions and discussion
+    url: https://github.com/japer-technology/ubuntu-zombie/discussions
+    about: Ask questions, share install transcripts, or discuss design before filing an issue.

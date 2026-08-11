@@ -1,0 +1,262 @@
+# Ubuntu Zombie default policy.
+#
+# Action classes:
+#   read_only       informational, never mutating; runs automatically.
+#   user_change     changes within the agent user's own home.
+#   system_change   package, service, or file mutation.
+#   network_change  firewall or interface mutation.
+#   destructive     irreversible mutation; requires confirmation phrase.
+#
+# Defaults are conservative. Operators may tighten or loosen per class.
+
+settings:
+  destructive_confirmation: "yes, I understand this is destructive"
+  # Fail-closed default: unknown commands classify at the highest
+  # gated class so they cannot auto-run. Operators may relax this
+  # once a workflow is proven safe; the ``sudo_allow_list:`` block
+  # below keeps common privileged commands at ``system_change``
+  # despite the conservative default.
+  default_class: destructive
+
+# Curated ``sudo`` targets pre-classified as ``system_change``. The
+# standard approval prompt still fires for these — they do not
+# auto-run — but they are not escalated to ``destructive`` by the
+# fail-closed default above. Add entries only after confirming the
+# underlying program is safe to elevate. Entries are matched against
+# the basename of the program that ``sudo`` invokes (after its own
+# flags are stripped).
+sudo_allow_list:
+  - apt
+  - apt-get
+  - dpkg
+  - snap
+  - systemctl
+  - service
+  - journalctl
+  - mkdir
+  - mv
+  - cp
+  - chmod
+  - chown
+  - chgrp
+  - tee
+  - sed
+  - install
+  - update-grub
+  - update-initramfs
+  - git
+  - nginx
+  - certbot
+  # Optional Forgejo component (ZOMBIE_INSTALL_FORGEJO): the forge, its
+  # Actions runner, the PostgreSQL client, and the account-management
+  # commands the agent may drive when operating the component.
+  - psql
+  - createdb
+  - dropdb
+  - dropuser
+  - forgejo
+  - forgejo-runner
+  - docker
+  - runuser
+  - adduser
+  - deluser
+  - useradd
+  - userdel
+  - usermod
+
+classes:
+  read_only:
+    approval: auto
+    description: Diagnostics and inspection only.
+  user_change:
+    approval: required
+    description: Changes within the agent account's home directory or user-owned files.
+  system_change:
+    approval: required
+    description: Package, service, or file mutation.
+  network_change:
+    approval: required
+    confirm_phrase: true
+    description: Firewall or interface mutation.
+  destructive:
+    approval: required
+    confirm_phrase: true
+    description: Irreversible mutation. Requires confirmation phrase.
+
+# Patterns are matched in order against the proposed command string.
+# The first matching rule decides the class. Patterns are Python
+# regular expressions, matched with re.search().
+rules:
+  # ----- destructive -----
+  # rm with recursive AND force flags in any order or spelling
+  # (-rf, -fr, -Rf, combined short flags, --recursive/--force, or with
+  # options in between such as --no-preserve-root) on an absolute path.
+  - pattern: '\brm(?=.*\s(?:-[A-Za-z]*[rR][A-Za-z]*|--recursive)(?:\s|$))(?=.*\s(?:-[A-Za-z]*f[A-Za-z]*|--force)(?:\s|$))(?=.*\s/)'
+    class: destructive
+  - pattern: '\brm\b.*--no-preserve-root'
+    class: destructive
+  - pattern: '\bmkfs(\.|\s)'
+    class: destructive
+  - pattern: '\bdd\b.*\bof=/dev/'
+    class: destructive
+  - pattern: '\buserdel\b'
+    class: destructive
+  # Optional Forgejo component: dropping the forge's database or role is
+  # irreversible; require the confirmation phrase.
+  - pattern: '\bdropdb\b|\bdropuser\b'
+    class: destructive
+  - pattern: '\bDROP\s+(DATABASE|ROLE|TABLE)\b'
+    class: destructive
+  - pattern: '\bshred\b'
+    class: destructive
+  - pattern: '>\s*/dev/sd[a-z]'
+    class: destructive
+  # FIX-3-03: ``find`` with -delete or -exec*/-ok* runs arbitrary
+  # destructive commands; force the highest tier even if the operator
+  # is impatient. Must precede any user_change/read_only rule for find.
+  - pattern: '\bfind\b.*(-delete\b|-exec\b|-execdir\b|-ok\b|-okdir\b|-fprint\b|-fprintf\b|-fls\b)'
+    class: destructive
+
+  # ----- network_change -----
+  - pattern: '\biptables\b'
+    class: network_change
+  - pattern: '\bnft\b'
+    class: network_change
+  - pattern: '\bip\s+(link|addr|route)\s+(set|add|del|change)'
+    class: network_change
+  - pattern: '\bsystemctl\s+(start|stop|restart|reload|enable|disable|mask|unmask)\s+(networking|systemd-networkd|NetworkManager)'
+    class: network_change
+
+  # ----- system_change -----
+  - pattern: '\bapt(-get)?\s+(install|remove|purge|autoremove|upgrade|dist-upgrade)'
+    class: system_change
+  - pattern: '\bdpkg\s+(-i|--install|-r|--remove|-P|--purge)'
+    class: system_change
+  - pattern: '\bsnap\s+(install|remove|refresh)'
+    class: system_change
+  - pattern: '\bsystemctl\s+(start|stop|restart|reload|enable|disable|mask|unmask)\b'
+    class: system_change
+  - pattern: '\bservice\s+\S+\s+(start|stop|restart|reload)'
+    class: system_change
+  - pattern: '\busermod\b'
+    class: system_change
+  - pattern: '\bgroupadd\b'
+    class: system_change
+  - pattern: '\badduser\b'
+    class: system_change
+  # Optional Forgejo component: forge administration, runner management,
+  # and PostgreSQL mutations are system changes (audited, auto-approved).
+  - pattern: '\bforgejo(-runner)?\b'
+    class: system_change
+  - pattern: '\bpsql\b|\bcreatedb\b'
+    class: system_change
+  - pattern: '\bchmod\b|\bchown\b|\bchgrp\b'
+    class: system_change
+  # FIX-3-26: ``git rm``/``git mv`` are user-level VCS operations; flag
+  # them as user_change before the bare \brm\s+ / \bmv\s+ rules below
+  # catch them as system_change. First match wins.
+  - pattern: '\bgit\s+(rm|mv)\b'
+    class: user_change
+  - pattern: '\bmv\s+'
+    class: system_change
+  - pattern: '\brm\s+'
+    class: system_change
+  - pattern: '\bcp\s+.*\s+/etc/'
+    class: system_change
+  - pattern: '>\s*/etc/'
+    class: system_change
+  # Commands that execute an interpreter from a pipeline or through sudo
+  # can run arbitrary mutating code even when the command starts with a
+  # read-only tool such as `cat` or `grep`. Match both pipeline forms
+  # (`cat script | bash`, optionally via sudo) and direct sudo shells.
+  - pattern: '\|\s*(?:sudo\s+)?(?:bash|sh|zsh|python[23]?|perl|ruby|node)\b'
+    class: system_change
+  - pattern: '\bsudo\s+(?:bash|sh|zsh|python[23]?|perl|ruby|node)\b'
+    class: system_change
+  # `tee` is commonly used to write privileged files from a pipeline and
+  # otherwise mutates a file in place; classify before read_only tools.
+  - pattern: '\btee\s+(?:-a\s+)?/(?:etc|usr|var|lib|boot|root)\b'
+    class: system_change
+
+  # ----- user_change -----
+  - pattern: '\bgit\s+clone\b'
+    class: user_change
+  - pattern: '\bgit\s+(pull|fetch|checkout|reset)\b'
+    class: user_change
+  - pattern: '\bmkdir\b'
+    class: user_change
+  - pattern: '\btouch\b'
+    class: user_change
+  - pattern: '\bpip\s+install\b'
+    class: user_change
+  - pattern: '\bnpm\s+(?:install|i|add)\b'
+    class: user_change
+  # Match `tee out.txt` but not `tee /dev/stderr` or `tee /dev/fd/2`:
+  # those pseudo-device targets write to an existing stream, not
+  # persistent filesystem state.
+  - pattern: '\btee\s+(?:-a\s+)?(?!/dev/(?:null|stdout|stderr|tty|fd/\d+)\b)\S+'
+    class: user_change
+  # Redirection to a real file mutates state even if the command head is
+  # read-only (`grep x file > out`, `cat <<EOF > /tmp/x`, etc.).
+  # Regex parts:
+  #   (?<!<)       => do not treat heredoc `<<` as a write redirect
+  #   [0-9]*>>?    => optional fd prefix plus `>` or `>>`
+  #   negative-ahead target allow-list => `2>&1` and `> /dev/null` stay read_only
+  - pattern: '(?<!<)[0-9]*>>?\s*(?!(?:&[0-9]|/dev/null)(?:\s|$))'
+    class: user_change
+
+  # ----- read_only -----
+  # FIX-3-03: ``find`` removed from this read_only group. A ``find`` with
+  # -delete or -exec*/-ok*/-fprint* is destructive (handled above);
+  # safe ``find`` invocations are matched by the rule that follows.
+  - pattern: '^(ls|cat|head|tail|less|file|stat|wc|grep|rg|ag)\b'
+    class: read_only
+  # FIX-3-03: ``find`` is read_only only when it does *not* contain any
+  # of the side-effecting flags. Approval flow still applies otherwise.
+  - pattern: '^find\b(?!.*(-delete\b|-exec\b|-execdir\b|-ok\b|-okdir\b|-fprint\b|-fprintf\b|-fls\b))'
+    class: read_only
+  - pattern: '^(df|du|free|uptime|uname|hostname|id|whoami|w|who|pwd|date)\b'
+    class: read_only
+  - pattern: '^(ps|top|htop)\b'
+    class: read_only
+  - pattern: '^(systemctl\s+(status|is-active|is-enabled|list-units|show)|journalctl\b)'
+    class: read_only
+  - pattern: '^(ip\s+(a|addr|link)\s*(show)?|ss\b|netstat\b|ping\b|dig\b|host\b|nslookup\b)'
+    class: read_only
+  - pattern: '^(apt\s+list|apt-cache\s+(search|show|policy)|dpkg\s+-l|dpkg\s+-s)'
+    class: read_only
+  - pattern: '^(git\s+(status|log|diff|show|branch|remote))'
+    class: read_only
+  - pattern: '^(env|printenv|which|type|command\s+-v)'
+    class: read_only
+
+# ---------------------------------------------------------------------------
+# Per-tool class overrides for the closed pi-mono tool registry.
+# Each key is a tool name from ``payload/agent/tools.py``; the value
+# must be one of the action classes declared above. Tools without an
+# entry use the registry-shipped default. Use this block to tighten
+# (e.g. move ``fs.write`` to ``system_change``) or loosen (e.g. allow
+# ``svc.status`` against your own services as ``read_only``).
+tool_classes: {}
+
+# Per-turn agent budgets that bound runaway loops.
+# ``max_tool_calls_per_turn`` caps total tool calls per user message;
+# ``max_elevated_calls_per_turn`` caps how many of those may be
+# non-``read_only``. Calls beyond either budget receive a synthetic
+# ``budget_exceeded`` observation so the model ends the turn cleanly.
+# The 12 / 3 defaults match the typical turn shape observed once
+# parallel skill-driven tool calls are in play.
+# ``max_turn_seconds`` is an idle deadline: if the model/provider
+# produces no event for this long the turn is terminated and the
+# operator sees a clean error instead of a request that hangs forever.
+# It measures *silence*, not wall-clock: any streamed token, tool call,
+# or tool result resets it, so raising it does not slow normal turns —
+# it only widens the silence window tolerated before a turn is declared
+# wedged. This is the innermost of three layered idle deadlines and
+# must stay the smallest so it fires first with a clean error:
+#   Python (this value) < bridge ZOMBIE_PI_MONO_IDLE_TIMEOUT < client
+#   CLIENT_TURN_TIMEOUT_MS (templates/index.html).
+agent:
+  max_tool_calls_per_turn: 12
+  max_elevated_calls_per_turn: 3
+  max_turn_seconds: 600

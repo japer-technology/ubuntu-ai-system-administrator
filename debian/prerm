@@ -1,0 +1,37 @@
+#!/bin/sh
+# prerm — block removal of the package if the operator forgot to run
+# `sudo ubuntu-zombie uninstall` first. We refuse on "remove" only;
+# "upgrade"/"deconfigure"/"failed-upgrade" pass through untouched so
+# `apt upgrade` and `apt install <newer.deb>` keep working.
+set -e
+
+case "$1" in
+  remove)
+    if [ -d /opt/ai-zombie ] || id zombie >/dev/null 2>&1; then
+      cat <<'EOF' >&2
+
+Refusing to remove ubuntu-zombie while the host is still set up.
+
+Run the uninstaller first so the agent user, sudoers drop-in,
+systemd units, firewall rules, and /opt/ai-zombie/ are reverted:
+
+  sudo ubuntu-zombie uninstall
+
+Then re-run `sudo apt remove ubuntu-zombie`.
+
+To force-remove the staged files without reversing the install
+(advanced; leaves orphaned state on the host), pass:
+
+  sudo env UBUNTU_ZOMBIE_FORCE_REMOVE=1 apt remove ubuntu-zombie
+
+EOF
+      if [ "${UBUNTU_ZOMBIE_FORCE_REMOVE:-0}" != "1" ]; then
+        exit 1
+      fi
+    fi
+    ;;
+  upgrade|deconfigure|failed-upgrade) : ;;
+  *) : ;;
+esac
+
+exit 0

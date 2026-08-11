@@ -1,0 +1,29 @@
+[Unit]
+Description=Forgejo Actions runner (Ubuntu Zombie optional component)
+Documentation=https://forgejo.org/docs/latest/admin/actions/installation/binary/
+After=network-online.target docker.service forgejo.service
+Wants=network-online.target forgejo.service
+Requires=docker.service
+
+[Service]
+Type=simple
+User=forgejo-runner
+Group=forgejo-runner
+WorkingDirectory=/var/lib/forgejo-runner
+ExecStart=/usr/local/bin/forgejo-runner -c /var/lib/forgejo-runner/config.yaml daemon
+Restart=on-failure
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+
+# The runner spawns jobs in Docker containers (the standard executor), so
+# it needs the docker socket but nothing else on the host: harden the unit
+# while keeping its state directory writable.
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ProtectHome=true
+ReadWritePaths=/var/lib/forgejo-runner
+
+[Install]
+WantedBy=multi-user.target

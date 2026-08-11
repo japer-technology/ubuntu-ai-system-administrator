@@ -1,0 +1,51 @@
+{
+  "schema_version": 1,
+  "product_id": "llama",
+  "display_name": "Llama",
+  "authority_summary": "Serve one checksum-verified local model through a loopback-only OpenAI-compatible API",
+  "source_root": "products/llama",
+  "version_file": "VERSION",
+  "lifecycle_script": "scripts/manage.sh",
+  "installed_entrypoint": "/usr/local/sbin/llama-manage",
+  "install_root": "/opt/llama.cpp",
+  "configuration_root": "/etc/llama.cpp",
+  "state_root": "/var/lib/llama.cpp",
+  "log_root": "/var/log/llama.cpp",
+  "ownership_marker": "/var/lib/llama.cpp/installation.json",
+  "environment_prefix": "LLAMA",
+  "accounts": [
+    {
+      "name": "llama-cpp",
+      "kind": "user"
+    },
+    {
+      "name": "llama-cpp",
+      "kind": "group"
+    }
+  ],
+  "units": [
+    "llama-server.service"
+  ],
+  "ports": [
+    {
+      "address": "127.0.0.1",
+      "port": 8080,
+      "protocol": "tcp"
+    }
+  ],
+  "cookie_names": [],
+  "operations": [
+    "describe",
+    "status",
+    "install",
+    "verify",
+    "doctor",
+    "repair",
+    "backup",
+    "update",
+    "rollback",
+    "suspend",
+    "resume",
+    "uninstall"
+  ]
+}

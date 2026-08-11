@@ -1,0 +1,13 @@
+/var/log/imaginary-friend/audit.log {
+    daily
+    missingok
+    notifempty
+    compress
+    delaycompress
+    rotate 3650
+    maxage 3650
+    create 0640 friend friend
+    prerotate
+        PYTHONPATH=/opt/imaginary-friend/agent /opt/imaginary-friend/venv/bin/python -m friend.audit_retention
+    endscript
+}

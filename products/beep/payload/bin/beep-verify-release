@@ -1,0 +1,115 @@
+#!/usr/bin/env bash
+# Verify a downloaded Beep release directory.
+set -Eeuo pipefail
+
+REPO="${BEEP_RELEASE_REPO:-japer-technology/beep}"
+DEFAULT_CERT_IDENTITY_REGEXP="https://github[.]com/${REPO}/[.]github"
+DEFAULT_CERT_IDENTITY_REGEXP+="/workflows/beep-release[.]yml"
+DEFAULT_CERT_IDENTITY_REGEXP+="@refs/(heads/main|tags/beep-v.*)"
+CERT_IDENTITY_REGEXP="${BEEP_RELEASE_CERT_IDENTITY_REGEXP:-${DEFAULT_CERT_IDENTITY_REGEXP}}"
+CERT_OIDC_ISSUER="${BEEP_RELEASE_CERT_OIDC_ISSUER:-https://token.actions.githubusercontent.com}"
+
+usage() {
+  cat <<EOF
+Usage: beep-verify-release [release-directory]
+
+Verifies a downloaded Beep release directory by checking the versioned
+SHA-256 manifest, cosign signatures, and the local provenance bundle.
+
+Environment:
+  BEEP_RELEASE_REPO                    GitHub repository (${REPO})
+  BEEP_RELEASE_CERT_IDENTITY_REGEXP    Expected signing identity regexp
+  BEEP_RELEASE_CERT_OIDC_ISSUER        Expected OIDC issuer
+EOF
+}
+
+need() {
+  command -v "$1" >/dev/null 2>&1 || {
+    echo "[x] missing required command: $1" >&2
+    exit 127
+  }
+}
+
+status() {
+  printf '[%s] %s\n' "$1" "$2"
+}
+
+release_dir="${1:-.}"
+case "${release_dir}" in
+  -h|--help) usage; exit 0 ;;
+esac
+
+need sha256sum
+need cosign
+need gh
+
+cd "${release_dir}"
+
+mapfile -t checksum_files < <(
+  find . -maxdepth 1 -type f -name 'beep-*.sha256' -printf '%f\n' | sort
+)
+if [[ "${#checksum_files[@]}" -ne 1 || ! -s "${checksum_files[0]:-}" ]]; then
+  echo "[x] expected exactly one non-empty beep-*.sha256 manifest" >&2
+  exit 1
+fi
+checksum_file="${checksum_files[0]}"
+
+mapfile -t artifacts < <(
+  awk '{print $2}' "${checksum_file}" | sed 's/^\*//' | grep -v '^$'
+)
+if [[ "${#artifacts[@]}" -eq 0 ]]; then
+  echo "[x] checksum manifest does not list any artifacts" >&2
+  exit 1
+fi
+for artifact in "${artifacts[@]}"; do
+  if [[ "${artifact}" == -* || "${artifact}" == */* || "${artifact}" == *\\* ]]; then
+    echo "[x] unsafe artifact name in checksum manifest" >&2
+    exit 1
+  fi
+done
+
+status i "checking ${checksum_file}"
+sha256sum -c "${checksum_file}"
+status ok "checksums match"
+
+verify_cosign() {
+  local file="$1"
+  local args=(
+    verify-blob
+    --certificate-identity-regexp "${CERT_IDENTITY_REGEXP}"
+    --certificate-oidc-issuer "${CERT_OIDC_ISSUER}"
+  )
+
+  if [[ -s "${file}.cosign.bundle" ]]; then
+    args+=(--bundle "${file}.cosign.bundle")
+  elif [[ -s "${file}.sig" && -s "${file}.pem" ]]; then
+    args+=(--signature "${file}.sig" --certificate "${file}.pem")
+  else
+    echo "[x] missing cosign signature material for ${file}" >&2
+    exit 1
+  fi
+
+  cosign "${args[@]}" "${file}" >/dev/null
+}
+
+status i "checking cosign signatures"
+for artifact in "${artifacts[@]}" "${checksum_file}"; do
+  [[ -s "${artifact}" ]] || { echo "[x] missing artifact: ${artifact}" >&2; exit 1; }
+  verify_cosign "${artifact}"
+done
+status ok "cosign signatures verify"
+
+provenance_file="$(find . -maxdepth 1 -type f -name '*.intoto.jsonl' -print -quit)"
+[[ -n "${provenance_file}" ]] || {
+  echo "[x] SLSA provenance attestation (*.intoto.jsonl) missing" >&2
+  exit 1
+}
+
+status i "checking SLSA provenance"
+for artifact in "${artifacts[@]}"; do
+  gh attestation verify "${artifact}" \
+    --repo "${REPO}" \
+    --bundle "${provenance_file}" >/dev/null
+done
+status ok "provenance verifies"
+status ok "release verified"

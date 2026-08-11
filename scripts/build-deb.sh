@@ -68,13 +68,34 @@ DEBIAN="${STAGE}/DEBIAN"
 
 mkdir -p "${INSTALL_ROOT}" "${DOC_ROOT}" "${SBIN}" "${DEBIAN}"
 
-# Copy the source tree (matching `make package` minus dist/, .git, caches).
-for item in scripts payload tests Makefile VERSION \
-            README.md CHANGELOG.md CONTRIBUTING.md CODE_OF_CONDUCT.md \
-            LICENSE SECURITY.md docs; do
-  [ -e "${ROOT}/${item}" ] || continue
-  cp -a "${ROOT}/${item}" "${INSTALL_ROOT}/"
-done
+# Copy only tracked source files when building from a clone, so ignored
+# caches and other local artifacts cannot leak into a release. The tar
+# fallback keeps `make deb` working from a source release without `.git`.
+SOURCE_ITEMS=(
+  scripts payload tests Makefile VERSION
+  README.md CHANGELOG.md CONTRIBUTING.md CODE_OF_CONDUCT.md
+  LICENSE SECURITY.md docs
+)
+GIT_ROOT="$(git -C "${ROOT}" rev-parse --show-toplevel 2>/dev/null || true)"
+if [[ "${GIT_ROOT}" == "${ROOT}" ]]; then
+  (
+    cd "${ROOT}"
+    git ls-files -z -- "${SOURCE_ITEMS[@]}" \
+      | tar --null --files-from=- -cf -
+  ) | tar -C "${INSTALL_ROOT}" -xf -
+else
+  (
+    cd "${ROOT}"
+    tar --exclude-vcs \
+      --exclude='__pycache__' \
+      --exclude='.pytest_cache' \
+      --exclude='.mypy_cache' \
+      --exclude='.ruff_cache' \
+      --exclude='*.pyc' \
+      --exclude='*.pyo' \
+      -cf - "${SOURCE_ITEMS[@]}"
+  ) | tar -C "${INSTALL_ROOT}" -xf -
+fi
 
 # Docs duplicated under /usr/share/doc/<pkg>/ so `dpkg -L` reveals
 # them in the conventional location.

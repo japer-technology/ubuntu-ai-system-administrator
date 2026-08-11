@@ -2925,11 +2925,14 @@ run_standards() {
   grep -q '"sessionDir": "__ZOMBIE_DIR__/state/' \
     payload/agent/templates/settings.json.tmpl \
     || { echo "pi-mono settings must use the install-root placeholder" >&2; exit 1; }
+  grep -q '/var/log/ubuntu-zombie/install-receipt.txt' debian/prerm \
+    || { echo "Debian removal guard must detect recorded custom installs" >&2; exit 1; }
+  grep -q '/usr/local/bin/zombie-chat' debian/prerm \
+    || { echo "Debian removal guard must detect custom install links" >&2; exit 1; }
 
   local helper_root helper_output username_functions detected_owner expected_owner
   helper_root="$(mktemp -d)"
-  mkdir -p "${helper_root}/agent" "${helper_root}/bin"
-  cp VERSION "${helper_root}/VERSION"
+  mkdir -p "${helper_root}/bin"
   install -m 755 payload/bin/secrets-edit "${helper_root}/bin/secrets-edit"
   install -m 755 payload/bin/zombie-chat "${helper_root}/bin/zombie-chat"
   helper_output="$("${helper_root}/bin/secrets-edit" --help)"

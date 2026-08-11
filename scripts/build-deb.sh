@@ -68,13 +68,34 @@ DEBIAN="${STAGE}/DEBIAN"
 
 mkdir -p "${INSTALL_ROOT}" "${DOC_ROOT}" "${SBIN}" "${DEBIAN}"
 
-# Copy the source tree (matching `make package` minus dist/, .git, caches).
-for item in scripts payload tests Makefile VERSION \
-            README.md CHANGELOG.md CONTRIBUTING.md CODE_OF_CONDUCT.md \
-            LICENSE SECURITY.md docs; do
-  [ -e "${ROOT}/${item}" ] || continue
-  cp -a "${ROOT}/${item}" "${INSTALL_ROOT}/"
-done
+# Copy only tracked source files when building from a clone, so ignored
+# caches and other local artifacts cannot leak into a release. The tar
+# fallback keeps `make deb` working from a source release without `.git`.
+SOURCE_ITEMS=(
+  scripts payload tests Makefile VERSION
+  README.md CHANGELOG.md CONTRIBUTING.md CODE_OF_CONDUCT.md
+  LICENSE SECURITY.md docs
+)
+GIT_ROOT="$(git -C "${ROOT}" rev-parse --show-toplevel 2>/dev/null || true)"
+if [[ "${GIT_ROOT}" == "${ROOT}" ]]; then
+  (
+    cd "${ROOT}"
+    git ls-files -z -- "${SOURCE_ITEMS[@]}" \
+      | tar --null --files-from=- -cf -
+  ) | tar -C "${INSTALL_ROOT}" -xf -
+else
+  (
+    cd "${ROOT}"
+    tar --exclude-vcs \
+      --exclude='__pycache__' \
+      --exclude='.pytest_cache' \
+      --exclude='.mypy_cache' \
+      --exclude='.ruff_cache' \
+      --exclude='*.pyc' \
+      --exclude='*.pyo' \
+      -cf - "${SOURCE_ITEMS[@]}"
+  ) | tar -C "${INSTALL_ROOT}" -xf -
+fi
 
 # Docs duplicated under /usr/share/doc/<pkg>/ so `dpkg -L` reveals
 # them in the conventional location.
@@ -85,6 +106,18 @@ gzip -9n "${DOC_ROOT}/changelog.upstream"
 cp -a "${ROOT}/debian/copyright" "${DOC_ROOT}/copyright"
 cp -a "${ROOT}/debian/changelog" "${DOC_ROOT}/changelog.Debian"
 gzip -9n "${DOC_ROOT}/changelog.Debian"
+
+# Normalize archive permissions instead of inheriting the clone's umask.
+# Re-apply executable bits only to tracked entrypoints.
+find "${STAGE}" -type d -exec chmod 0755 {} +
+find "${INSTALL_ROOT}" "${DOC_ROOT}" -type f -exec chmod 0644 {} +
+while IFS= read -r -d '' source; do
+  target="${INSTALL_ROOT}/${source#"${ROOT}/"}"
+  chmod 0755 "${target}"
+done < <(
+  find "${ROOT}/scripts" "${ROOT}/payload" "${ROOT}/tests" \
+    -type f -perm /111 -print0
+)
 
 # Wrapper that dispatches to the installer's CLI.
 cat > "${SBIN}/${PKG}" <<EOF
@@ -111,6 +144,7 @@ sed "s/__VERSION__/${VERSION}/g" "${ROOT}/debian/control.in" > "${DEBIAN}/contro
 # Compute Installed-Size (KiB) per Debian policy.
 SIZE_KB="$(du -ks "${INSTALL_ROOT}" "${DOC_ROOT}" "${SBIN}" | awk '{s+=$1} END {print s}')"
 printf 'Installed-Size: %s\n' "${SIZE_KB}" >> "${DEBIAN}/control"
+chmod 0644 "${DEBIAN}/control"
 
 cp -a "${ROOT}/debian/postinst" "${DEBIAN}/postinst"
 cp -a "${ROOT}/debian/prerm"   "${DEBIAN}/prerm"
@@ -118,6 +152,7 @@ chmod 0755 "${DEBIAN}/postinst" "${DEBIAN}/prerm"
 
 # md5sums for `dpkg --verify`.
 ( cd "${STAGE}" && find usr -type f -exec md5sum {} + > "${DEBIAN}/md5sums" )
+chmod 0644 "${DEBIAN}/md5sums"
 
 # ---------------------------------------------------------------------------
 # Build

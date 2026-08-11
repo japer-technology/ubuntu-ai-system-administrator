@@ -26,7 +26,7 @@
 # under the state directory and are owned by the agent user (the
 # chat service does not run as root). One file per service start /
 # turn keeps each log small; rotation just culls stale ones.
-/opt/ai-zombie/state/logs/pi-mono.*.log {
+__ZOMBIE_DIR__/state/logs/pi-mono.*.log {
     daily
     rotate 14
     compress

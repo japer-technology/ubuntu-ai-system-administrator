@@ -94,7 +94,11 @@ _SENSITIVE_ENV_NAMES = (
 
 
 def _secrets_path_redactors() -> tuple[tuple[re.Pattern[str], str], ...]:
-    paths = {os.environ.get("ZOMBIE_SECRETS") or "/opt/ai-zombie/secrets/env"}
+    install_root = Path(os.environ.get("ZOMBIE_DIR", "/opt/ai-zombie"))
+    paths = {
+        os.environ.get("ZOMBIE_SECRETS")
+        or str(install_root / "secrets" / "env")
+    }
     out: list[tuple[re.Pattern[str], str]] = []
     for p in paths:
         if not p:

@@ -205,6 +205,21 @@ drop-in `/etc/sudoers.d/90-<name>-ubuntu-zombie`, the systemd
 `User=`/`Group=` of `ubuntu-zombie-chat.service`, and the system
 prompt the chat service hands to the LLM.
 
+## Install root
+
+The default install root is `/opt/ai-zombie`. To use another absolute
+path, set `ZOMBIE_DIR` on the initial install and on every later
+installer lifecycle command:
+
+```bash
+sudo ZOMBIE_DIR=/srv/ai-zombie ./scripts/install.sh install
+```
+
+The rendered systemd units, pi-mono settings, logs, state, built-in
+skills, diagnostics, and secrets helper all follow the selected root.
+Installed command-line helpers also auto-detect their root when reached
+through the `/usr/local/bin` links.
+
 ## Rotating provider keys
 
 1. `sudo /opt/ai-zombie/bin/secrets-edit` — replace the value.
@@ -650,14 +665,14 @@ processes and are useful for development, CI, and bespoke layouts:
 | `ZOMBIE_AUDIT_LOG`        | `/var/log/ubuntu-zombie/audit.log`       | `audit.py`, `audit-recent` |
 | `ZOMBIE_AUDIT_VERBOSE`    | *(unset; off)*                           | `audit.py` (opt-in: adds redacted `stdout_preview`/`stderr_preview` to `tool_call` entries to aid pre-release testing and operator debugging) |
 | `ZOMBIE_AUDIT_PREVIEW_BYTES` | `2048`                                | `audit.py` (per-stream preview cap when `ZOMBIE_AUDIT_VERBOSE=1`; hard ceiling 16 KiB) |
-| `ZOMBIE_HISTORY_DB`       | `/opt/ai-zombie/state/conversations.db`  | `history.py`        |
+| `ZOMBIE_HISTORY_DB`       | `${ZOMBIE_DIR}/state/conversations.db`   | `history.py`        |
 | `ZOMBIE_SKILLS_DIR`       | *(unset)*                                | `skill_loader.py` (extra directory consulted first) |
 | `ZOMBIE_NODE`             | `which node`                             | pi-ai bridge spawner |
 | `ZOMBIE_PI_AI_BRIDGE`     | `${ZOMBIE_DIR}/agent/pi-ai-bridge.mjs`   | pi-ai bridge spawner (used by tests) |
 | `ZOMBIE_PI_MONO_BIN`      | `which pi`                               | `pi_mono.py`        |
 | `ZOMBIE_PI_MONO_BRIDGE`   | `${ZOMBIE_DIR}/agent/pi-mono-bridge.mjs` | `pi_mono.py` (used by smoke tests) |
-| `ZOMBIE_PI_MONO_LOG_DIR`  | `/opt/ai-zombie/state/logs`              | `pi_mono.py`        |
-| `ZOMBIE_PI_MONO_SETTINGS` | `/opt/ai-zombie/pi/settings.json`        | `pi_mono.py`        |
+| `ZOMBIE_PI_MONO_LOG_DIR`  | `${ZOMBIE_DIR}/state/logs`               | `pi_mono.py`        |
+| `ZOMBIE_PI_MONO_SETTINGS` | `${ZOMBIE_DIR}/pi/settings.json`         | `pi_mono.py`        |
 
 ## Health check
 

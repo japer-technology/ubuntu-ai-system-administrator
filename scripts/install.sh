@@ -253,7 +253,7 @@ Flags:
       --no-color    Disable ANSI colour (NO_COLOR is also honoured).
       --strict      Treat preflight warnings as fatal.
       --json        Machine-readable output for verify and doctor.
-      --archive     Archive /opt/ai-zombie before uninstalling.
+      --archive     Archive the install root before uninstalling.
       --keep-agent  Keep the Zombie account during uninstall.
   -h, --help        Show this help and exit.
   -v, --version     Print the version and exit.
@@ -730,8 +730,11 @@ cmd_repair() {
     install -d -m 755 -o root -g root "${ZOMBIE_DIR}/pi"
     install -d -m 750 -o "${AGENT_USER}" -g "${AGENT_USER}" \
       "${ZOMBIE_DIR}/state/logs" "${ZOMBIE_DIR}/state/pi-mono-sessions" 2>/dev/null || true
-    [[ ! -f "${ZOMBIE_DIR}/agent/templates/settings.json.tmpl" ]] \
-      || install -m 644 "${ZOMBIE_DIR}/agent/templates/settings.json.tmpl" "${ZOMBIE_DIR}/pi/settings.json"
+    if [[ -f "${ZOMBIE_DIR}/agent/templates/settings.json.tmpl" ]]; then
+      sed -e "s|__ZOMBIE_DIR__|${ZOMBIE_DIR}|g" \
+        "${ZOMBIE_DIR}/agent/templates/settings.json.tmpl" \
+        | install -m 644 /dev/stdin "${ZOMBIE_DIR}/pi/settings.json"
+    fi
     if [[ -f "${ZOMBIE_DIR}/agent/templates/APPEND_SYSTEM.md.tmpl" ]]; then
       _facts="hostname=$(hostname) os=$(. /etc/os-release 2>/dev/null && echo "${PRETTY_NAME:-Linux}")"
       sed -e "s|__AGENT_USER__|${AGENT_USER}|g" -e "s|__FACTS__|${_facts}|g" \
@@ -1637,7 +1640,7 @@ systemctl mask sleep.target suspend.target hibernate.target hybrid-sleep.target 
 ok "Sleep and suspend targets masked."
 
 # ---------------------------------------------------------------------------
-# Workspace at /opt/ai-zombie
+# Workspace at ${ZOMBIE_DIR}
 # ---------------------------------------------------------------------------
 
 section "Prepare application state"
@@ -2061,14 +2064,15 @@ install -m 644 -o "${AGENT_USER}" -g "${AGENT_USER}" \
 # preserving valid state from an existing installation.
 init_lifecycle_state
 
-# Render pi-mono runtime configs into /opt/ai-zombie/pi/. Root-owned,
+# Render pi-mono runtime configs into ${ZOMBIE_DIR}/pi/. Root-owned,
 # world-readable; the chat service reads them but does not need to
 # mutate them.
 install -d -m 755 -o root -g root "${ZOMBIE_DIR}/pi"
 install -d -m 750 -o "${AGENT_USER}" -g "${AGENT_USER}" \
   "${ZOMBIE_DIR}/state/logs" "${ZOMBIE_DIR}/state/pi-mono-sessions"
-install -m 644 "${PAYLOAD_DIR}/agent/templates/settings.json.tmpl" \
-  "${ZOMBIE_DIR}/pi/settings.json"
+sed -e "s|__ZOMBIE_DIR__|${ZOMBIE_DIR}|g" \
+  "${PAYLOAD_DIR}/agent/templates/settings.json.tmpl" \
+  | install -m 644 /dev/stdin "${ZOMBIE_DIR}/pi/settings.json"
 # Render APPEND_SYSTEM.md via the chat-service helper so a single
 # implementation is the source of truth for the rendered text.
 if (cd "${PAYLOAD_DIR}/agent" && python3 server.py --render-append-system) \
@@ -2118,7 +2122,7 @@ else
   info "Preserving existing ${ZOMBIE_ETC}/policy.yaml."
 fi
 
-# Ship the built-in skill catalogue to /opt/ai-zombie/skills/
+# Ship the built-in skill catalogue to ${ZOMBIE_DIR}/skills/
 # (root-owned, world-readable) and provision the operator-extensible
 # /etc/ubuntu-zombie/skills.d/ tree with the same mode/owner contract
 # as policy.yaml. Skills are static markdown read at chat-turn time;
@@ -2134,9 +2138,9 @@ if [[ -d "${PAYLOAD_DIR}/agent/skills" ]]; then
 fi
 install -d -m 755 -o root -g root "${ZOMBIE_ETC}/skills.d"
 
-# logrotate. The shipped file uses the ``__AGENT_USER__`` placeholder
-# so the `create` line names the operator-chosen account (FIX-3-06).
+# logrotate. Render the chosen account and install root.
 sed -e "s|__AGENT_USER__|${AGENT_USER}|g" \
+    -e "s|__ZOMBIE_DIR__|${ZOMBIE_DIR}|g" \
     "${PAYLOAD_DIR}/logrotate/ubuntu-zombie" \
     | install -m 644 /dev/stdin /etc/logrotate.d/ubuntu-zombie
 

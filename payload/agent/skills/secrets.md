@@ -12,8 +12,9 @@ Operating rules:
   conversation history, so a key read "just to check it" has already
   left the machine. Confirm a secret's *presence* (file exists, mode
   `0600`, variable set) instead of its value.
-- Ubuntu AI System Administrator's own keys live in `/opt/ai-zombie/secrets/env`, mode
-  `0600`, owned by the agent account. The supported way to change them
+- Ubuntu AI System Administrator's own keys live in
+  `${ZOMBIE_DIR}/secrets/env`, mode `0600`, owned by the agent account.
+  The supported way to change them
   is `sudo secrets-edit`, which backs the file up, opens an editor and
   re-asserts ownership and mode afterwards. Do not `cat` it, do not
   copy it, and do not edit it with a shell redirect that would leave

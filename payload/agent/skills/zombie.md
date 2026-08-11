@@ -6,7 +6,7 @@ itself — its files, its policy, its audit trail or its lifecycle.
 
 Operating rules:
 
-- Layout worth knowing: `/opt/ai-zombie/` holds the agent package,
+- Layout worth knowing: `${ZOMBIE_DIR}/` holds the agent package,
   helper binaries under `bin/`, built-in skills under `skills/` and
   runtime state under `state/`. Operator-editable configuration lives
   in `/etc/ubuntu-zombie/` (`policy.yaml` and `skills.d/`). The audit
@@ -40,4 +40,4 @@ Operating rules:
   before looking for a fault.
 - For a bug report, point at `collect-diagnostics`; it gathers the
   supporting material. Never paste the contents of
-  `/opt/ai-zombie/secrets/env` into the chat or into a report.
+  `${ZOMBIE_DIR}/secrets/env` into the chat or into a report.

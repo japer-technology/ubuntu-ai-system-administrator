@@ -20,7 +20,7 @@ this file). The bridge is a small Node script that loads
 
 Supported providers (set ``ZOMBIE_PROVIDER`` to one of the names on
 the left and supply the matching API key in
-``/opt/ai-zombie/secrets/env``)::
+``$ZOMBIE_DIR/secrets/env``)::
 
     openai      OPENAI_API_KEY
     anthropic   ANTHROPIC_API_KEY
@@ -187,6 +187,13 @@ HERE = Path(__file__).resolve().parent
 DEFAULT_BRIDGE = HERE / "pi-ai-bridge.mjs"
 
 
+def _secrets_file() -> Path:
+    install_root = Path(os.environ.get("ZOMBIE_DIR", "/opt/ai-zombie"))
+    return Path(os.environ.get(
+        "ZOMBIE_SECRETS", str(install_root / "secrets" / "env")
+    ))
+
+
 def _bridge_path() -> Path:
     """Return the path to the Node bridge script.
 
@@ -338,7 +345,7 @@ class BaseProvider:
         if not chosen:
             raise NoProviderConfigured(
                 f"{spec.name} requires a model id. Set ZOMBIE_MODEL in "
-                "/opt/ai-zombie/secrets/env (e.g. "
+                f"{_secrets_file()} (e.g. "
                 "ZOMBIE_MODEL=anthropic/claude-3.5-sonnet for openrouter)."
             )
         self.model = chosen
@@ -443,7 +450,7 @@ def _resolve_spec(name: str | None = None) -> _ProviderSpec:
     keys = ", ".join(spec.key_env for spec in _PI_AI_PROVIDERS)
     raise NoProviderConfigured(
         "No provider API key found. Set one of "
-        f"{keys} in /opt/ai-zombie/secrets/env and restart "
+        f"{keys} in {_secrets_file()} and restart "
         "ubuntu-zombie-chat.service."
     )
 

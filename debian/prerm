@@ -1,0 +1,78 @@
+#!/bin/sh
+# prerm — block removal of the package if the operator forgot to run
+# `sudo ubuntu-zombie uninstall` first. We refuse on "remove" only;
+# "upgrade"/"deconfigure"/"failed-upgrade" pass through untouched so
+# `apt upgrade` and `apt install <newer.deb>` keep working.
+set -e
+
+host_still_configured() {
+  [ -e /etc/systemd/system/ubuntu-zombie-chat.service ] && return 0
+  [ -d /opt/ai-zombie ] && return 0
+  [ -d /etc/ubuntu-zombie ] && return 0
+  id zombie >/dev/null 2>&1 && return 0
+
+  for marker in /etc/sudoers.d/90-*-ubuntu-zombie; do
+    [ -e "$marker" ] && return 0
+  done
+
+  for shim in \
+    /usr/local/bin/zombie-chat \
+    /usr/local/bin/audit-recent \
+    /usr/local/bin/secrets-edit \
+    /usr/local/bin/zombie-health \
+    /usr/local/bin/zombie-diagnostics \
+    /usr/local/bin/zombie-verify
+  do
+    [ -L "$shim" ] || continue
+    case "$(readlink "$shim" 2>/dev/null || true)" in
+      */bin/zombie-chat|*/bin/audit-recent|*/bin/secrets-edit|\
+      */bin/health-check|*/bin/collect-diagnostics|*/bin/verify)
+        return 0
+        ;;
+    esac
+  done
+
+  receipt="/var/log/ubuntu-zombie/install-receipt.txt"
+  if [ -r "$receipt" ]; then
+    install_root="$(awk -F ': ' \
+      '/^Install root     : / { value=$2 } END { print value }' "$receipt")"
+    agent_user="$(awk -F ': ' \
+      '/^Agent user       : / { value=$2 } END { print value }' "$receipt")"
+    [ -n "$install_root" ] && [ -e "$install_root" ] && return 0
+    [ -n "$agent_user" ] && id -- "$agent_user" >/dev/null 2>&1 && return 0
+  fi
+
+  return 1
+}
+
+case "$1" in
+  remove)
+    if host_still_configured; then
+      cat <<'EOF' >&2
+
+Refusing to remove ubuntu-zombie while the host is still set up.
+
+Run the uninstaller with the original ZOMBIE_USER and ZOMBIE_DIR
+settings so the agent user, sudoers drop-in, systemd units, firewall
+rules, and installed state are reverted:
+
+  sudo ubuntu-zombie uninstall
+
+Then re-run `sudo apt remove ubuntu-zombie`.
+
+To force-remove the staged files without reversing the install
+(advanced; leaves orphaned state on the host), pass:
+
+  sudo env UBUNTU_ZOMBIE_FORCE_REMOVE=1 apt remove ubuntu-zombie
+
+EOF
+      if [ "${UBUNTU_ZOMBIE_FORCE_REMOVE:-0}" != "1" ]; then
+        exit 1
+      fi
+    fi
+    ;;
+  upgrade|deconfigure|failed-upgrade) : ;;
+  *) : ;;
+esac
+
+exit 0

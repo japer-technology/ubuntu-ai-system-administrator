@@ -11,6 +11,7 @@ WorkingDirectory=__ZOMBIE_DIR__
 EnvironmentFile=-__ZOMBIE_DIR__/secrets/env
 Environment=PYTHONUNBUFFERED=1
 Environment=ZOMBIE_USER=__AGENT_USER__
+Environment=ZOMBIE_DIR=__ZOMBIE_DIR__
 # FIX-3-02: provide a default for ZOMBIE_CHAT_PORT so the unit still
 # starts when the operator has not added the variable to
 # __ZOMBIE_DIR__/secrets/env (EnvironmentFile= is optional). Without

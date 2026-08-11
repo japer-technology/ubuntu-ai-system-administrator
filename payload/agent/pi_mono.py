@@ -53,12 +53,13 @@ from typing import Any, Callable, Iterable
 import providers
 
 HERE = Path(__file__).resolve().parent
+_INSTALL_ROOT = Path(os.environ.get("ZOMBIE_DIR", "/opt/ai-zombie"))
 
 DEFAULT_BRIDGE = HERE / "pi-mono-bridge.mjs"
 DEFAULT_LOG_DIR = Path(os.environ.get(
-    "ZOMBIE_PI_MONO_LOG_DIR", "/opt/ai-zombie/state/logs"))
+    "ZOMBIE_PI_MONO_LOG_DIR", str(_INSTALL_ROOT / "state" / "logs")))
 DEFAULT_SETTINGS_PATH = Path(os.environ.get(
-    "ZOMBIE_PI_MONO_SETTINGS", "/opt/ai-zombie/pi/settings.json"))
+    "ZOMBIE_PI_MONO_SETTINGS", str(_INSTALL_ROOT / "pi" / "settings.json")))
 
 # Per-turn idle deadline (seconds). If the bridge produces no event for
 # this long the turn is presumed wedged — a hung provider socket, a pi
@@ -399,8 +400,7 @@ def run_turn(
 
 
 def render_settings(*, tool_names_list: Iterable[str]) -> dict[str, Any]:
-    """Return the structured pi-mono settings object the installer
-    writes to ``/opt/ai-zombie/pi/settings.json``."""
+    """Return the structured pi-mono settings object the installer writes."""
     return {
         "mode": "rpc",
         "noBuiltinTools": True,

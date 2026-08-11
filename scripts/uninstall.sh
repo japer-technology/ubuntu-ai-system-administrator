@@ -8,7 +8,7 @@
 # logrotate rule, and (with
 # confirmation) the agent user account (default name `zombie`,
 # overridable with ZOMBIE_USER). Optionally archives the account's
-# home directory and /opt/ai-zombie/state/ to /var/backups/ before
+# home directory and the configured install root's state to /var/backups/ before
 # deletion.
 #
 # Usage:
@@ -25,6 +25,7 @@
 #   ZOMBIE_USER=<name>   override the account name (default `zombie`).
 #                        `AGENT_USER` is still accepted as a legacy
 #                        alias so older installs can still be reversed.
+#   ZOMBIE_DIR=<path>    override the install root (default `/opt/ai-zombie`).
 #   ZOMBIE_COLOR=auto|always|never   colour policy (default auto;
 #                        NO_COLOR is also honoured).
 #
@@ -81,8 +82,8 @@ Removes the chat service, sudoers drop-in, generated helpers, policy,
 logrotate rule, and (with
 confirmation) the agent user account (default name `zombie`,
 overridable with ZOMBIE_USER). Optionally archives the account's
-home directory and /opt/ai-zombie/state/ to /var/backups/ before
-deletion.
+home directory and the configured install root's state to
+/var/backups/ before deletion.
 
 Usage:
   sudo ./uninstall.sh                 # interactive
@@ -98,6 +99,7 @@ Environment:
   ZOMBIE_USER=<name>   override the account name (default `zombie`).
                        `AGENT_USER` is still accepted as a legacy
                        alias so older installs can still be reversed.
+  ZOMBIE_DIR=<path>    override the install root (default `/opt/ai-zombie`).
   ZOMBIE_COLOR=auto|always|never   colour policy (default auto;
                        NO_COLOR is also honoured).
 

@@ -5,8 +5,7 @@ password-protected chat service bound to `127.0.0.1`.
 
 ## Before you start
 
-Use a disposable Ubuntu Desktop LTS machine. The installer creates a
-root-capable local account, sudoers policy, systemd units, logs, and
+The installer creates a root-capable local account, sudoers policy, systemd units, logs, and
 state under `/opt/ai-system-administrator`.
 
 You need:

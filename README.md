@@ -1,7 +1,7 @@
 # Ubuntu AI System Administrator
 
 > [!WARNING]
-> This is under development and is pre-alpha.
+> This is under development.
 
 > [!IMPORTANT]
 > Installs a private, root-capable AI Systems Administrator

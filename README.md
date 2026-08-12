@@ -1,9 +1,6 @@
 # Ubuntu AI System Administrator
 
 > [!WARNING]
-> This is under development.
-
-> [!IMPORTANT]
 > Installs a private, root-capable AI Systems Administrator
 > account with a loopback-only chat service, an explicit approval gate, and an
 > auditable command log. This repository exists only to install, verify, repair,

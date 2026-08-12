@@ -18,7 +18,7 @@ policy gate and appear in the audit log.
 - Show me what is listening on the network and whether anything looks
   surprising.
 - Which users can administer this system, and when did they last log in?
-- Tell me whether the zombie itself is healthy, authenticated, and inside
+- Tell me whether the AI System Administrator itself is healthy, authenticated, and inside
   its Time to Live.
 
 ## Diagnose failures

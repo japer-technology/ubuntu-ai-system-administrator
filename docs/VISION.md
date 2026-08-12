@@ -30,7 +30,7 @@ the machine the whole time.
 ## What the MVP promises
 
 1. **A controlled sysadmin assistant with local authority.** A
-   dedicated `zombie` account (renameable at install time) holds
+   dedicated `ai-sys-admin` account (renameable at install time) holds
    passwordless `sudo` and serves as the operating identity of the AI
    Systems Administrator — never a shared human login.
 2. **An explicit policy and approval model before privileged
@@ -58,12 +58,12 @@ the machine the whole time.
 
 ## Trust model summary
 
-The local `zombie` account (renameable with `ZOMBIE_USER=<name>`)
+The local `ai-sys-admin` account (renameable with `AI_SYS_ADMIN_USER=<name>`)
 holds passwordless `sudo` and is the operating identity of the AI
 Systems Administrator. The configured provider powers the
 administrator. The operator owns the machine and can rotate the API key,
 expire the Time to Live, or uninstall the system at any time. Ubuntu
-Zombie exposes only a loopback chat service by default.
+AI System Administrator exposes only a loopback chat service by default.
 
 ## How to read the rest of the docs
 

@@ -6,8 +6,8 @@
 #
 # Removes the chat service, sudoers drop-in, generated helpers, policy,
 # logrotate rule, and (with
-# confirmation) the agent user account (default name `zombie`,
-# overridable with ZOMBIE_USER). Optionally archives the account's
+# confirmation) the agent user account (default name `ai-sys-admin`,
+# overridable with AI_SYS_ADMIN_USER). Optionally archives the account's
 # home directory and the configured install root's state to /var/backups/ before
 # deletion.
 #
@@ -22,11 +22,11 @@
 #   ./uninstall.sh -v|--version        # print the version and exit
 #
 # Environment:
-#   ZOMBIE_USER=<name>   override the account name (default `zombie`).
+#   AI_SYS_ADMIN_USER=<name>   override the account name (default `ai-sys-admin`).
 #                        `AGENT_USER` is still accepted as a legacy
 #                        alias so older installs can still be reversed.
-#   ZOMBIE_DIR=<path>    override the install root (default `/opt/ai-zombie`).
-#   ZOMBIE_COLOR=auto|always|never   colour policy (default auto;
+#   AI_SYS_ADMIN_DIR=<path>    override the install root (default `/opt/ai-system-administrator`).
+#   AI_SYS_ADMIN_COLOR=auto|always|never   colour policy (default auto;
 #                        NO_COLOR is also honoured).
 #
 # This script intentionally does NOT remove Node, Python, or other base
@@ -45,9 +45,9 @@ else
   exit 1
 fi
 
-AGENT_USER="${ZOMBIE_USER:-${AGENT_USER:-zombie}}"
+AGENT_USER="${AI_SYS_ADMIN_USER:-${AGENT_USER:-ai-sys-admin}}"
 AGENT_HOME="/home/${AGENT_USER}"
-ZOMBIE_DIR="${ZOMBIE_DIR:-/opt/ai-zombie}"
+AI_SYS_ADMIN_DIR="${AI_SYS_ADMIN_DIR:-/opt/ai-system-administrator}"
 BACKUP_DIR="${BACKUP_DIR:-/var/backups}"
 
 DRY_RUN=0
@@ -80,8 +80,8 @@ Reverse the Ubuntu AI System Administrator installer.
 
 Removes the chat service, sudoers drop-in, generated helpers, policy,
 logrotate rule, and (with
-confirmation) the agent user account (default name `zombie`,
-overridable with ZOMBIE_USER). Optionally archives the account's
+confirmation) the agent user account (default name `ai-sys-admin`,
+overridable with AI_SYS_ADMIN_USER). Optionally archives the account's
 home directory and the configured install root's state to
 /var/backups/ before deletion.
 
@@ -96,11 +96,11 @@ Usage:
   ./uninstall.sh -v|--version        # print the version and exit
 
 Environment:
-  ZOMBIE_USER=<name>   override the account name (default `zombie`).
+  AI_SYS_ADMIN_USER=<name>   override the account name (default `ai-sys-admin`).
                        `AGENT_USER` is still accepted as a legacy
                        alias so older installs can still be reversed.
-  ZOMBIE_DIR=<path>    override the install root (default `/opt/ai-zombie`).
-  ZOMBIE_COLOR=auto|always|never   colour policy (default auto;
+  AI_SYS_ADMIN_DIR=<path>    override the install root (default `/opt/ai-system-administrator`).
+  AI_SYS_ADMIN_COLOR=auto|always|never   colour policy (default auto;
                        NO_COLOR is also honoured).
 
 This script intentionally does NOT remove Node, Python, or other base
@@ -117,8 +117,8 @@ while [[ $# -gt 0 ]]; do
     --archive)    ARCHIVE=1; shift ;;
     --yes|-y)     ASSUME_YES=1; shift ;;
     --keep-agent) KEEP_AGENT=1; shift ;;
-    -q|--quiet)   ZOMBIE_QUIET=1; shift ;;
-    --no-color|--no-colour) export ZOMBIE_COLOR=never; lib_setup_colors; C_YEL="${C_YELLOW}"; shift ;;
+    -q|--quiet)   AI_SYS_ADMIN_QUIET=1; shift ;;
+    --no-color|--no-colour) export AI_SYS_ADMIN_COLOR=never; lib_setup_colors; C_YEL="${C_YELLOW}"; shift ;;
     --) shift
         (( $# == 0 )) || die "Unexpected argument: $1 (try --help)" 2
         break ;;
@@ -130,13 +130,13 @@ done
 # The splash is printed only for a real uninstall run: after argument
 # parsing (so --help/--version/bad-usage stay concise) and honouring
 # --quiet, exactly like install.sh.
-(( ZOMBIE_QUIET )) || brand_splash "uninstall" "${SCRIPT_VERSION}"
+(( AI_SYS_ADMIN_QUIET )) || brand_splash "uninstall" "${SCRIPT_VERSION}"
 
 # Validate user-controlled inputs before they are interpolated into any
 # command string handed to `run` (which eval's it). Mirrors
 # install.sh::validate_config so the uninstaller has the same guarantees.
 # Runs before the EUID check so smoke tests can assert exit-code 2 for
-# obviously-bad ZOMBIE_USER values without needing root. See FIX-2-01.
+# obviously-bad AI_SYS_ADMIN_USER values without needing root. See FIX-2-01.
 is_supported_agent_username() {
   [[ "$1" =~ ^[a-z]([a-z0-9_-]{0,30}[a-z0-9]|[a-z0-9]{0,31})$ ]] || return 1
   [[ "$1" != "root" && "$1" != "nobody" ]]
@@ -156,9 +156,9 @@ validate_config() {
       "${C_RED}" "${C_RESET}" "${AGENT_USER}" >&2
     exit 2
   fi
-  if ! is_safe_absolute_path "${ZOMBIE_DIR}"; then
-    printf '%s[x]%s ZOMBIE_DIR must be an absolute path using only safe path characters; got %q\n' \
-      "${C_RED}" "${C_RESET}" "${ZOMBIE_DIR}" >&2
+  if ! is_safe_absolute_path "${AI_SYS_ADMIN_DIR}"; then
+    printf '%s[x]%s AI_SYS_ADMIN_DIR must be an absolute path using only safe path characters; got %q\n' \
+      "${C_RED}" "${C_RESET}" "${AI_SYS_ADMIN_DIR}" >&2
     exit 2
   fi
   if ! is_safe_absolute_path "${BACKUP_DIR}"; then
@@ -264,40 +264,40 @@ confirm() {
   [[ "${ans}" == "YES" ]]
 }
 
-remove_zombie() {
+remove_ai_sys_admin() {
   local unit f orphan_name STAMP _pkg _shim _path _target _literal rc
 
   # -------------------------------------------------------------------
   # 1. Stop and disable the chat service + health timer.
   # -------------------------------------------------------------------
-  info "Stopping ubuntu-zombie services"
-  run "systemctl disable --now ubuntu-zombie-health.timer 2>/dev/null || true"
-  run "systemctl disable --now ubuntu-zombie-health.service 2>/dev/null || true"
-  run "systemctl disable --now ubuntu-zombie-chat.service   2>/dev/null || true"
+  info "Stopping ubuntu-ai-system-administrator services"
+  run "systemctl disable --now ubuntu-ai-system-administrator-health.timer 2>/dev/null || true"
+  run "systemctl disable --now ubuntu-ai-system-administrator-health.service 2>/dev/null || true"
+  run "systemctl disable --now ubuntu-ai-system-administrator-chat.service   2>/dev/null || true"
 
   # -------------------------------------------------------------------
   # 2. Remove systemd units and sudoers drop-ins.
   # -------------------------------------------------------------------
   info "Removing systemd units and sudoers drop-ins"
-  for unit in ubuntu-zombie-chat.service ubuntu-zombie-health.service ubuntu-zombie-health.timer; do
+  for unit in ubuntu-ai-system-administrator-chat.service ubuntu-ai-system-administrator-health.service ubuntu-ai-system-administrator-health.timer; do
     run "rm -f /etc/systemd/system/${unit}"
   done
   run_or_warn "systemctl daemon-reload" "systemctl daemon-reload"
 
-  run "rm -f /etc/sudoers.d/90-${AGENT_USER}-ubuntu-zombie"
+  run "rm -f /etc/sudoers.d/90-${AGENT_USER}-ubuntu-ai-system-administrator"
   # Also remove drop-ins from any previous install that used a different
-  # ZOMBIE_USER, so a stale NOPASSWD:ALL entry cannot be left behind.
+  # AI_SYS_ADMIN_USER, so a stale NOPASSWD:ALL entry cannot be left behind.
   # See FIX-2-04. The shell does the glob expansion locally; the only
   # metacharacters in $f come from the kernel's directory listing, and
   # FIX-2-01 guarantees AGENT_USER is safe so we cannot accidentally
   # delete the current-account drop-in twice via an odd glob expansion.
   shopt -s nullglob
-  for f in /etc/sudoers.d/90-*-ubuntu-zombie; do
+  for f in /etc/sudoers.d/90-*-ubuntu-ai-system-administrator; do
     case "$f" in
-      /etc/sudoers.d/90-"${AGENT_USER}"-ubuntu-zombie) continue ;;
+      /etc/sudoers.d/90-"${AGENT_USER}"-ubuntu-ai-system-administrator) continue ;;
     esac
     orphan_name="${f#/etc/sudoers.d/90-}"
-    orphan_name="${orphan_name%-ubuntu-zombie}"
+    orphan_name="${orphan_name%-ubuntu-ai-system-administrator}"
     warn "Removing orphaned sudoers drop-in for user '${orphan_name}': ${f}"
     if id "${orphan_name}" >/dev/null 2>&1; then
       warn "  account '${orphan_name}' still exists; remove it manually if no longer wanted."
@@ -310,7 +310,7 @@ remove_zombie() {
   # 3. Remove policy/logrotate and legacy desktop artefacts.
   # -------------------------------------------------------------------
   info "Removing policy, logrotate rule, and legacy desktop artefacts"
-  run "rm -f /etc/logrotate.d/ubuntu-zombie"
+  run "rm -f /etc/logrotate.d/ubuntu-ai-system-administrator"
 
   # Reverse the installer's "Prevent sleep, suspend, and screen lock"
   # masking so the desktop can sleep again after the product is gone.
@@ -331,7 +331,7 @@ remove_zombie() {
   # -------------------------------------------------------------------
   STAMP="$(date -u +%Y%m%d-%H%M%S)"
   if [[ "${ARCHIVE}" == "1" ]]; then
-    info "Archiving ${AGENT_HOME} and ${ZOMBIE_DIR}/state to ${BACKUP_DIR}"
+    info "Archiving ${AGENT_HOME} and ${AI_SYS_ADMIN_DIR}/state to ${BACKUP_DIR}"
     # Only assert mode when creating the directory new; otherwise leave the
     # existing mode/ownership alone (e.g. /var/backups must stay 0755 so dpkg,
     # cracklib, and audit collectors keep working). See FIX-1-04.
@@ -342,21 +342,21 @@ remove_zombie() {
     # secrets are not world-readable when BACKUP_DIR itself
     # is 0755 (the Ubuntu default for /var/backups). See FIX-2-02.
     if [[ -d "${AGENT_HOME}" ]]; then
-      run "(umask 077 && tar -czf ${BACKUP_DIR}/ubuntu-zombie-home-${STAMP}.tar.gz -C / home/${AGENT_USER})"
+      run "(umask 077 && tar -czf ${BACKUP_DIR}/ubuntu-ai-system-administrator-home-${STAMP}.tar.gz -C / home/${AGENT_USER})"
     fi
-    if [[ -d "${ZOMBIE_DIR}/state" ]]; then
-      run "(umask 077 && tar -czf ${BACKUP_DIR}/ubuntu-zombie-state-${STAMP}.tar.gz -C ${ZOMBIE_DIR} state)"
+    if [[ -d "${AI_SYS_ADMIN_DIR}/state" ]]; then
+      run "(umask 077 && tar -czf ${BACKUP_DIR}/ubuntu-ai-system-administrator-state-${STAMP}.tar.gz -C ${AI_SYS_ADMIN_DIR} state)"
     fi
   fi
 
   # -------------------------------------------------------------------
-  # 5. Remove /opt/ai-zombie (state/secrets only with confirmation).
+  # 5. Remove /opt/ai-system-administrator (state/secrets only with confirmation).
   # -------------------------------------------------------------------
-  if [[ -d "${ZOMBIE_DIR}" ]]; then
-    if confirm "Remove ${ZOMBIE_DIR} (includes secrets, state, and chat history)?"; then
-      remove_tree_checked "${ZOMBIE_DIR}" "${ZOMBIE_DIR}"
+  if [[ -d "${AI_SYS_ADMIN_DIR}" ]]; then
+    if confirm "Remove ${AI_SYS_ADMIN_DIR} (includes secrets, state, and chat history)?"; then
+      remove_tree_checked "${AI_SYS_ADMIN_DIR}" "${AI_SYS_ADMIN_DIR}"
     else
-      warn "Keeping ${ZOMBIE_DIR}. Privileged code under it is still on disk."
+      warn "Keeping ${AI_SYS_ADMIN_DIR}. Privileged code under it is still on disk."
     fi
   fi
 
@@ -365,7 +365,7 @@ remove_zombie() {
   # -------------------------------------------------------------------
   # The installer pulls @earendil-works/pi-ai and
   # @earendil-works/pi-coding-agent via ``npm install -g``.
-  # ``rm -rf /opt/ai-zombie`` removes our source tree but leaves the
+  # ``rm -rf /opt/ai-system-administrator`` removes our source tree but leaves the
   # Node packages installed system-wide. Uninstall them explicitly so
   # the host is left clean.
   if command -v npm >/dev/null 2>&1; then
@@ -382,22 +382,22 @@ remove_zombie() {
   # -------------------------------------------------------------------
   # 5c. Remove /usr/local/bin symlinks installed by install.sh.
   # -------------------------------------------------------------------
-  # install.sh adds these as `ln -sf ${ZOMBIE_DIR}/bin/...` shims so the
+  # install.sh adds these as `ln -sf ${AI_SYS_ADMIN_DIR}/bin/...` shims so the
   # CLI is on PATH for the operator. Without explicit cleanup they become
-  # dangling symlinks after step 5 removes ${ZOMBIE_DIR}. Only remove a
-  # link if it is a symlink whose target lives under ${ZOMBIE_DIR}, so we
+  # dangling symlinks after step 5 removes ${AI_SYS_ADMIN_DIR}. Only remove a
+  # link if it is a symlink whose target lives under ${AI_SYS_ADMIN_DIR}, so we
   # never delete an operator-owned binary of the same name.
-  info "Removing /usr/local/bin shims that point into ${ZOMBIE_DIR}"
-  for _shim in zombie-chat audit-recent secrets-edit zombie-health zombie-diagnostics zombie-verify; do
+  info "Removing /usr/local/bin shims that point into ${AI_SYS_ADMIN_DIR}"
+  for _shim in chat audit-recent secrets-edit ai-system-administrator-health ai-system-administrator-diagnostics ai-system-administrator-verify; do
     _path="/usr/local/bin/${_shim}"
     if [[ -L "${_path}" ]]; then
       _target="$(readlink -f "${_path}" 2>/dev/null || true)"
       case "${_target}" in
-        "${ZOMBIE_DIR}"/*) run "rm -f -- $(shell_quote "${_path}")" ;;
+        "${AI_SYS_ADMIN_DIR}"/*) run "rm -f -- $(shell_quote "${_path}")" ;;
         "") # broken symlink; check the literal target instead.
           _literal="$(readlink "${_path}" 2>/dev/null || true)"
           case "${_literal}" in
-            "${ZOMBIE_DIR}"/*) run "rm -f -- $(shell_quote "${_path}")" ;;
+            "${AI_SYS_ADMIN_DIR}"/*) run "rm -f -- $(shell_quote "${_path}")" ;;
           esac
           ;;
       esac
@@ -405,11 +405,11 @@ remove_zombie() {
   done
 
   # -------------------------------------------------------------------
-  # 6. Remove /etc/ubuntu-zombie policy config.
+  # 6. Remove /etc/ubuntu-ai-system-administrator policy config.
   # -------------------------------------------------------------------
-  if [[ -d /etc/ubuntu-zombie ]]; then
-    if confirm "Remove /etc/ubuntu-zombie (policy.yaml)?"; then
-      remove_tree_checked "/etc/ubuntu-zombie" "/etc/ubuntu-zombie"
+  if [[ -d /etc/ubuntu-ai-system-administrator ]]; then
+    if confirm "Remove /etc/ubuntu-ai-system-administrator (policy.yaml)?"; then
+      remove_tree_checked "/etc/ubuntu-ai-system-administrator" "/etc/ubuntu-ai-system-administrator"
     fi
   fi
 
@@ -466,9 +466,9 @@ remove_zombie() {
   fi
 }
 
-(( ZOMBIE_QUIET )) || printf '%s== ubuntu-zombie uninstall ==%s\n\n' "${C_BOLD}" "${C_RESET}"
+(( AI_SYS_ADMIN_QUIET )) || printf '%s== ubuntu-ai-system-administrator uninstall ==%s\n\n' "${C_BOLD}" "${C_RESET}"
 [[ "${DRY_RUN}" == "1" ]] && warn "Dry-run mode: nothing will be changed."
-remove_zombie
+remove_ai_sys_admin
 
 echo
 if (( UNINSTALL_EXIT != 0 )); then
@@ -476,7 +476,7 @@ if (( UNINSTALL_EXIT != 0 )); then
 else
   ok "Uninstall complete."
 fi
-(( ZOMBIE_QUIET )) || cat <<EOF
+(( AI_SYS_ADMIN_QUIET )) || cat <<EOF
 
 Left intact on purpose:
   - Node, Python, and other shared runtime packages
@@ -485,9 +485,9 @@ Left intact on purpose:
     /usr/share/keyrings/nodesource.gpg, /etc/apt/preferences.d/nodejs) is
     kept so an installed Node keeps receiving updates. Remove those three
     files if you also remove the nodejs package.
-  - /var/log/ubuntu-zombie/ and /var/log/ubuntu-zombie-install.log
+  - /var/log/ubuntu-ai-system-administrator/ and /var/log/ubuntu-ai-system-administrator-install.log
     are retained for audit. Remove them with:
-        sudo rm -rf /var/log/ubuntu-zombie /var/log/ubuntu-zombie-install.log
+        sudo rm -rf /var/log/ubuntu-ai-system-administrator /var/log/ubuntu-ai-system-administrator-install.log
 EOF
 
 exit "${UNINSTALL_EXIT}"

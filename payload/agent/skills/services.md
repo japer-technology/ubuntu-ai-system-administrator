@@ -48,7 +48,7 @@ Operating rules:
 - Masking (`systemctl mask`) is stronger than disabling: it blocks
   manual and dependency starts alike. Use it only when something keeps
   resurrecting a unit, say so explicitly, and record the unmask step in
-  the same plan. Never mask `ubuntu-zombie-chat.service`.
+  the same plan. Never mask `ubuntu-ai-system-administrator-chat.service`.
 - Enabling or disabling a unit at boot (`systemctl enable|disable`) is
   a standing change to the machine, distinct from starting or stopping
   it now. State which of the two the operator asked for; "stop it" does

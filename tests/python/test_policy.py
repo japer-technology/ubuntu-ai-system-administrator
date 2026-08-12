@@ -21,7 +21,7 @@ CLASSIFICATION_CASES = {
     "LC_ALL=C ls /etc": "read_only",
     "FOO=bar apt-get install pkg": "system_change",
     "sudo apt install foo": "system_change",
-    "sudo -u zombie ls /tmp": "read_only",
+    "sudo -u ai-sys-admin ls /tmp": "read_only",
     "sudo -E systemctl restart cron": "system_change",
     'rm -rf "/tmp/some file"': "destructive",
     # Unknown commands hit the fail-closed default.

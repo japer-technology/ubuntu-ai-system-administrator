@@ -47,7 +47,7 @@ same categories of checks contributors are expected to run locally:
 - `bash tests/smoke.sh subcommands` to ensure installer subcommand parsing
   stays valid.
 - `bash tests/smoke.sh noninteractive` to protect
-  `ZOMBIE_NONINTERACTIVE=1` behavior.
+  `AI_SYS_ADMIN_NONINTERACTIVE=1` behavior.
 - `bash tests/smoke.sh standards` for repository policy and standards
   checks.
 - `python3 -m pytest tests/python -q` for policy and audit regression tests.
@@ -116,7 +116,7 @@ It contains two jobs:
 
 The `dry-run` job runs `sudo -E ./scripts/install.sh install --dry-run`
 directly on GitHub-hosted Ubuntu 22.04 and 24.04 runners. It sets
-`ZOMBIE_NONINTERACTIVE=1` so the installer can build a full plan without
+`AI_SYS_ADMIN_NONINTERACTIVE=1` so the installer can build a full plan without
 prompting.
 
 This checks that the non-interactive dry-run path remains usable on both

@@ -8,7 +8,7 @@ import subprocess
 import time
 from dataclasses import dataclass
 
-DEFAULT_TIMEOUT = int(os.environ.get("ZOMBIE_COMMAND_TIMEOUT", "300"))
+DEFAULT_TIMEOUT = int(os.environ.get("AI_SYS_ADMIN_COMMAND_TIMEOUT", "300"))
 
 
 @dataclass
@@ -56,7 +56,7 @@ def run(command: str, *, timeout: int = DEFAULT_TIMEOUT, cwd: str | None = None,
     """Run ``command`` through ``bash -c`` so shell features work.
 
     The chat service is itself running as the local agent account
-    (``zombie`` by default; configurable at install time); commands
+    (``ai-sys-admin`` by default; configurable at install time); commands
     inherit that identity. Privileged commands must include ``sudo``
     explicitly and are routed through the policy gate before this
     function is called.

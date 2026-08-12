@@ -24,7 +24,7 @@ Operating rules:
   change to who controls the machine, not a fix for a permission error.
   Propose the narrowest grant that solves the stated problem.
 - Do not modify the `agent` account, its sudoers drop-in, its home
-  directory or the `zombie-*` groups. That is Ubuntu AI System Administrator's own
+  directory or the `ai-sys-admin-*` groups. That is Ubuntu AI System Administrator's own
   privilege boundary; changing it edits the trust model from inside the
   agent. If the operator wants it changed, point them at
   `scripts/install.sh` and its `repair` subcommand.

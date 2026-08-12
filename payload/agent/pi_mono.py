@@ -33,7 +33,7 @@ The bridge handles the actual ``pi --mode rpc`` (or ``--mode json``)
 plumbing, including ``--no-builtin-tools`` and ``--tools <names>``
 flags, system-prompt rendering, and per-turn session management.
 
-For development and CI, ``ZOMBIE_PI_MONO_BRIDGE`` may point at any
+For development and CI, ``AI_SYS_ADMIN_PI_MONO_BRIDGE`` may point at any
 executable that speaks this protocol — including the stub script
 ``tests/fixtures/stub-pi-mono.mjs`` used by ``smoke.sh``.
 """
@@ -53,13 +53,13 @@ from typing import Any, Callable, Iterable
 import providers
 
 HERE = Path(__file__).resolve().parent
-_INSTALL_ROOT = Path(os.environ.get("ZOMBIE_DIR", "/opt/ai-zombie"))
+_INSTALL_ROOT = Path(os.environ.get("AI_SYS_ADMIN_DIR", "/opt/ai-system-administrator"))
 
 DEFAULT_BRIDGE = HERE / "pi-mono-bridge.mjs"
 DEFAULT_LOG_DIR = Path(os.environ.get(
-    "ZOMBIE_PI_MONO_LOG_DIR", str(_INSTALL_ROOT / "state" / "logs")))
+    "AI_SYS_ADMIN_PI_MONO_LOG_DIR", str(_INSTALL_ROOT / "state" / "logs")))
 DEFAULT_SETTINGS_PATH = Path(os.environ.get(
-    "ZOMBIE_PI_MONO_SETTINGS", str(_INSTALL_ROOT / "pi" / "settings.json")))
+    "AI_SYS_ADMIN_PI_MONO_SETTINGS", str(_INSTALL_ROOT / "pi" / "settings.json")))
 
 # Per-turn idle deadline (seconds). If the bridge produces no event for
 # this long the turn is presumed wedged — a hung provider socket, a pi
@@ -69,7 +69,7 @@ DEFAULT_SETTINGS_PATH = Path(os.environ.get(
 # every bridge event (and every operator-mediated tool result) resets it,
 # so a generous value does not slow active turns. It is the innermost of
 # three layered deadlines and the smallest, so it fires first with a
-# clean error (Python < bridge ZOMBIE_PI_MONO_IDLE_TIMEOUT < client
+# clean error (Python < bridge AI_SYS_ADMIN_PI_MONO_IDLE_TIMEOUT < client
 # CLIENT_TURN_TIMEOUT_MS). ``0`` disables the watchdog.
 DEFAULT_TURN_TIMEOUT = 86400.0
 
@@ -80,7 +80,7 @@ class BridgeError(RuntimeError):
 
 
 def _bridge_argv() -> list[str]:
-    explicit = os.environ.get("ZOMBIE_PI_MONO_BRIDGE")
+    explicit = os.environ.get("AI_SYS_ADMIN_PI_MONO_BRIDGE")
     if explicit:
         # Allow either a bare script path or a full argv string.
         parts = explicit.split()
@@ -91,7 +91,7 @@ def _bridge_argv() -> list[str]:
     if node is None:
         raise BridgeError(
             "Cannot run pi-mono: 'node' not on PATH. Install Node.js >=22 "
-            "or set ZOMBIE_PI_MONO_BRIDGE to point at a stub."
+            "or set AI_SYS_ADMIN_PI_MONO_BRIDGE to point at a stub."
         )
     if not DEFAULT_BRIDGE.exists():
         raise BridgeError(f"Bridge script missing: {DEFAULT_BRIDGE}")
@@ -144,7 +144,7 @@ def run_turn(
     result) for ``timeout`` seconds, the subprocess is terminated and a
     :class:`BridgeError` is raised so the caller can report a clean
     error rather than blocking the operator forever. ``None`` falls back
-    to ``ZOMBIE_PI_MONO_TIMEOUT`` then :data:`DEFAULT_TURN_TIMEOUT`; a
+    to ``AI_SYS_ADMIN_PI_MONO_TIMEOUT`` then :data:`DEFAULT_TURN_TIMEOUT`; a
     non-positive value disables the watchdog.
 
     ``on_event`` receives optional ``token`` and ``progress`` bridge
@@ -158,10 +158,10 @@ def run_turn(
     env.setdefault("PI_MONO_LOG", str(log))
 
     if timeout is None:
-        timeout = _env_float("ZOMBIE_PI_MONO_TIMEOUT", DEFAULT_TURN_TIMEOUT)
+        timeout = _env_float("AI_SYS_ADMIN_PI_MONO_TIMEOUT", DEFAULT_TURN_TIMEOUT)
 
     # Single source of truth for model + auth. Resolve the active
-    # provider from /opt/ai-zombie/secrets/env via the shared registry
+    # provider from /opt/ai-system-administrator/secrets/env via the shared registry
     # in ``providers`` and pass the result to the bridge so the ``pi``
     # CLI selects the same model the chat banner advertises — rather
     # than falling back to pi's own default (``google``) or its native

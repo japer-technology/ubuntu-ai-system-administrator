@@ -1,13 +1,13 @@
 """Password gate for the Ubuntu AI System Administrator chat UI.
 
 The chat service binds to ``127.0.0.1`` only, but on a shared desktop
-*every* local user can reach ``http://127.0.0.1:7878``. A password gate
+*every* local user can reach ``http://127.0.0.1:57878``. A password gate
 keeps the root-capable administrator behind a shared secret. The
-installer asks for the password (default ``braaaains``) and
+installer asks for the password (default ``change-me-now``) and
 stores only a salted PBKDF2 hash in ``secrets/env`` as
-``ZOMBIE_ADMIN_PASSWORD_HASH`` — the plaintext is never written to disk.
+``AI_SYS_ADMIN_ADMIN_PASSWORD_HASH`` — the plaintext is never written to disk.
 
-The gate is *opt-in by configuration*: when ``ZOMBIE_ADMIN_PASSWORD_HASH``
+The gate is *opt-in by configuration*: when ``AI_SYS_ADMIN_ADMIN_PASSWORD_HASH``
 is unset (e.g. in tests, or a deliberately open install), ``auth_required``
 returns ``False`` and every request is allowed. When it is set, the
 server requires a valid login before serving any privileged endpoint.
@@ -23,8 +23,8 @@ import hmac
 import os
 import secrets
 
-HASH_ENV = "ZOMBIE_ADMIN_PASSWORD_HASH"
-DEFAULT_PASSWORD = "braaaains"
+HASH_ENV = "AI_SYS_ADMIN_ADMIN_PASSWORD_HASH"
+DEFAULT_PASSWORD = "change-me-now"
 
 _ALGO = "pbkdf2_sha256"
 _ITERATIONS = 200_000

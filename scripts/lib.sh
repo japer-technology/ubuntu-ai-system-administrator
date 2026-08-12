@@ -15,8 +15,8 @@
 # non-`set -e` scripts alike. Helpers that need to exit do so via die().
 #
 # Colour selection honours, in order:
-#   1. ZOMBIE_COLOR=always|never|auto  (or the legacy NO_COLOR=1 -> never)
-#   2. the --no-color flag a caller maps onto ZOMBIE_COLOR=never
+#   1. AI_SYS_ADMIN_COLOR=always|never|auto  (or the legacy NO_COLOR=1 -> never)
+#   2. the --no-color flag a caller maps onto AI_SYS_ADMIN_COLOR=never
 #   3. auto: colour only when stdout is a TTY.
 #
 # Status vocabulary (use these everywhere instead of ad-hoc glyphs):
@@ -28,20 +28,20 @@
 #                                   [ok] green / [!] yellow / [x] red
 
 # Guard against double-sourcing.
-if [[ -n "${_ZOMBIE_LIB_SOURCED:-}" ]]; then
+if [[ -n "${_AI_SYS_ADMIN_LIB_SOURCED:-}" ]]; then
   return 0 2>/dev/null || true
 fi
-_ZOMBIE_LIB_SOURCED=1
+_AI_SYS_ADMIN_LIB_SOURCED=1
 
 # ---------------------------------------------------------------------------
 # Colour / TTY
 # ---------------------------------------------------------------------------
 
 # Quiet mode suppresses info/ok/log lines (warnings and errors still show).
-ZOMBIE_QUIET="${ZOMBIE_QUIET:-0}"
+AI_SYS_ADMIN_QUIET="${AI_SYS_ADMIN_QUIET:-0}"
 
 lib_setup_colors() {
-  local mode="${ZOMBIE_COLOR:-auto}"
+  local mode="${AI_SYS_ADMIN_COLOR:-auto}"
   local enable=0
   case "${mode}" in
     always) enable=1 ;;
@@ -60,13 +60,13 @@ lib_setup_colors() {
     C_RESET=$'\033[0m'; C_BOLD=$'\033[1m'
     C_RED=$'\033[31m'; C_YELLOW=$'\033[33m'
     C_GREEN=$'\033[32m'; C_CYAN=$'\033[36m'
-    # Brand / theme accent palette. The primary highlight is Zombie Orchid
+    # Brand / theme accent palette. The primary highlight is AI System Administrator Orchid
     # #AC43D9 (RGB 172,67,217); the others are hand-picked to harmonise with
     # it: a lighter tint, a complementary teal, and a warm magenta. These use
     # 24-bit "truecolor" escapes; terminals without truecolor degrade to the
     # nearest colour and everything still reads cleanly. They honour the same
     # enable/disable policy as the base colours, so --no-color / NO_COLOR /
-    # ZOMBIE_COLOR=never blank them out and emit no ANSI at all.
+    # AI_SYS_ADMIN_COLOR=never blank them out and emit no ANSI at all.
     # C_DIM/C_BRAND*/C_ACCENT/C_MAGENTA are consumed by sourcing scripts.
     # shellcheck disable=SC2034
     {
@@ -86,16 +86,16 @@ lib_setup_colors() {
 }
 
 # Initialise colours immediately on source; callers that parse a
-# --no-color flag re-run lib_setup_colors after setting ZOMBIE_COLOR.
+# --no-color flag re-run lib_setup_colors after setting AI_SYS_ADMIN_COLOR.
 lib_setup_colors
 
 # ---------------------------------------------------------------------------
 # Output helpers
 # ---------------------------------------------------------------------------
 
-log()  { (( ZOMBIE_QUIET )) || printf '%s\n' "$*"; }
-info() { (( ZOMBIE_QUIET )) || printf '%s[i]%s %s\n' "${C_CYAN}" "${C_RESET}" "$*"; }
-ok()   { (( ZOMBIE_QUIET )) || printf '%s[+]%s %s\n' "${C_GREEN}" "${C_RESET}" "$*"; }
+log()  { (( AI_SYS_ADMIN_QUIET )) || printf '%s\n' "$*"; }
+info() { (( AI_SYS_ADMIN_QUIET )) || printf '%s[i]%s %s\n' "${C_CYAN}" "${C_RESET}" "$*"; }
+ok()   { (( AI_SYS_ADMIN_QUIET )) || printf '%s[+]%s %s\n' "${C_GREEN}" "${C_RESET}" "$*"; }
 warn() { printf '%s[!]%s %s\n' "${C_YELLOW}" "${C_RESET}" "$*" >&2; }
 die()  { printf '%s[x]%s %s\n' "${C_RED}" "${C_RESET}" "$1" >&2; exit "${2:-1}"; }
 
@@ -119,7 +119,7 @@ section() {
 }
 
 # ---------------------------------------------------------------------------
-# Branded UI helpers (Zombie Orchid theme)
+# Branded UI helpers (AI System Administrator Orchid theme)
 # ---------------------------------------------------------------------------
 
 # brand_rule [width]
@@ -135,7 +135,7 @@ brand_rule() {
 # brand_banner "Title"
 #   A boxed, brand-coloured banner used to frame the setup experience.
 brand_banner() {
-  (( ZOMBIE_QUIET )) && return 0
+  (( AI_SYS_ADMIN_QUIET )) && return 0
   local title="$*"
   printf '\n'
   brand_rule
@@ -159,7 +159,7 @@ _brand_panel_row() {
 # brand_wordmark
 #   Compact "UBUNTU AI SYSTEM ADMINISTRATOR" sign, shared by startup screens.
 brand_wordmark() {
-  (( ZOMBIE_QUIET )) && return 0
+  (( AI_SYS_ADMIN_QUIET )) && return 0
   printf '%s' "${C_BRAND}"
   printf '%s\n' \
 '╭──────────────────────────────────╮' \
@@ -171,12 +171,12 @@ brand_wordmark() {
 
 # brand_splash "subtitle" "version"
 #   The full-dress startup splash: a compact "UBUNTU AI SYSTEM ADMINISTRATOR"
-#   the Zombie Orchid palette, framed by a rounded panel that states who the
+#   the AI System Administrator Orchid palette, framed by a rounded panel that states who the
 #   account is, the version, and how to reach it. Used to open the installer
-#   the way a polished agent CLI greets you. Honours ZOMBIE_QUIET and the
+#   the way a polished agent CLI greets you. Honours AI_SYS_ADMIN_QUIET and the
 #   colour policy (degrades to plain text with no ANSI).
 brand_splash() {
-  (( ZOMBIE_QUIET )) && return 0
+  (( AI_SYS_ADMIN_QUIET )) && return 0
   local subtitle="${1:-}" version="${2:-}"
   printf '\n'
   brand_wordmark
@@ -192,7 +192,7 @@ brand_splash() {
   _brand_panel_row "${W}" "Ask the machine to diagnose, explain, configure, repair," "${C_ACCENT}"
   _brand_panel_row "${W}" "and operate itself - every action is audit-logged." "${C_ACCENT}"
   _brand_panel_row "${W}" ""
-  _brand_panel_row "${W}" "Chat http://127.0.0.1:7878    You hold the kill switch." "${C_BRAND2}"
+  _brand_panel_row "${W}" "Chat http://127.0.0.1:57878    You hold the kill switch." "${C_BRAND2}"
   printf '%s╰%s╯%s\n' "${C_BRAND}" "${line}" "${C_RESET}"
 }
 
@@ -267,14 +267,14 @@ retry() {
 #   Runs the command. On an interactive TTY (and when not in quiet mode),
 #   shows a braille spinner with elapsed time so the operator can tell the
 #   step is making progress rather than hung. On a non-TTY, in quiet mode,
-#   or when ZOMBIE_NO_SPINNER=1, it simply runs the command with no
+#   or when AI_SYS_ADMIN_NO_SPINNER=1, it simply runs the command with no
 #   animation. Returns the command's exit status.
 run_step() {
   local label="$1"; shift
   [[ "${1:-}" == "--" ]] && shift
 
   # Plain path: non-interactive, quiet, or spinner disabled.
-  if [[ ! -t 2 ]] || (( ZOMBIE_QUIET )) || [[ -n "${ZOMBIE_NO_SPINNER:-}" ]]; then
+  if [[ ! -t 2 ]] || (( AI_SYS_ADMIN_QUIET )) || [[ -n "${AI_SYS_ADMIN_NO_SPINNER:-}" ]]; then
     "$@"
     return $?
   fi

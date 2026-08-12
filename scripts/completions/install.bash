@@ -1,4 +1,4 @@
-# bash completion for ubuntu-zombie install.sh
+# bash completion for ubuntu-ai-system-administrator install.sh
 #
 # Usage:
 #   source scripts/completions/install.bash
@@ -7,7 +7,7 @@
 # This is static completion (it does not execute install.sh), so it is safe to
 # load from an interactive shell.
 
-_ubuntu_zombie_install() {
+_ubuntu_ai_system_administrator_install() {
   local cur verbs common_flags uninstall_flags flags seen_verb=""
   cur="${COMP_WORDS[COMP_CWORD]}"
 
@@ -43,4 +43,4 @@ _ubuntu_zombie_install() {
 }
 
 # Register for the common invocation names.
-complete -F _ubuntu_zombie_install install.sh ./install.sh
+complete -F _ubuntu_ai_system_administrator_install install.sh ./install.sh

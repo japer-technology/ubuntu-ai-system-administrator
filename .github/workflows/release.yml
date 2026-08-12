@@ -93,7 +93,7 @@ jobs:
         with:
           path: .
           format: spdx-json
-          output-file: dist/ubuntu-zombie-${{ steps.meta.outputs.version }}.spdx.json
+          output-file: dist/ubuntu-ai-system-administrator-${{ steps.meta.outputs.version }}.spdx.json
 
       - name: Generate SLSA provenance attestation
         id: provenance
@@ -105,8 +105,8 @@ jobs:
         run: |
           set -euo pipefail
           cp "${{ steps.provenance.outputs.bundle-path }}" \
-            "dist/ubuntu-zombie-${{ steps.meta.outputs.version }}.intoto.jsonl"
-          test -s "dist/ubuntu-zombie-${{ steps.meta.outputs.version }}.intoto.jsonl"
+            "dist/ubuntu-ai-system-administrator-${{ steps.meta.outputs.version }}.intoto.jsonl"
+          test -s "dist/ubuntu-ai-system-administrator-${{ steps.meta.outputs.version }}.intoto.jsonl"
 
       - name: Install cosign
         uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6  # v4.1.2
@@ -195,9 +195,9 @@ jobs:
             echo "## Verifying release artifacts"
             echo
             echo '```bash'
-            echo "mkdir ubuntu-zombie-${version}"
-            echo "tar -xzf ubuntu-zombie-${version}.tar.gz -C ubuntu-zombie-${version}"
-            echo "bash ubuntu-zombie-${version}/payload/bin/verify-release ."
+            echo "mkdir ubuntu-ai-system-administrator-${version}"
+            echo "tar -xzf ubuntu-ai-system-administrator-${version}.tar.gz -C ubuntu-ai-system-administrator-${version}"
+            echo "bash ubuntu-ai-system-administrator-${version}/payload/bin/verify-release ."
             echo '```'
             echo
             echo "See [SUPPORT.md](../blob/main/SUPPORT.md) for help channels."

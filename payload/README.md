@@ -9,8 +9,8 @@ loopback-only AI Systems Administrator that can act as `root` through a
 classify → propose → approve → run → log gate.
 
 If you want the one-sentence version: **the payload is the running
-body of the zombie; `scripts/install.sh` is the ritual that animates
-it.** This document explains the body part by part.
+AI System Administrator; `scripts/install.sh` installs and configures
+it.** This document explains the payload part by part.
 
 For the wider trust model and layer diagram, read
 [`../docs/ARCHITECTURE.md`](../docs/ARCHITECTURE.md). For the rules an
@@ -23,7 +23,7 @@ agent must follow when changing these files, read
 
 The installer is the only thing that reads this tree. It copies each
 sub-directory to a fixed location, owned by `root` or by the
-operator-chosen `ZOMBIE_USER` (default `zombie`), with explicit modes.
+operator-chosen `AI_SYS_ADMIN_USER` (default `ai-sys-admin`), with explicit modes.
 Nothing here is executed from the repository on the target — it is
 *deployed* first, then run from its destination.
 
@@ -38,14 +38,14 @@ flowchart TD
     end
 
     subgraph host["target host (after scripts/install.sh)"]
-        opt_agent["/opt/ai-zombie/agent/<br/>(root-owned sources +<br/>pi-ai / pi-mono bridges)"]
-        opt_bin["/opt/ai-zombie/bin/<br/>+ symlinks in /usr/local/bin"]
-        opt_skills["/opt/ai-zombie/skills/<br/>(built-in catalogue)"]
-        opt_pi["/opt/ai-zombie/pi/<br/>(rendered settings + system prompt)"]
-        etc_dst["/etc/ubuntu-zombie/policy.yaml<br/>+ /etc/ubuntu-zombie/skills.d/"]
-        sys_dst["/etc/systemd/system/<br/>ubuntu-zombie-*.{service,timer}"]
-        log_dst["/etc/logrotate.d/ubuntu-zombie"]
-        state["/opt/ai-zombie/state/<br/>conversations.db + per-turn logs"]
+        opt_agent["/opt/ai-system-administrator/agent/<br/>(root-owned sources +<br/>pi-ai / pi-mono bridges)"]
+        opt_bin["/opt/ai-system-administrator/bin/<br/>+ symlinks in /usr/local/bin"]
+        opt_skills["/opt/ai-system-administrator/skills/<br/>(built-in catalogue)"]
+        opt_pi["/opt/ai-system-administrator/pi/<br/>(rendered settings + system prompt)"]
+        etc_dst["/etc/ubuntu-ai-system-administrator/policy.yaml<br/>+ /etc/ubuntu-ai-system-administrator/skills.d/"]
+        sys_dst["/etc/systemd/system/<br/>ubuntu-ai-system-administrator-*.{service,timer}"]
+        log_dst["/etc/logrotate.d/ubuntu-ai-system-administrator"]
+        state["/opt/ai-system-administrator/state/<br/>conversations.db + per-turn logs"]
     end
 
     agent_src --> opt_agent
@@ -58,20 +58,20 @@ flowchart TD
     opt_agent -.->|writes at runtime| state
 ```
 
-Placeholders such as `__AGENT_USER__`, `__ZOMBIE_DIR__`, and
+Placeholders such as `__AGENT_USER__`, `__AI_SYS_ADMIN_DIR__`, and
 `__AGENT_HOME__` in the `systemd/` and `logrotate/` files are
 substituted by the installer so the deployed units name the
 operator-chosen account and paths.
 
 | Source                         | Destination                              | Owner / mode (typical) |
 |--------------------------------|------------------------------------------|------------------------|
-| `agent/*.py`, `agent/*.mjs`    | `/opt/ai-zombie/agent/`                  | `AGENT_USER` 644       |
-| `agent/templates/*`            | `/opt/ai-zombie/agent/templates/` + rendered into `/opt/ai-zombie/pi/` | mixed |
-| `agent/skills/*.md`            | `/opt/ai-zombie/skills/`                 | `root` 644             |
-| `bin/*`                        | `/opt/ai-zombie/bin/` (+ `/usr/local/bin` symlinks) | `AGENT_USER` 755 |
-| `etc/policy.yaml`              | `/etc/ubuntu-zombie/policy.yaml`         | `root` 644 (preserved if present) |
+| `agent/*.py`, `agent/*.mjs`    | `/opt/ai-system-administrator/agent/`                  | `AGENT_USER` 644       |
+| `agent/templates/*`            | `/opt/ai-system-administrator/agent/templates/` + rendered into `/opt/ai-system-administrator/pi/` | mixed |
+| `agent/skills/*.md`            | `/opt/ai-system-administrator/skills/`                 | `root` 644             |
+| `bin/*`                        | `/opt/ai-system-administrator/bin/` (+ `/usr/local/bin` symlinks) | `AGENT_USER` 755 |
+| `etc/policy.yaml`              | `/etc/ubuntu-ai-system-administrator/policy.yaml`         | `root` 644 (preserved if present) |
 | `systemd/*`                    | `/etc/systemd/system/`                   | `root` 644             |
-| `logrotate/ubuntu-zombie`      | `/etc/logrotate.d/ubuntu-zombie`         | `root` 644             |
+| `logrotate/ubuntu-ai-system-administrator`      | `/etc/logrotate.d/ubuntu-ai-system-administrator`         | `root` 644             |
 
 ---
 
@@ -184,14 +184,14 @@ flowchart TB
 | [`pi_mono.py`](agent/pi_mono.py) | Python client for the `pi-mono` bridge; speaks a line-delimited JSON protocol over stdio and enforces a per-turn idle watchdog. |
 | [`pi-mono-bridge.mjs`](agent/pi-mono-bridge.mjs) | Node bridge that runs the `pi` agent loop one-shot (`pi --mode json -p`) with pi's real built-in tools, parsing `message_update` / `message_end` / `agent_end` events. |
 | [`pi-ai-bridge.mjs`](agent/pi-ai-bridge.mjs) | Node bridge over `@earendil-works/pi-ai` for one-shot `complete()` calls and live model listing (e.g. for the `/model` command). |
-| [`providers.py`](agent/providers.py) | Single source of truth for provider + model selection, resolved from `ZOMBIE_PROVIDER`, `ZOMBIE_MODEL`, and the matching `*_API_KEY`. |
+| [`providers.py`](agent/providers.py) | Single source of truth for provider + model selection, resolved from `AI_SYS_ADMIN_PROVIDER`, `AI_SYS_ADMIN_MODEL`, and the matching `*_API_KEY`. |
 | [`tools.py`](agent/tools.py) | The **closed** tool registry, a tiny dependency-free schema validator, and the dispatcher that wraps existing helpers (`runner.run`, `Path.read_text`, …). |
 | [`policy.py`](agent/policy.py) | Argv-aware classifier that reads `policy.yaml` live; fail-closed for unknown commands, with a `sudo` allow-list to keep common privileged targets at `system_change`. |
 | [`runner.py`](agent/runner.py) | Command execution with timeout and stdout/stderr/exit capture, plus suggested read-only follow-up checks. |
 | [`audit.py`](agent/audit.py) | Append-only JSON-lines audit log with secret redaction and SHA-256 digests of tool output. |
 | [`history.py`](agent/history.py) | SQLite-backed conversations and structured `tool_call` / `tool_observation` events; forward-only schema via `PRAGMA user_version`. |
 | [`skill_loader.py`](agent/skill_loader.py) | Selects trigger-matched Markdown skills and records their on-disk provenance; never expands the tool surface. |
-| [`templates/`](agent/templates) | The chat UI (`index.html`) plus `settings.json.tmpl` and `APPEND_SYSTEM.md.tmpl`, rendered by the installer into `/opt/ai-zombie/pi/`. |
+| [`templates/`](agent/templates) | The chat UI (`index.html`) plus `settings.json.tmpl` and `APPEND_SYSTEM.md.tmpl`, rendered by the installer into `/opt/ai-system-administrator/pi/`. |
 | [`skills/`](agent/skills) | Built-in skill catalogue (`apt`, `systemd`) — Markdown nudges toward the correct typed tool. |
 | `pi-ai.version`, `pi-mono.version`, `bridge-dependencies.lock` | Known-good bridge versions and checksums for release validation; installs resolve npm `latest` and write the resolved versions to the deployed files. |
 | [`examples.md`](agent/examples.md) | Example operator prompts surfaced in the UI. |
@@ -220,11 +220,11 @@ diagnostic helper is guarded so one failure does not abort collection.
 
 | Helper | Purpose |
 |--------|---------|
-| [`zombie-chat`](bin/zombie-chat) | Print the loopback chat URL and every debugging entry point — the single command to discover the diagnostic surface. |
+| [`chat`](bin/chat) | Print the loopback chat URL and every debugging entry point — the single command to discover the diagnostic surface. |
 | [`health-check`](bin/health-check) | One-shot health summary (also run periodically by the health timer). |
 | [`audit-recent`](bin/audit-recent) | Pretty-print recent audit-log entries (`-n`, `--all`, `-t TYPE`, `--follow`). |
 | [`collect-diagnostics`](bin/collect-diagnostics) | Bundle logs and state into a tarball for bug reports, redacting secrets first. |
-| [`secrets-edit`](bin/secrets-edit) | Safely edit `/opt/ai-zombie/secrets/env`, re-asserting `0600` and ownership on exit. |
+| [`secrets-edit`](bin/secrets-edit) | Safely edit `/opt/ai-system-administrator/secrets/env`, re-asserting `0600` and ownership on exit. |
 | [`setup-agent-venv`](bin/setup-agent-venv) | Provision the unprivileged agent Python venv and operator toolkit (run as the agent user, idempotent). |
 | [`verify-release`](bin/verify-release) | Verify a downloaded release: `SHA256SUMS`, cosign signatures, and SLSA provenance. |
 
@@ -241,7 +241,7 @@ phrase, the fail-closed `default_class`, and the `sudo_allow_list` of
 curated privileged targets that stay at `system_change` instead of
 being escalated. It is read **live** on every classification, so an
 operator can edit it without restarting the chat service. The installer
-*preserves* an existing `/etc/ubuntu-zombie/policy.yaml` rather than
+*preserves* an existing `/etc/ubuntu-ai-system-administrator/policy.yaml` rather than
 overwriting it.
 
 To add a new policy class, follow the recipe in
@@ -255,16 +255,16 @@ To add a new policy class, follow the recipe in
 
 | Unit | Role |
 |------|------|
-| `ubuntu-zombie-chat.service` | Runs `server.py` as `AGENT_USER` on `127.0.0.1:7878`. **Sandboxing is deliberately off** (`ProtectSystem=false`, no `NoNewPrivileges`): the agent is a full Systems Administrator that elevates via passwordless `sudo`, so a private mount namespace or `NoNewPrivileges` would break approved work. The policy gate — not a systemd sandbox — is the security boundary. |
-| `ubuntu-zombie-health.service` | Oneshot wrapper around `bin/health-check`. |
-| `ubuntu-zombie-health.timer` | Runs the health check every 15 minutes. |
+| `ubuntu-ai-system-administrator-chat.service` | Runs `server.py` as `AGENT_USER` on `127.0.0.1:57878`. **Sandboxing is deliberately off** (`ProtectSystem=false`, no `NoNewPrivileges`): the agent is a full Systems Administrator that elevates via passwordless `sudo`, so a private mount namespace or `NoNewPrivileges` would break approved work. The policy gate — not a systemd sandbox — is the security boundary. |
+| `ubuntu-ai-system-administrator-health.service` | Oneshot wrapper around `bin/health-check`. |
+| `ubuntu-ai-system-administrator-health.timer` | Runs the health check every 15 minutes. |
 
 ---
 
-## `logrotate/ubuntu-zombie` — log hygiene
+## `logrotate/ubuntu-ai-system-administrator` — log hygiene
 
 Rotation rules for the audit log, the install log, and the per-turn
-`pi-mono` logs under `/opt/ai-zombie/state/logs/`. The `__AGENT_USER__`
+`pi-mono` logs under `/opt/ai-system-administrator/state/logs/`. The `__AGENT_USER__`
 placeholder is substituted at install time so rotated files are
 re-created with the operator-chosen owner.
 

@@ -19,7 +19,7 @@
 //   stdout → {"type":"token", "delta"}
 //
 // On systems without `pi` installed this bridge emits a clear
-// error and exits; smoke tests override it via $ZOMBIE_PI_MONO_BRIDGE.
+// error and exits; smoke tests override it via $AI_SYS_ADMIN_PI_MONO_BRIDGE.
 //
 // The actual upstream `pi` CLI talks `--mode rpc` JSON-RPC on stdio;
 // translating that protocol in a 60-line script is brittle, so this
@@ -249,7 +249,7 @@ async function run() {
   logLine("start", { tools: start.tools, prompt_len: (start.prompt || "").length });
 
   // Try to locate the `pi` binary.
-  const piBin = process.env.ZOMBIE_PI_MONO_BIN || "pi";
+  const piBin = process.env.AI_SYS_ADMIN_PI_MONO_BIN || "pi";
 
   // Build CLI arguments.  We invoke pi in JSON-event mode with the
   // operator-supplied system prompt appended and pi's real built-in
@@ -260,7 +260,7 @@ async function run() {
     "-p", buildPrompt(start),
   ];
   // Model + provider come from payload/agent/providers.py (resolved
-  // from /opt/ai-zombie/secrets/env) so the agent loop selects the
+  // from /opt/ai-system-administrator/secrets/env) so the agent loop selects the
   // same model the chat banner advertises instead of pi's built-in
   // default ("google"). Both are optional: when unset the operator has
   // no provider configured and we let pi resolve credentials/model
@@ -309,9 +309,9 @@ async function run() {
   // a per-turn idle deadline, but when this bridge is exercised
   // standalone — or if the driver is wedged — kill a `pi` child that has
   // gone silent (e.g. a hung provider socket) so we never block forever.
-  // Disabled when ZOMBIE_PI_MONO_IDLE_TIMEOUT <= 0.
+  // Disabled when AI_SYS_ADMIN_PI_MONO_IDLE_TIMEOUT <= 0.
   const idleTimeoutMs = (() => {
-    const raw = Number(process.env.ZOMBIE_PI_MONO_IDLE_TIMEOUT);
+    const raw = Number(process.env.AI_SYS_ADMIN_PI_MONO_IDLE_TIMEOUT);
     if (Number.isFinite(raw)) return raw * 1000;
     const driverSeconds = Number(start.idle_timeout_seconds);
     if (Number.isFinite(driverSeconds) && driverSeconds > 0) {

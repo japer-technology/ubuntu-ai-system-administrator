@@ -7,18 +7,18 @@ Wants=network-online.target
 Type=simple
 User=__AGENT_USER__
 Group=__AGENT_USER__
-WorkingDirectory=__ZOMBIE_DIR__
-EnvironmentFile=-__ZOMBIE_DIR__/secrets/env
+WorkingDirectory=__AI_SYS_ADMIN_DIR__
+EnvironmentFile=-__AI_SYS_ADMIN_DIR__/secrets/env
 Environment=PYTHONUNBUFFERED=1
-Environment=ZOMBIE_USER=__AGENT_USER__
-Environment=ZOMBIE_DIR=__ZOMBIE_DIR__
-# FIX-3-02: provide a default for ZOMBIE_CHAT_PORT so the unit still
+Environment=AI_SYS_ADMIN_USER=__AGENT_USER__
+Environment=AI_SYS_ADMIN_DIR=__AI_SYS_ADMIN_DIR__
+# FIX-3-02: provide a default for AI_SYS_ADMIN_CHAT_PORT so the unit still
 # starts when the operator has not added the variable to
-# __ZOMBIE_DIR__/secrets/env (EnvironmentFile= is optional). Without
-# this, ${ZOMBIE_CHAT_PORT} would expand to '' and argparse would
+# __AI_SYS_ADMIN_DIR__/secrets/env (EnvironmentFile= is optional). Without
+# this, ${AI_SYS_ADMIN_CHAT_PORT} would expand to '' and argparse would
 # reject ``--port ''``.
-Environment=ZOMBIE_CHAT_PORT=7878
-ExecStart=__AGENT_HOME__/agent-env/bin/python __ZOMBIE_DIR__/agent/server.py --host 127.0.0.1 --port ${ZOMBIE_CHAT_PORT}
+Environment=AI_SYS_ADMIN_CHAT_PORT=57878
+ExecStart=__AGENT_HOME__/agent-env/bin/python __AI_SYS_ADMIN_DIR__/agent/server.py --host 127.0.0.1 --port ${AI_SYS_ADMIN_CHAT_PORT}
 Restart=on-failure
 RestartSec=3
 StandardOutput=journal

@@ -5,7 +5,7 @@ Description=Run Ubuntu AI System Administrator health check every 15 minutes
 OnBootSec=5min
 OnUnitActiveSec=15min
 Persistent=true
-Unit=ubuntu-zombie-health.service
+Unit=ubuntu-ai-system-administrator-health.service
 
 [Install]
 WantedBy=timers.target

@@ -1,5 +1,5 @@
 #compdef install.sh
-# zsh completion for ubuntu-zombie install.sh
+# zsh completion for ubuntu-ai-system-administrator install.sh
 #
 # Usage:
 #   Put scripts/completions/ on your $fpath, then:
@@ -7,7 +7,7 @@
 #
 # Static completion: it does not execute install.sh.
 
-_ubuntu_zombie_install() {
+_ubuntu_ai_system_administrator_install() {
   local -a verbs common_flags uninstall_flags flags
   local seen_verb word
   verbs=(
@@ -57,4 +57,4 @@ _ubuntu_zombie_install() {
   esac
 }
 
-_ubuntu_zombie_install "$@"
+_ubuntu_ai_system_administrator_install "$@"

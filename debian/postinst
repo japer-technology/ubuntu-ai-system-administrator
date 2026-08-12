@@ -3,7 +3,7 @@
 # what to do next. Run after the .deb's files have been laid down.
 set -e
 
-INSTALL_ROOT="/usr/share/ubuntu-zombie"
+INSTALL_ROOT="/usr/share/ubuntu-ai-system-administrator"
 
 # Re-assert executable bits (dpkg preserves them from the .deb, but be
 # defensive in case a future maintainer strips them).
@@ -11,7 +11,7 @@ for f in \
   "${INSTALL_ROOT}/scripts/install.sh" \
   "${INSTALL_ROOT}/scripts/uninstall.sh" \
   "${INSTALL_ROOT}/payload/bin"/* \
-  /usr/sbin/ubuntu-zombie
+  /usr/sbin/ubuntu-ai-system-administrator
 do
   [ -e "$f" ] || continue
   chmod 0755 "$f" 2>/dev/null || true
@@ -20,20 +20,20 @@ done
 cat <<'EOF'
 
 Ubuntu AI System Administrator has been staged at
-/usr/share/ubuntu-zombie/.
+/usr/share/ubuntu-ai-system-administrator/.
 
 Nothing has been changed on this host yet. To install:
 
-  sudo ubuntu-zombie --dry-run install      # preview the plan
-  sudo ubuntu-zombie install                # apply it
+  sudo ubuntu-ai-system-administrator --dry-run install      # preview the plan
+  sudo ubuntu-ai-system-administrator install                # apply it
 
 To verify or recover an existing install:
 
-  sudo ubuntu-zombie verify
-  sudo ubuntu-zombie doctor
-  sudo ubuntu-zombie repair
+  sudo ubuntu-ai-system-administrator verify
+  sudo ubuntu-ai-system-administrator doctor
+  sudo ubuntu-ai-system-administrator repair
 
-Documentation: /usr/share/doc/ubuntu-zombie/README.md and
+Documentation: /usr/share/doc/ubuntu-ai-system-administrator/README.md and
 https://github.com/japer-technology/ubuntu-ai-system-administrator
 
 EOF

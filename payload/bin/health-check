@@ -11,12 +11,12 @@ Usage:
 
 Checks the chat service, chat port, provider credential presence, secrets
 permissions, disk space, and audit log, then prints an ok/warn/fail
-summary. Exits 1 if any check fails (unless ZOMBIE_HEALTH_WARN_ONLY=1).
+summary. Exits 1 if any check fails (unless AI_SYS_ADMIN_HEALTH_WARN_ONLY=1).
 
 Environment:
-  ZOMBIE_DIR                Install root (auto-detected; default /opt/ai-zombie).
-  ZOMBIE_CHAT_PORT          Chat port to probe (default 7878).
-  ZOMBIE_HEALTH_WARN_ONLY   Set to 1 to always exit 0.
+  AI_SYS_ADMIN_DIR                Install root (auto-detected; default /opt/ai-system-administrator).
+  AI_SYS_ADMIN_CHAT_PORT          Chat port to probe (default 57878).
+  AI_SYS_ADMIN_HEALTH_WARN_ONLY   Set to 1 to always exit 0.
 EOF
 }
 
@@ -27,8 +27,8 @@ case "${1:-}" in
 esac
 
 resolve_install_root() {
-  if [[ -n "${ZOMBIE_DIR:-}" ]]; then
-    printf '%s\n' "${ZOMBIE_DIR}"
+  if [[ -n "${AI_SYS_ADMIN_DIR:-}" ]]; then
+    printf '%s\n' "${AI_SYS_ADMIN_DIR}"
     return
   fi
   local script_path candidate
@@ -37,18 +37,18 @@ resolve_install_root() {
   if candidate="$(cd -- "$(dirname -- "${script_path}")/.." 2>/dev/null && pwd)"; then
     if [[ "${candidate##*/}" == "payload" \
         && -f "${candidate}/../scripts/install.sh" ]]; then
-      printf '%s\n' "/opt/ai-zombie"
+      printf '%s\n' "/opt/ai-system-administrator"
     else
       printf '%s\n' "${candidate}"
     fi
   else
-    printf '%s\n' "/opt/ai-zombie"
+    printf '%s\n' "/opt/ai-system-administrator"
   fi
 }
 
-ZOMBIE_DIR="$(resolve_install_root)"
-SECRETS_FILE="${ZOMBIE_DIR}/secrets/env"
-ZOMBIE_HEALTH_WARN_ONLY="${ZOMBIE_HEALTH_WARN_ONLY:-0}"
+AI_SYS_ADMIN_DIR="$(resolve_install_root)"
+SECRETS_FILE="${AI_SYS_ADMIN_DIR}/secrets/env"
+AI_SYS_ADMIN_HEALTH_WARN_ONLY="${AI_SYS_ADMIN_HEALTH_WARN_ONLY:-0}"
 
 if [[ -t 1 ]]; then
   C_RESET=$'\033[0m'; C_RED=$'\033[31m'; C_GREEN=$'\033[32m'
@@ -62,17 +62,17 @@ check_ok()   { printf '  %s[ok]%s %s\n' "${C_GREEN}" "${C_RESET}" "$*"; PASS=$((
 check_warn() { printf '  %s[!]%s  %s\n' "${C_YEL}"   "${C_RESET}" "$*"; WARN=$((WARN+1)); }
 check_fail() { printf '  %s[x]%s  %s\n' "${C_RED}"   "${C_RESET}" "$*"; FAIL=$((FAIL+1)); }
 
-printf '%s== ubuntu-zombie health ==%s\n\n' "${C_BOLD}" "${C_RESET}"
+printf '%s== ubuntu-ai-system-administrator health ==%s\n\n' "${C_BOLD}" "${C_RESET}"
 
 # Chat service
-if systemctl is-active --quiet ubuntu-zombie-chat.service 2>/dev/null; then
+if systemctl is-active --quiet ubuntu-ai-system-administrator-chat.service 2>/dev/null; then
   check_ok "chat service active"
 else
-  check_fail "chat service not active (sudo systemctl start ubuntu-zombie-chat)"
+  check_fail "chat service not active (sudo systemctl start ubuntu-ai-system-administrator-chat)"
 fi
 
 # Local network visibility
-if ss -ltn 2>/dev/null | grep -q ":${ZOMBIE_CHAT_PORT:-7878} "; then
+if ss -ltn 2>/dev/null | grep -q ":${AI_SYS_ADMIN_CHAT_PORT:-57878} "; then
   check_ok "chat port listening"
 else
   check_warn "chat port not observed in ss output"
@@ -83,7 +83,7 @@ if [[ -r "${SECRETS_FILE}" ]]; then
   if grep -Eq '^[[:space:]]*(export[[:space:]]+)?(OPENAI|ANTHROPIC|GEMINI|XAI|OPENROUTER|MISTRAL|GROQ|LMSTUDIO)_API_KEY[[:space:]]*=[[:space:]]*.+' "${SECRETS_FILE}" 2>/dev/null; then
     check_ok "provider credential present in secrets/env"
   else
-    check_warn "no provider credential in secrets/env (sudo ${ZOMBIE_DIR}/bin/secrets-edit)"
+    check_warn "no provider credential in secrets/env (sudo ${AI_SYS_ADMIN_DIR}/bin/secrets-edit)"
   fi
   PERMS="$(stat -c %a "${SECRETS_FILE}" 2>/dev/null || echo 000)"
   if [[ "${PERMS}" == "600" ]]; then
@@ -106,7 +106,7 @@ else
 fi
 
 # Audit log
-AUDIT_LOG="/var/log/ubuntu-zombie/audit.log"
+AUDIT_LOG="/var/log/ubuntu-ai-system-administrator/audit.log"
 if [[ -f "${AUDIT_LOG}" ]]; then
   check_ok "audit log present ($(wc -l < "${AUDIT_LOG}") entries)"
 else
@@ -115,4 +115,4 @@ fi
 
 echo
 printf '%sResult:%s %d ok, %d warn, %d fail\n' "${C_BOLD}" "${C_RESET}" "${PASS}" "${WARN}" "${FAIL}"
-if [[ "${FAIL}" -gt 0 && "${ZOMBIE_HEALTH_WARN_ONLY}" != "1" ]]; then exit 1; fi
+if [[ "${FAIL}" -gt 0 && "${AI_SYS_ADMIN_HEALTH_WARN_ONLY}" != "1" ]]; then exit 1; fi

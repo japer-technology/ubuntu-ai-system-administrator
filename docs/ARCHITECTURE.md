@@ -10,13 +10,13 @@ runs everything behind a local policy gate and audit log.
 ```mermaid
 flowchart TD
     installer["scripts/install.sh"]
-    installer --> opt["/opt/ai-zombie/"]
+    installer --> opt["/opt/ai-system-administrator/"]
     opt --> agent["agent/<br/>Python chat service and pi bridges"]
     opt --> bin["bin/<br/>operator helpers"]
     opt --> etc["etc/policy.yaml<br/>default action policy"]
     opt --> pi["pi/<br/>rendered pi-mono settings and prompt prelude"]
     opt --> state["state/<br/>conversations, lifecycle, logs"]
-    installer --> overlay["/etc/ubuntu-zombie/<br/>operator-editable policy/skills overlays"]
+    installer --> overlay["/etc/ubuntu-ai-system-administrator/<br/>operator-editable policy/skills overlays"]
     installer --> systemd["/etc/systemd/system/<br/>chat service and health timer"]
     installer --> sudoers["/etc/sudoers.d/<br/>passwordless sudo for the agent account"]
 ```
@@ -24,7 +24,7 @@ flowchart TD
 The default install does **not** provision SSH, Tailscale, VNC, Docker,
 graphical autologin, or GUI automation. The baseline product access
 surface is the chat service on
-`127.0.0.1:${ZOMBIE_CHAT_PORT:-7878}`.
+`127.0.0.1:${AI_SYS_ADMIN_CHAT_PORT:-57878}`.
 
 ## Runtime components
 
@@ -96,13 +96,13 @@ Action classes are:
 | `network_change` | Firewall or interface mutation. |
 | `destructive` | Irreversible actions; requires the confirmation phrase. |
 
-Built-in skills ship under `/opt/ai-zombie/skills/` and cover Ubuntu system
+Built-in skills ship under `/opt/ai-system-administrator/skills/` and cover Ubuntu system
 administration, diagnostics, development, data, networking, security, and
 Ubuntu AI System Administrator itself. Each brief steers the model toward the correct typed
 tool and names the policy class the operator is about to be asked to approve;
 skills never expand the tool registry. Trigger words are unique across the
 built-in catalogue so a prompt loads only the briefs that apply. Operators may
-add local skill briefs under `/etc/ubuntu-zombie/skills.d/`.
+add local skill briefs under `/etc/ubuntu-ai-system-administrator/skills.d/`.
 
 Chat `/locals` discovery can find existing OpenAI-compatible LLM servers on
 loopback and the local network. Discovery only configures Ubuntu AI System Administrator to use
@@ -154,9 +154,9 @@ scripts/install.sh [verb] [flags]
 
 | Path | Purpose |
 | ---- | ------- |
-| `/var/log/ubuntu-zombie-install.log` | Installer transcript. |
-| `/var/log/ubuntu-zombie/install-receipt.txt` | Non-secret install receipt. |
-| `/var/log/ubuntu-zombie/audit.log` | JSON-lines audit trail. |
-| `/opt/ai-zombie/state/conversations.db` | Chat history. |
-| `/opt/ai-zombie/state/lifecycle.json` | TTL/tombstone state. |
-| `/opt/ai-zombie/state/logs/` | pi-mono bridge logs. |
+| `/var/log/ubuntu-ai-system-administrator-install.log` | Installer transcript. |
+| `/var/log/ubuntu-ai-system-administrator/install-receipt.txt` | Non-secret install receipt. |
+| `/var/log/ubuntu-ai-system-administrator/audit.log` | JSON-lines audit trail. |
+| `/opt/ai-system-administrator/state/conversations.db` | Chat history. |
+| `/opt/ai-system-administrator/state/lifecycle.json` | TTL/tombstone state. |
+| `/opt/ai-system-administrator/state/logs/` | pi-mono bridge logs. |

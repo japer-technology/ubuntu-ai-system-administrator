@@ -2,7 +2,7 @@
 
 Ubuntu AI System Administrator is a privileged, root-capable
 account. To bound the window in which it can act, a fresh install is
-given a *Time to Live*: a future moment after which the zombie is
+given a *Time to Live*: a future moment after which the AI System Administrator is
 permanently disabled. Two events trip the kill switch:
 
 * the TTL elapses (``status`` notices ``now >= expires_at``); or
@@ -10,12 +10,12 @@ permanently disabled. Two events trip the kill switch:
 
 Once tripped, the state is a tombstone: the ``dead`` flag is written to
 disk and never cleared at runtime, so a restart of the chat service
-cannot revive the zombie. Routine reinstalls preserve the tombstone;
+cannot reactivate the AI System Administrator. Routine reinstalls preserve the tombstone;
 only an explicit ``initialize`` call resets the lifecycle.
 
 State lives in a small JSON file
-(``$ZOMBIE_DIR/state/lifecycle.json`` by default, overridable with
-``ZOMBIE_LIFECYCLE_STATE``)::
+(``$AI_SYS_ADMIN_DIR/state/lifecycle.json`` by default, overridable with
+``AI_SYS_ADMIN_LIFECYCLE_STATE``)::
 
     {
       "created_at": 1700000000.0,
@@ -37,9 +37,9 @@ import time
 from pathlib import Path
 from typing import Any
 
-_INSTALL_ROOT = Path(os.environ.get("ZOMBIE_DIR", "/opt/ai-zombie"))
+_INSTALL_ROOT = Path(os.environ.get("AI_SYS_ADMIN_DIR", "/opt/ai-system-administrator"))
 STATE_PATH = Path(os.environ.get(
-    "ZOMBIE_LIFECYCLE_STATE",
+    "AI_SYS_ADMIN_LIFECYCLE_STATE",
     str(_INSTALL_ROOT / "state" / "lifecycle.json"),
 ))
 
@@ -74,7 +74,7 @@ def _now() -> float:
 def _state_path() -> Path:
     # Re-read the env var each call so tests can point at a temp file.
     return Path(
-        os.environ.get("ZOMBIE_LIFECYCLE_STATE", str(STATE_PATH))
+        os.environ.get("AI_SYS_ADMIN_LIFECYCLE_STATE", str(STATE_PATH))
     )
 
 
@@ -93,8 +93,8 @@ def _save_raw(data: dict[str, Any]) -> None:
     tmp.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
     os.replace(tmp, path)
     # The lifecycle file is not a secret, but keep it owner-only so a
-    # non-privileged local user cannot edit the expiry to keep the
-    # zombie alive past its TTL.
+    # non-privileged local user cannot edit the expiry to keep the AI
+    # System Administrator active past its TTL.
     try:
         os.chmod(path, 0o600)
     except OSError:  # pragma: no cover - best effort on odd filesystems
@@ -221,7 +221,7 @@ def set_ttl(days: float) -> dict[str, Any]:
     """Extend the Time to Live by ``days`` days and return the new status.
 
     The extension is measured from the later of *now* or the current
-    expiry, so it never shortens an existing countdown. A dead zombie
+    expiry, so it never shortens an existing countdown. A disabled administrator
     cannot be revived: the returned status keeps ``dead`` true and the
     expiry is left untouched.
     """
@@ -304,7 +304,7 @@ def main(argv: list[str] | None = None) -> int:
     p_set = sub.add_parser("set", help="Extend the TTL by N days.")
     p_set.add_argument("--days", type=float, required=True)
 
-    sub.add_parser("die", help="Permanently disable the zombie now.")
+    sub.add_parser("die", help="Permanently disable the AI System Administrator now.")
     sub.add_parser("status", help="Print the current lifecycle status.")
 
     args = parser.parse_args(argv)

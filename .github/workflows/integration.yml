@@ -32,7 +32,7 @@ jobs:
 
       - name: install.sh --dry-run (Ubuntu ${{ matrix.label }})
         env:
-          ZOMBIE_NONINTERACTIVE: "1"
+          AI_SYS_ADMIN_NONINTERACTIVE: "1"
         run: sudo -E ./scripts/install.sh install --dry-run
 
   smoke-in-container:
@@ -69,5 +69,5 @@ jobs:
 
       - name: install.sh --dry-run (full plan)
         env:
-          ZOMBIE_NONINTERACTIVE: "1"
+          AI_SYS_ADMIN_NONINTERACTIVE: "1"
         run: ./scripts/install.sh install --dry-run

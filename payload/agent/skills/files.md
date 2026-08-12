@@ -12,14 +12,14 @@ Operating rules:
   command string.
 - `fs.read` and `fs.list` are `read_only` and cover `/etc`,
   `/var/log`, `/proc`, `/sys`, `/usr/share`, `/usr/lib`,
-  `/run/systemd` and the zombie state directory. Anything outside that
+  `/run/systemd` and the AI System Administrator state directory. Anything outside that
   set — notably `/home` — needs `shell.run`.
 - The allow-list is checked against the *resolved* path, so a symlink
   that points outside the readable roots is rejected even when the link
   itself sits inside them. `/proc/<pid>/environ` is denied outright
   because it would expose the chat service's own API keys.
 - `fs.write` is `user_change`, waits for approval, and can only write
-  under `/tmp` and the zombie state directory. It creates missing
+  under `/tmp` and the AI System Administrator state directory. It creates missing
   parent directories and replaces the file wholesale — there is no
   append and no partial edit.
 - System configuration under `/etc` therefore cannot be written with

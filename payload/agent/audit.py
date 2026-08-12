@@ -2,7 +2,7 @@
 
 Every prompt, proposed action, approval decision, command, exit code,
 and verification result is appended as one JSON object per line to
-``/var/log/ubuntu-zombie/audit.log``. Secrets are redacted before
+``/var/log/ubuntu-ai-system-administrator/audit.log``. Secrets are redacted before
 write: the redactor matches token-shaped substrings and also scrubs
 the values of a fixed set of sensitive environment variables and the
 secrets-file path. Tool dispatches are recorded as structured
@@ -12,16 +12,16 @@ code, duration, and SHA-256 digests of stdout/stderr.
 Two environment variables tune verbosity (off by default, opt-in for
 testing and debugging):
 
-``ZOMBIE_AUDIT_VERBOSE=1``
+``AI_SYS_ADMIN_AUDIT_VERBOSE=1``
     Adds redacted ``stdout_preview`` / ``stderr_preview`` snippets to
-    ``tool_call`` entries (capped to ``ZOMBIE_AUDIT_PREVIEW_BYTES``,
+    ``tool_call`` entries (capped to ``AI_SYS_ADMIN_AUDIT_PREVIEW_BYTES``,
     default 2048 bytes each). The SHA-256 digests still ship so the
     integrity contract is unchanged. The preview goes through the same
     secret redactor as every other field.
 
-``ZOMBIE_AUDIT_PREVIEW_BYTES=N``
+``AI_SYS_ADMIN_AUDIT_PREVIEW_BYTES=N``
     Override the per-stream preview cap (only honoured when
-    ``ZOMBIE_AUDIT_VERBOSE=1``). Hard ceiling is 16 KiB to keep the
+    ``AI_SYS_ADMIN_AUDIT_VERBOSE=1``). Hard ceiling is 16 KiB to keep the
     log bounded.
 
 Every audit entry also carries ``ts_utc`` (ISO-8601 UTC) and ``pid``
@@ -41,9 +41,9 @@ from collections import deque
 from pathlib import Path
 from typing import Any, Mapping
 
-AUDIT_PATH = Path(os.environ.get("ZOMBIE_AUDIT_LOG", "/var/log/ubuntu-zombie/audit.log"))
+AUDIT_PATH = Path(os.environ.get("AI_SYS_ADMIN_AUDIT_LOG", "/var/log/ubuntu-ai-system-administrator/audit.log"))
 
-# Hard ceiling on preview length even when ``ZOMBIE_AUDIT_PREVIEW_BYTES``
+# Hard ceiling on preview length even when ``AI_SYS_ADMIN_AUDIT_PREVIEW_BYTES``
 # is set higher — keeps the log bounded and matches the per-stream cap
 # already enforced by ``runner.py``.
 _MAX_PREVIEW_BYTES = 16_384
@@ -56,11 +56,11 @@ def _truthy(value: str | None) -> bool:
 
 def _verbose() -> bool:
     """Re-read the env var each call so tests can flip the flag mid-run."""
-    return _truthy(os.environ.get("ZOMBIE_AUDIT_VERBOSE"))
+    return _truthy(os.environ.get("AI_SYS_ADMIN_AUDIT_VERBOSE"))
 
 
 def _preview_cap() -> int:
-    raw = os.environ.get("ZOMBIE_AUDIT_PREVIEW_BYTES")
+    raw = os.environ.get("AI_SYS_ADMIN_AUDIT_PREVIEW_BYTES")
     if not raw:
         return _DEFAULT_PREVIEW_BYTES
     try:
@@ -89,14 +89,14 @@ _SENSITIVE_ENV_NAMES = (
     "OPENAI_API_KEY", "ANTHROPIC_API_KEY", "GEMINI_API_KEY",
     "XAI_API_KEY", "OPENROUTER_API_KEY", "MISTRAL_API_KEY",
     "GROQ_API_KEY",
-    "ZOMBIE_SECRETS",
+    "AI_SYS_ADMIN_SECRETS",
 )
 
 
 def _secrets_path_redactors() -> tuple[tuple[re.Pattern[str], str], ...]:
-    install_root = Path(os.environ.get("ZOMBIE_DIR", "/opt/ai-zombie"))
+    install_root = Path(os.environ.get("AI_SYS_ADMIN_DIR", "/opt/ai-system-administrator"))
     paths = {
-        os.environ.get("ZOMBIE_SECRETS")
+        os.environ.get("AI_SYS_ADMIN_SECRETS")
         or str(install_root / "secrets" / "env")
     }
     out: list[tuple[re.Pattern[str], str]] = []
@@ -211,8 +211,8 @@ def log_tool_call(
     log stays bounded and never persists tool output verbatim (per the
     Phase 2 plan §6 risk register, R5/R6).
 
-    When ``ZOMBIE_AUDIT_VERBOSE=1`` is set, a redacted preview of each
-    stream (capped at ``ZOMBIE_AUDIT_PREVIEW_BYTES``, default 2048) is
+    When ``AI_SYS_ADMIN_AUDIT_VERBOSE=1`` is set, a redacted preview of each
+    stream (capped at ``AI_SYS_ADMIN_AUDIT_PREVIEW_BYTES``, default 2048) is
     additionally captured as ``stdout_preview`` / ``stderr_preview``.
     The digests still ship unchanged. Verbose mode is intended for
     pre-release testing and operator debugging; leave it off in

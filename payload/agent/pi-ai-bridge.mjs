@@ -93,7 +93,7 @@ function die(error, code = "bridge_error") {
 // models live on the server itself. scripts/install.sh records the
 // server URL in ~/.pi/agent/models.json (the same file pi-mono reads),
 // so we look the provider's `baseUrl` up there. The path is overridable
-// via ZOMBIE_PI_MODELS_JSON for tests. An explicit OPENAI_BASE_URL /
+// via AI_SYS_ADMIN_PI_MODELS_JSON for tests. An explicit OPENAI_BASE_URL /
 // OPENAI_API_BASE env wins for the openai provider so an operator
 // pointing the hosted client at a local server still gets a live list.
 // Returns the trimmed base URL string, or "" when none is configured or
@@ -120,7 +120,7 @@ function localBaseUrl(provider) {
 // the file or entry is missing/unparseable.
 function customProviderEntry(provider) {
   const path =
-    process.env.ZOMBIE_PI_MODELS_JSON ||
+    process.env.AI_SYS_ADMIN_PI_MODELS_JSON ||
     (process.env.HOME ? join(process.env.HOME, ".pi", "agent", "models.json") : "");
   if (!path) return null;
   let cfg;
@@ -181,7 +181,7 @@ async function fetchLiveModels(baseUrl, keyEnv) {
 //
 // The package is installed *globally* (npm install -g, see
 // scripts/install.sh) and this bridge is deployed to
-// /opt/ai-zombie/agent/, which is outside any node_modules tree. Node's
+// /opt/ai-system-administrator/agent/, which is outside any node_modules tree. Node's
 // ESM loader resolves bare specifiers by walking node_modules up from
 // the importing file and — unlike CommonJS require — ignores NODE_PATH,
 // so a plain `import("@earendil-works/pi-ai/compat")` cannot see a global

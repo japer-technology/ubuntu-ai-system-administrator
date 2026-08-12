@@ -21,7 +21,7 @@ Operating rules:
   shown to the operator in the chat footer with the fire time and a
   Cancel button; a vague prompt like "continue" hides what the next
   turn will actually attempt.
-- The `<ubuntu-zombie-reactivation>` block may appear anywhere in the
+- The `<ubuntu-ai-system-administrator-reactivation>` block may appear anywhere in the
   reply; it does not need to be the final text. The runtime removes all
   such blocks from the visible answer. If more than one appears, only
   the last request is activated, so make the final block authoritative.

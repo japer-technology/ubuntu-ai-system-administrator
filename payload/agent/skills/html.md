@@ -21,7 +21,7 @@ Operating rules:
   `network_change`. `python3 -m http.server` binds `0.0.0.0` by default
   and would publish the directory to the LAN — bind `127.0.0.1`
   explicitly if a server is genuinely needed, and say when it stops.
-- Do not edit the chat UI. `${ZOMBIE_DIR}/agent/templates/index.html`
+- Do not edit the chat UI. `${AI_SYS_ADMIN_DIR}/agent/templates/index.html`
   is the product's own single-page interface; it is shipped by the
   installer, replaced on `repair`, and changing it from inside the
   conversation modifies the surface the operator uses to supervise the

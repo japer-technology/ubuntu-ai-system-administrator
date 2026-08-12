@@ -11,7 +11,7 @@ The operator owns:
 - the physical machine,
 - the LLM provider account and API key,
 - the chat-UI password,
-- `/opt/ai-zombie/secrets/env`.
+- `/opt/ai-system-administrator/secrets/env`.
 
 The token provider (cloud LLM vendor) authenticates the AI Systems
 Administrator. The provider does **not** own the machine.
@@ -23,9 +23,9 @@ machine.
 
 Treat these credentials with root-level care:
 
-- the LLM provider API key in `/opt/ai-zombie/secrets/env`;
+- the LLM provider API key in `/opt/ai-system-administrator/secrets/env`;
 - the chat-UI password (stored only as a PBKDF2 hash in
-  `/opt/ai-zombie/secrets/env`).
+  `/opt/ai-system-administrator/secrets/env`).
 
 ## What the provider sees
 
@@ -54,7 +54,7 @@ The provider does not see:
 
 - the LLM API key beyond your own account scope;
 - the chat-UI password;
-- files under `/opt/ai-zombie/secrets/`;
+- files under `/opt/ai-system-administrator/secrets/`;
 - audit log contents (the audit log is local-only).
 
 ## What the `agent` user can do
@@ -63,14 +63,14 @@ The provider does not see:
 - Read and write any file the desktop session can reach.
 - Listen on `127.0.0.1` for the chat UI.
 
-The MVP adds a policy gate (`/etc/ubuntu-zombie/policy.yaml`) and an
+The MVP adds a policy gate (`/etc/ubuntu-ai-system-administrator/policy.yaml`) and an
 approval flow between the AI and `sudo`. Read-only diagnostics run
 automatically; everything else requires approval; destructive actions
 require a confirmation phrase. See `ARCHITECTURE.md` for the classes.
 
 ## Network exposure
 
-- Chat (default port 7878): bound to `127.0.0.1` only.
+- Chat (default port 57878): bound to `127.0.0.1` only.
 
 The default install does not provision SSH, Tailscale, VNC, a
 configured firewall, or any other inbound network surface. The default
@@ -83,7 +83,7 @@ yourself).
 
 | Credential          | How to rotate                                   |
 | ------------------- | ----------------------------------------------- |
-| LLM provider key    | `sudo /opt/ai-zombie/bin/secrets-edit`, then `systemctl restart ubuntu-zombie-chat` |
+| LLM provider key    | `sudo /opt/ai-system-administrator/bin/secrets-edit`, then `systemctl restart ubuntu-ai-system-administrator-chat` |
 | Chat-UI password    | Use the `/password` chat command, or re-run the installer |
 
 ## Revoking the agent
@@ -91,7 +91,7 @@ yourself).
 Minimum: remove every provider API key, then restart the chat
 service. The chat will load but refuse to reach a provider.
 
-Stronger: `sudo systemctl disable --now ubuntu-zombie-chat.service`.
+Stronger: `sudo systemctl disable --now ubuntu-ai-system-administrator-chat.service`.
 
 Strongest: `sudo ./scripts/install.sh uninstall`. The uninstaller removes
 the chat service, sudoers drop-in, and generated helpers, optionally
@@ -114,13 +114,13 @@ removing the `agent` user and archiving state.
 
 ## Audit and observability
 
-- `/var/log/ubuntu-zombie/audit.log` — JSON-lines record of prompts,
+- `/var/log/ubuntu-ai-system-administrator/audit.log` — JSON-lines record of prompts,
   proposed actions, approvals, commands, exit codes, and verification
   results. Rotated by `logrotate`. Secrets are redacted at write
   time.
-- `/opt/ai-zombie/bin/audit-recent` — quick view of recent activity.
-- `/opt/ai-zombie/bin/health-check` — one-shot health summary.
-- `/opt/ai-zombie/bin/collect-diagnostics` — bundle for bug reports;
+- `/opt/ai-system-administrator/bin/audit-recent` — quick view of recent activity.
+- `/opt/ai-system-administrator/bin/health-check` — one-shot health summary.
+- `/opt/ai-system-administrator/bin/collect-diagnostics` — bundle for bug reports;
   secrets are redacted.
 
 ## Responsible disclosure

@@ -6,7 +6,7 @@
 # agent account (default `~/agent-env`).
 #
 # Run as the AGENT_USER (not root):
-#   runuser -l "${AGENT_USER}" -- "${ZOMBIE_DIR}/bin/setup-agent-venv"
+#   runuser -l "${AGENT_USER}" -- "${AI_SYS_ADMIN_DIR}/bin/setup-agent-venv"
 #
 # This script is intentionally idempotent and retries transient pip
 # failures with exponential backoff.
@@ -25,7 +25,7 @@ installs the small standard operator toolkit into it, retrying
 transient pip failures with exponential backoff. Idempotent.
 
 Run as the agent user, not root:
-  runuser -l "\${AGENT_USER}" -- "\${ZOMBIE_DIR}/bin/setup-agent-venv"
+  runuser -l "\${AGENT_USER}" -- "\${AI_SYS_ADMIN_DIR}/bin/setup-agent-venv"
 
 Environment:
   VENV_DIR    Virtualenv location (default ~/agent-env).

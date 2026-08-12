@@ -9,7 +9,7 @@ browser automation.
 
 Use a disposable Ubuntu Desktop LTS machine. The installer creates a
 root-capable local account, sudoers policy, systemd units, logs, and
-state under `/opt/ai-zombie`.
+state under `/opt/ai-system-administrator`.
 
 You need:
 
@@ -37,8 +37,8 @@ chat password, Time to Live, receipt path, and local LLM settings.
 For unattended installs:
 
 ```bash
-sudo ZOMBIE_NONINTERACTIVE=1 \
-     ZOMBIE_ADMIN_PASSWORD='replace-me' \
+sudo AI_SYS_ADMIN_NONINTERACTIVE=1 \
+     AI_SYS_ADMIN_ADMIN_PASSWORD='replace-me' \
      ./scripts/install.sh install --yes
 ```
 
@@ -46,19 +46,19 @@ sudo ZOMBIE_NONINTERACTIVE=1 \
 
 | Parameter | Default | Required |
 | --------- | ------- | -------- |
-| `ZOMBIE_USER` | `zombie` | No |
-| `ZOMBIE_DIR` | `/opt/ai-zombie` | No |
-| `ZOMBIE_CHAT_PORT` | `7878` | No |
-| `ZOMBIE_ADMIN_PASSWORD` | `braaaains` | No |
-| `ZOMBIE_TTL_DAYS` | `7` | No |
-| `ZOMBIE_RECEIPT_FILE` | `/var/log/ubuntu-zombie/install-receipt.txt` | No |
+| `AI_SYS_ADMIN_USER` | `ai-sys-admin` | No |
+| `AI_SYS_ADMIN_DIR` | `/opt/ai-system-administrator` | No |
+| `AI_SYS_ADMIN_CHAT_PORT` | `57878` | No |
+| `AI_SYS_ADMIN_ADMIN_PASSWORD` | `change-me-now` | No |
+| `AI_SYS_ADMIN_TTL_DAYS` | `7` | No |
+| `AI_SYS_ADMIN_RECEIPT_FILE` | `/var/log/ubuntu-ai-system-administrator/install-receipt.txt` | No |
 
 ## Add an LLM provider key
 
 After install, edit the secrets file:
 
 ```bash
-sudo /opt/ai-zombie/bin/secrets-edit
+sudo /opt/ai-system-administrator/bin/secrets-edit
 ```
 
 Set the provider variables documented in
@@ -66,7 +66,7 @@ Set the provider variables documented in
 restart the service:
 
 ```bash
-sudo systemctl restart ubuntu-zombie-chat.service
+sudo systemctl restart ubuntu-ai-system-administrator-chat.service
 ```
 
 ## Open chat
@@ -74,13 +74,13 @@ sudo systemctl restart ubuntu-zombie-chat.service
 On the Ubuntu AI System Administrator desktop, open:
 
 ```text
-http://127.0.0.1:7878/
+http://127.0.0.1:57878/
 ```
 
 or run:
 
 ```bash
-/opt/ai-zombie/bin/zombie-chat
+/opt/ai-system-administrator/bin/chat
 ```
 
 The service is intentionally loopback-only. If you need remote access,
@@ -102,8 +102,8 @@ sudo ./scripts/install.sh repair
 ## Health and diagnostics
 
 ```bash
-/opt/ai-zombie/bin/health-check
-/opt/ai-zombie/bin/collect-diagnostics
+/opt/ai-system-administrator/bin/health-check
+/opt/ai-system-administrator/bin/collect-diagnostics
 ```
 
 Diagnostics are redacted before being bundled.

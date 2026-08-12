@@ -13,7 +13,7 @@ Operating rules:
   left the machine. Confirm a secret's *presence* (file exists, mode
   `0600`, variable set) instead of its value.
 - Ubuntu AI System Administrator's own keys live in
-  `${ZOMBIE_DIR}/secrets/env`, mode `0600`, owned by the agent account.
+  `${AI_SYS_ADMIN_DIR}/secrets/env`, mode `0600`, owned by the agent account.
   The supported way to change them
   is `sudo secrets-edit`, which backs the file up, opens an editor and
   re-asserts ownership and mode afterwards. Do not `cat` it, do not

@@ -39,7 +39,7 @@ else (firewall, systemd sandboxing) already permits egress.
 - **OS networking.** The default install configures no host firewall,
   and outbound HTTP/HTTPS is not blocked (`scripts/install.sh`). The
   chat service listens on loopback only; egress is unrestricted.
-- **systemd sandbox.** `payload/systemd/ubuntu-zombie-chat.service`
+- **systemd sandbox.** `payload/systemd/ubuntu-ai-system-administrator-chat.service`
   deliberately ships with no network confinement — there is no
   `PrivateNetwork`, `IPAddressDeny`, or `RestrictAddressFamilies`. The
   service can open sockets to the internet.

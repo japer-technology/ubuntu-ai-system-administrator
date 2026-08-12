@@ -1,4 +1,4 @@
-/var/log/ubuntu-zombie/audit.log {
+/var/log/ubuntu-ai-system-administrator/audit.log {
     weekly
     rotate 8
     compress
@@ -12,7 +12,7 @@
     endscript
 }
 
-/var/log/ubuntu-zombie-install.log {
+/var/log/ubuntu-ai-system-administrator-install.log {
     monthly
     rotate 4
     compress
@@ -26,7 +26,7 @@
 # under the state directory and are owned by the agent user (the
 # chat service does not run as root). One file per service start /
 # turn keeps each log small; rotation just culls stale ones.
-__ZOMBIE_DIR__/state/logs/pi-mono.*.log {
+__AI_SYS_ADMIN_DIR__/state/logs/pi-mono.*.log {
     daily
     rotate 14
     compress

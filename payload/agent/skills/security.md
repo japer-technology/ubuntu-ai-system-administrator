@@ -42,5 +42,5 @@ Operating rules:
   evidence of a CVE. Cite the Ubuntu security tracker or
   `pro security-status` instead.
 - When the operator asks what the agent itself has done, read
-  `/var/log/ubuntu-zombie/audit.log` rather than summarising from
+  `/var/log/ubuntu-ai-system-administrator/audit.log` rather than summarising from
   memory.

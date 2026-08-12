@@ -20,14 +20,14 @@ sys.path.insert(0, str(AGENT_DIR))
 
 
 @pytest.fixture(autouse=True)
-def _zombie_policy_env(monkeypatch: pytest.MonkeyPatch) -> None:
+def _ai_sys_admin_policy_env(monkeypatch: pytest.MonkeyPatch) -> None:
     """Point the policy loader at the in-tree YAML so tests don't need
-    /etc/ubuntu-zombie/policy.yaml on the filesystem.
+    /etc/ubuntu-ai-system-administrator/policy.yaml on the filesystem.
     """
-    monkeypatch.setenv("ZOMBIE_POLICY", str(POLICY_FILE))
+    monkeypatch.setenv("AI_SYS_ADMIN_POLICY", str(POLICY_FILE))
     # Ensure no stale audit log path leaks from a previous test.
-    monkeypatch.delenv("ZOMBIE_AUDIT_LOG", raising=False)
-    monkeypatch.delenv("ZOMBIE_AUDIT_VERBOSE", raising=False)
+    monkeypatch.delenv("AI_SYS_ADMIN_AUDIT_LOG", raising=False)
+    monkeypatch.delenv("AI_SYS_ADMIN_AUDIT_VERBOSE", raising=False)
 
 
 @pytest.fixture

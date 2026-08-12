@@ -4,8 +4,8 @@
 set -euo pipefail
 
 resolve_install_root() {
-  if [[ -n "${ZOMBIE_DIR:-}" ]]; then
-    printf '%s\n' "${ZOMBIE_DIR}"
+  if [[ -n "${AI_SYS_ADMIN_DIR:-}" ]]; then
+    printf '%s\n' "${AI_SYS_ADMIN_DIR}"
     return
   fi
   local script_path candidate
@@ -14,16 +14,16 @@ resolve_install_root() {
   if candidate="$(cd -- "$(dirname -- "${script_path}")/.." 2>/dev/null && pwd)"; then
     if [[ "${candidate##*/}" == "payload" \
         && -f "${candidate}/../scripts/install.sh" ]]; then
-      printf '%s\n' "/opt/ai-zombie"
+      printf '%s\n' "/opt/ai-system-administrator"
     else
       printf '%s\n' "${candidate}"
     fi
   else
-    printf '%s\n' "/opt/ai-zombie"
+    printf '%s\n' "/opt/ai-system-administrator"
   fi
 }
 
-ZOMBIE_DIR="$(resolve_install_root)"
+AI_SYS_ADMIN_DIR="$(resolve_install_root)"
 
 usage() {
   cat <<EOF
@@ -32,7 +32,7 @@ collect-diagnostics — bundle redacted logs and state for a bug report.
 Usage:
   collect-diagnostics [-h|--help]
 
-Writes a tarball to \${TMPDIR:-/tmp}/ubuntu-zombie-diagnostics-<stamp>.tar.gz
+Writes a tarball to \${TMPDIR:-/tmp}/ubuntu-ai-system-administrator-diagnostics-<stamp>.tar.gz
 containing system info, service status, journal excerpts, the installer
 log, the audit log, and the policy file. Token-shaped values (API keys,
 SSH keys, KEY/TOKEN/PASSWORD/SECRET assignments) are redacted before
@@ -40,7 +40,7 @@ write.
 
 Environment:
   TMPDIR       Output directory for the bundle (default /tmp).
-  ZOMBIE_DIR   Install root (auto-detected; default /opt/ai-zombie).
+  AI_SYS_ADMIN_DIR   Install root (auto-detected; default /opt/ai-system-administrator).
 
 Review the bundle before sharing it.
 EOF
@@ -54,8 +54,8 @@ esac
 
 OUT_DIR="${TMPDIR:-/tmp}"
 STAMP="$(date -u +%Y%m%d-%H%M%S)"
-BUNDLE_DIR="$(mktemp -d "${OUT_DIR}/ubuntu-zombie-diagnostics-${STAMP}.XXXX")"
-TARBALL="${OUT_DIR}/ubuntu-zombie-diagnostics-${STAMP}.tar.gz"
+BUNDLE_DIR="$(mktemp -d "${OUT_DIR}/ubuntu-ai-system-administrator-diagnostics-${STAMP}.XXXX")"
+TARBALL="${OUT_DIR}/ubuntu-ai-system-administrator-diagnostics-${STAMP}.tar.gz"
 
 # FIX-3-23: clean up the staging directory on every exit path (tar
 # failure, signal, success), not just when the explicit `rm -rf` at
@@ -93,24 +93,24 @@ capture lsb-release.txt         lsb_release -a
 capture df.txt                  df -h
 capture free.txt                free -h
 capture systemctl-failed.txt    systemctl --failed --no-pager
-capture systemctl-zombie.txt    systemctl status ubuntu-zombie-chat.service ubuntu-zombie-health.timer --no-pager
-capture journal-zombie.txt      journalctl -u ubuntu-zombie-chat.service -n 400 --no-pager
-capture verify.txt              "${ZOMBIE_DIR}/bin/verify"
-capture health.txt              "${ZOMBIE_DIR}/bin/health-check"
+capture systemctl-ai-system-administrator.txt    systemctl status ubuntu-ai-system-administrator-chat.service ubuntu-ai-system-administrator-health.timer --no-pager
+capture journal-ai-system-administrator.txt      journalctl -u ubuntu-ai-system-administrator-chat.service -n 400 --no-pager
+capture verify.txt              "${AI_SYS_ADMIN_DIR}/bin/verify"
+capture health.txt              "${AI_SYS_ADMIN_DIR}/bin/health-check"
 
 # Installer log
-if [[ -r /var/log/ubuntu-zombie-install.log ]]; then
-  redact < /var/log/ubuntu-zombie-install.log > "${BUNDLE_DIR}/install.log"
+if [[ -r /var/log/ubuntu-ai-system-administrator-install.log ]]; then
+  redact < /var/log/ubuntu-ai-system-administrator-install.log > "${BUNDLE_DIR}/install.log"
 fi
 
 # Audit log (already redacted at write, but redact again defensively)
-if [[ -r /var/log/ubuntu-zombie/audit.log ]]; then
-  redact < /var/log/ubuntu-zombie/audit.log > "${BUNDLE_DIR}/audit.log"
+if [[ -r /var/log/ubuntu-ai-system-administrator/audit.log ]]; then
+  redact < /var/log/ubuntu-ai-system-administrator/audit.log > "${BUNDLE_DIR}/audit.log"
 fi
 
 # Policy (no secrets in policy file by design)
-if [[ -r /etc/ubuntu-zombie/policy.yaml ]]; then
-  cp /etc/ubuntu-zombie/policy.yaml "${BUNDLE_DIR}/policy.yaml"
+if [[ -r /etc/ubuntu-ai-system-administrator/policy.yaml ]]; then
+  cp /etc/ubuntu-ai-system-administrator/policy.yaml "${BUNDLE_DIR}/policy.yaml"
 fi
 
 # Package versions

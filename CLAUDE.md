@@ -11,11 +11,11 @@ Quick reminders specific to working in this repo:
   pass. They are the same checks CI runs.
 - Do **not** execute `scripts/install.sh install`, `make
   install-local`, `scripts/uninstall.sh`, or any helper under
-  `/opt/ai-zombie/` from an agent environment or any machine you
+  `/opt/ai-system-administrator/` from an agent environment or any machine you
   are not prepared to wipe — they mutate a real Ubuntu Desktop
   system. Use a disposable VM.
 - The installer must stay idempotent and must work with
-  `ZOMBIE_NONINTERACTIVE=1`. Any privileged behaviour goes through
+  `AI_SYS_ADMIN_NONINTERACTIVE=1`. Any privileged behaviour goes through
   the policy gate (`payload/agent/policy.py`) and the audit log
   (`payload/agent/audit.py`).
 - No secrets in commits; CI scans for `sk-…`, `sk-ant-…`, and

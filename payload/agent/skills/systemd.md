@@ -17,7 +17,7 @@ Operating rules:
   `shell.run` with `journalctl -u <unit> -n 100 --no-pager` over
   unbounded tails. Always include `--no-pager` so the output is
   captured.
-- Never disable `ubuntu-zombie-chat.service` without explicit operator
+- Never disable `ubuntu-ai-system-administrator-chat.service` without explicit operator
   approval; it is the product's only access surface.
 - For new units, do not write directly into `/etc/systemd/system/`;
   describe the change and ask the operator to land it through the

@@ -8,8 +8,8 @@ Before opening anything, run:
 
 ```bash
 sudo ./scripts/install.sh doctor          # explain what is wrong
-/opt/ai-zombie/bin/health-check           # runtime health
-sudo /opt/ai-zombie/bin/collect-diagnostics # bundle logs (writes /tmp)
+/opt/ai-system-administrator/bin/health-check           # runtime health
+sudo /opt/ai-system-administrator/bin/collect-diagnostics # bundle logs (writes /tmp)
 ```
 
 Many issues are answered directly in:
@@ -40,7 +40,7 @@ Include:
 
 1. Output of `cat /etc/os-release | head -3` (or `lsb_release -a`).
 2. Output of `sudo ./scripts/install.sh doctor`.
-3. The bundle written by `sudo /opt/ai-zombie/bin/collect-diagnostics`
+3. The bundle written by `sudo /opt/ai-system-administrator/bin/collect-diagnostics`
    (sanitised — see the script for the redaction list).
 4. The exact command you ran and what you expected to happen.
 

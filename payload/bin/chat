@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# zombie-chat — print the local chat URL and the
+# chat — print the local chat URL and the
 # operator's debugging entry points. This is the single command a
 # tester should run to discover every diagnostic surface the payload
 # ships with.
@@ -7,26 +7,26 @@ set -euo pipefail
 
 usage() {
   cat <<EOF
-zombie-chat — print the local chat URL and every diagnostic entry point.
+chat — print the local chat URL and every diagnostic entry point.
 
 Usage:
-  zombie-chat [-h|--help]
+  chat [-h|--help]
 
 Environment:
-  ZOMBIE_CHAT_PORT    Chat port to show in the URL (default 7878).
-  ZOMBIE_DIR          Install root (auto-detected; default /opt/ai-zombie).
+  AI_SYS_ADMIN_CHAT_PORT    Chat port to show in the URL (default 57878).
+  AI_SYS_ADMIN_DIR          Install root (auto-detected; default /opt/ai-system-administrator).
 EOF
 }
 
 case "${1:-}" in
   -h|--help) usage; exit 0 ;;
   "") ;;
-  *) echo "zombie-chat: unknown argument: $1" >&2; usage >&2; exit 2 ;;
+  *) echo "chat: unknown argument: $1" >&2; usage >&2; exit 2 ;;
 esac
 
 resolve_install_root() {
-  if [[ -n "${ZOMBIE_DIR:-}" ]]; then
-    printf '%s\n' "${ZOMBIE_DIR}"
+  if [[ -n "${AI_SYS_ADMIN_DIR:-}" ]]; then
+    printf '%s\n' "${AI_SYS_ADMIN_DIR}"
     return
   fi
   local script_path candidate
@@ -35,17 +35,17 @@ resolve_install_root() {
   if candidate="$(cd -- "$(dirname -- "${script_path}")/.." 2>/dev/null && pwd)"; then
     if [[ "${candidate##*/}" == "payload" \
         && -f "${candidate}/../scripts/install.sh" ]]; then
-      printf '%s\n' "/opt/ai-zombie"
+      printf '%s\n' "/opt/ai-system-administrator"
     else
       printf '%s\n' "${candidate}"
     fi
   else
-    printf '%s\n' "/opt/ai-zombie"
+    printf '%s\n' "/opt/ai-system-administrator"
   fi
 }
 
-ZOMBIE_DIR="$(resolve_install_root)"
-PORT="${ZOMBIE_CHAT_PORT:-7878}"
+AI_SYS_ADMIN_DIR="$(resolve_install_root)"
+PORT="${AI_SYS_ADMIN_CHAT_PORT:-57878}"
 cat <<EOF
 Ubuntu AI System Administrator
 ------------------------------
@@ -54,14 +54,14 @@ Local URL:
   http://127.0.0.1:${PORT}/
 
 Service control:
-  sudo systemctl status ubuntu-zombie-chat.service
-  sudo systemctl restart ubuntu-zombie-chat.service
-  sudo journalctl -u ubuntu-zombie-chat.service -f
+  sudo systemctl status ubuntu-ai-system-administrator-chat.service
+  sudo systemctl restart ubuntu-ai-system-administrator-chat.service
+  sudo journalctl -u ubuntu-ai-system-administrator-chat.service -f
 
 Health and diagnostics:
-  zombie-health                       # one-shot health summary
-  zombie-diagnostics                  # bundle redacted logs + state for bug reports
-  sudo ${ZOMBIE_DIR}/bin/secrets-edit    # safely edit provider keys
+  ai-system-administrator-health                       # one-shot health summary
+  ai-system-administrator-diagnostics                  # bundle redacted logs + state for bug reports
+  sudo ${AI_SYS_ADMIN_DIR}/bin/secrets-edit    # safely edit provider keys
 
 Audit log:
   audit-recent                        # last 25 entries (pretty)
@@ -70,10 +70,10 @@ Audit log:
   audit-recent --all                  # full log
 
 Verbose audit (for testing only — opt in on the chat service):
-  sudo systemctl edit ubuntu-zombie-chat.service
+  sudo systemctl edit ubuntu-ai-system-administrator-chat.service
     # add: [Service]
-    #      Environment=ZOMBIE_AUDIT_VERBOSE=1
-  sudo systemctl restart ubuntu-zombie-chat.service
+    #      Environment=AI_SYS_ADMIN_AUDIT_VERBOSE=1
+  sudo systemctl restart ubuntu-ai-system-administrator-chat.service
   # tool_call entries then include redacted stdout/stderr previews.
 
 EOF

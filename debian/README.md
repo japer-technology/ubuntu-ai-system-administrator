@@ -1,26 +1,26 @@
 # Ubuntu AI System Administrator — Debian packaging
 
 This directory holds the metadata used by `make deb` to produce an
-installable `ubuntu-zombie` compatibility package of the source tree.
+installable `ubuntu-ai-system-administrator` compatibility package of the source tree.
 
 The `.deb` is intentionally a **stage-1** package: it copies the
-installer, payload, and documentation to `/usr/share/ubuntu-zombie/`
-and exposes a thin wrapper at `/usr/sbin/ubuntu-zombie` that delegates
+installer, payload, and documentation to `/usr/share/ubuntu-ai-system-administrator/`
+and exposes a thin wrapper at `/usr/sbin/ubuntu-ai-system-administrator` that delegates
 to `scripts/install.sh`. It deliberately does **not** run the full
 installer at `apt install` time, because the installer creates a
 root-capable service account, writes sudoers and systemd configuration,
 installs runtime dependencies, and creates state under
-`/opt/ai-zombie` and `/etc/ubuntu-zombie`. Those changes require an
+`/opt/ai-system-administrator` and `/etc/ubuntu-ai-system-administrator`. Those changes require an
 explicit operator decision.
 
 After installing the package:
 
 ```bash
-sudo apt install ./ubuntu-zombie_<version>_all.deb
-sudo ubuntu-zombie install
+sudo apt install ./ubuntu-ai-system-administrator_<version>_all.deb
+sudo ubuntu-ai-system-administrator install
 ```
 
-`sudo ubuntu-zombie {install|verify|doctor|repair|uninstall|--dry-run}`
+`sudo ubuntu-ai-system-administrator {install|verify|doctor|repair|uninstall|--dry-run}`
 behaves identically to invoking `scripts/install.sh` directly from a
 git clone.
 

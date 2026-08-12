@@ -23,7 +23,7 @@ flowchart TD
 
 The baseline product access
 surface is the chat service on
-`127.0.0.1:${AI_SYS_ADMIN_CHAT_PORT:-57878}`.
+`127.0.0.1:57878`.
 
 ## Runtime components
 

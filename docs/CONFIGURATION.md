@@ -381,7 +381,7 @@ below (look for the `AI_SYS_ADMIN_PI_MONO_*` variables).
 
 ## Chat access
 
-The chat UI is served at `http://127.0.0.1:${AI_SYS_ADMIN_CHAT_PORT:-57878}/`.
+The chat UI is served at `http://127.0.0.1:57878/` by default.
 On a shared desktop every local user can reach the loopback socket, so the UI is protected
 by a **password gate**: the installer asks for a chat password (default
 `change-me-now`) and stores only a PBKDF2 hash as

@@ -70,7 +70,7 @@ fi
 build_jq_filter() {
   cat <<JQ
 select(
-  ($ARGS.positional | length) == 0 or
+  (\$ARGS.positional | length) == 0 or
   (.type as \$type | \$ARGS.positional | index(\$type) != null)
 ) |
 def color(t):

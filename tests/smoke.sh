@@ -2858,8 +2858,10 @@ EOF
   ln -s "$(command -v cat)" "${td}/bin/cat"
   ln -s "$(command -v tail)" "${td}/bin/tail"
   ln -s "$(command -v grep)" "${td}/bin/grep"
+  local bash_path
+  bash_path="$(command -v bash)"
   out="$(PATH="${td}/bin" AI_SYS_ADMIN_AUDIT_LOG="${td}/audit.log" \
-    bash payload/bin/audit-recent -t 'tool_call" or true or "')"
+    "${bash_path}" payload/bin/audit-recent -t 'tool_call" or true or "')"
   if [[ -n "${out}" ]]; then
     rm -rf "${td}"
     echo "FAIL: audit-recent fallback interpreted an event type as a regex" >&2

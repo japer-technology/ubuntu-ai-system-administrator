@@ -93,8 +93,8 @@ def _save_raw(data: dict[str, Any]) -> None:
     tmp.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
     os.replace(tmp, path)
     # The lifecycle file is not a secret, but keep it owner-only so a
-    # non-privileged local user cannot edit the expiry to keep the
-    # Keep the AI System Administrator active past its TTL.
+    # non-privileged local user cannot edit the expiry to keep the AI
+    # System Administrator active past its TTL.
     try:
         os.chmod(path, 0o600)
     except OSError:  # pragma: no cover - best effort on odd filesystems

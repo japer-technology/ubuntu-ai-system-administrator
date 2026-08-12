@@ -21,8 +21,7 @@ flowchart TD
     installer --> sudoers["/etc/sudoers.d/<br/>passwordless sudo for the agent account"]
 ```
 
-The default install does **not** provision SSH, Tailscale, VNC, Docker,
-graphical autologin, or GUI automation. The baseline product access
+The baseline product access
 surface is the chat service on
 `127.0.0.1:${AI_SYS_ADMIN_CHAT_PORT:-57878}`.
 

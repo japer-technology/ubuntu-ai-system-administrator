@@ -1,9 +1,7 @@
 # Quickstart
 
 Ubuntu AI System Administrator installs a local AI Systems Administrator account and a
-password-protected chat service bound to `127.0.0.1`. It does not install
-or configure SSH, Tailscale, VNC, Docker, graphical autologin, or GUI
-browser automation.
+password-protected chat service bound to `127.0.0.1`.
 
 ## Before you start
 

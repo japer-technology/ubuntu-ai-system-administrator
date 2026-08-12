@@ -32,6 +32,4 @@ Provider API keys are added after installation with
 
 The installer uses Ubuntu packages for Python, systemd integration,
 common build/runtime tools, and NodeSource Node.js 22.x for the pi
-bridges. It no longer installs SSH server hardening, Tailscale, VNC,
-Docker, graphical autologin, browser automation, or GUI-control package
-sets.
+bridges.

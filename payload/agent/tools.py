@@ -240,7 +240,9 @@ def _shim_fs_read(args: dict[str, Any]) -> dict[str, Any]:
         raise SchemaError(f"fs.read: {raw} outside readable allow-list")
     if _denied_read(path):
         raise SchemaError(f"fs.read: {raw} is denied (process environment)")
-    max_bytes = int(args.get("max_bytes") or 65536)
+    max_bytes = int(args.get("max_bytes", 65536))
+    if max_bytes < 1:
+        raise SchemaError("fs.read: max_bytes must be positive")
     data = path.read_bytes()
     truncated = len(data) > max_bytes
     body = data[:max_bytes].decode("utf-8", errors="replace")
@@ -255,7 +257,7 @@ def _shim_fs_list(args: dict[str, Any]) -> dict[str, Any]:
         raise SchemaError(f"fs.list: {raw} outside readable allow-list")
     if not path.is_dir():
         raise SchemaError(f"fs.list: {path} is not a directory")
-    max_entries = int(args.get("max_entries") or 1000)
+    max_entries = int(args.get("max_entries", 1000))
     if max_entries < 1:
         raise SchemaError("fs.list: max_entries must be positive")
     entries: list[dict[str, Any]] = []
@@ -459,7 +461,7 @@ def _shim_web_fetch(args: dict[str, Any]) -> dict[str, Any]:
     method = str(args.get("method") or "GET").upper()
     if method not in ("GET", "HEAD"):
         raise SchemaError(f"web.fetch: method {method!r} is not allowed")
-    max_bytes = int(args.get("max_bytes") or WEB_FETCH_DEFAULT_BYTES)
+    max_bytes = int(args.get("max_bytes", WEB_FETCH_DEFAULT_BYTES))
     if max_bytes <= 0:
         raise SchemaError("web.fetch: max_bytes must be positive")
     max_bytes = min(max_bytes, WEB_FETCH_MAX_BYTES)

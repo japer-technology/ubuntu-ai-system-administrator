@@ -69,6 +69,7 @@ redact() {
     -e 's/sk-[A-Za-z0-9_-]{12,}/sk-***REDACTED***/g' \
   -e 's/tskey-[A-Za-z0-9_-]{12,}/tskey-***REDACTED***/g' \
   -e 's/(ssh-(rsa|ed25519|dss)) [A-Za-z0-9+/=]{20,}( ?.*)?/\1 ***REDACTED***/g' \
+  -e 's/(admin_password_hash|printf '\''%s\\n'\'').*/\1 ***REDACTED***/' \
   -e 's/((API[_-]?KEY|TOKEN|AUTHKEY|PASSWORD|SECRET)([[:space:]]*[:=][[:space:]]*))[^[:space:]]+/\1***REDACTED***/Ig'
 }
 

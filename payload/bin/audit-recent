@@ -63,24 +63,16 @@ if [[ ! -r "${AUDIT_LOG}" ]]; then
   exit 1
 fi
 
-# Build the jq filter once. If --type was supplied, drop everything
-# that does not match. Then format each entry for human eyes. When
+# Build the jq filter once. Then format each entry for human eyes. When
 # stdout_preview / stderr_preview is present (AI_SYS_ADMIN_AUDIT_VERBOSE=1
 # on the writer side), show a trimmed first line so testers see what
 # the AI actually ran without grepping by SHA-256.
 build_jq_filter() {
-  local type_filter=""
-  if (( ${#TYPES[@]} > 0 )); then
-    local conds=""
-    local t
-    for t in "${TYPES[@]}"; do
-      if [[ -n "${conds}" ]]; then conds="${conds} or "; fi
-      conds="${conds}.type == \"${t}\""
-    done
-    type_filter="select(${conds}) |"
-  fi
   cat <<JQ
-${type_filter}
+select(
+  (\$ARGS.positional | length) == 0 or
+  (.type as \$type | \$ARGS.positional | index(\$type) != null)
+) |
 def color(t):
   if t == "prompt"          then "\u001b[36m"
   elif t == "proposal"      then "\u001b[33m"
@@ -107,19 +99,20 @@ JQ
 
 format_lines() {
   if command -v jq >/dev/null 2>&1; then
-    jq -r "$(build_jq_filter)"
+    jq -r "$(build_jq_filter)" --args "${TYPES[@]}"
   else
-    # No jq → fall back to raw JSONL, but still honour --type by
-    # grepping on the serialised "type":"..." field. This is a
-    # best-effort match; jq is the recommended path.
+    # No jq → fall back to raw JSONL, but still honour --type without
+    # interpreting event-type text as a regular expression.
     if (( ${#TYPES[@]} > 0 )); then
-      local pat=""
-      local t
-      for t in "${TYPES[@]}"; do
-        if [[ -n "${pat}" ]]; then pat="${pat}|"; fi
-        pat="${pat}\"type\":\"${t}\""
+      local line t
+      while IFS= read -r line; do
+        for t in "${TYPES[@]}"; do
+          if [[ "${line}" == *"\"type\":\"${t}\""* ]]; then
+            printf '%s\n' "${line}"
+            break
+          fi
+        done
       done
-      grep -E -- "${pat}" || true
     else
       cat
     fi

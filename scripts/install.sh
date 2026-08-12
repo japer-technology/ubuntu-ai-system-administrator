@@ -1063,14 +1063,20 @@ admin_password_hash() {
 # password this run (ADMIN_PASSWORD_SET=1); an existing hash is otherwise
 # preserved so a plain re-install never resets a customised password.
 ensure_admin_password_hash() {
-  local file="$1" hash has_line=0
+  local file="$1" hash has_line=0 xtrace_was_enabled=0
   grep -q '^AI_SYS_ADMIN_ADMIN_PASSWORD_HASH=' "${file}" 2>/dev/null && has_line=1
   if [[ "${has_line}" -eq 1 && "${ADMIN_PASSWORD_SET}" != "1" ]]; then
     return 0
   fi
-  if ! hash="$(admin_password_hash "${ADMIN_PASSWORD:-${AI_SYS_ADMIN_ADMIN_PASSWORD_DEFAULT}}")"; then
+  [[ "$-" == *x* ]] && xtrace_was_enabled=1
+  (( xtrace_was_enabled )) && set +x
+  if hash="$(admin_password_hash "${ADMIN_PASSWORD:-${AI_SYS_ADMIN_ADMIN_PASSWORD_DEFAULT}}")"; then
+    :
+  else
+    (( xtrace_was_enabled )) && set -x
     die "Failed to hash the chat password." 1
   fi
+  (( xtrace_was_enabled )) && set -x
   if [[ "${has_line}" -eq 1 ]]; then
     sed -i -E '/^AI_SYS_ADMIN_ADMIN_PASSWORD_HASH=/d' "${file}"
   fi

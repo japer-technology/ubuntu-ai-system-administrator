@@ -160,6 +160,23 @@ if p.default_class != "destructive":
 # An unknown command must require operator approval.
 if not p.requires_approval(p.classify("foozle --bar")):
     raise SystemExit("fail-closed default no longer requires approval")
+# A typo in an operator-defined rule class must never turn its matching
+# command into the auto-approved read_only class.
+with tempfile.TemporaryDirectory() as directory:
+    invalid_class_path = Path(directory) / "policy.yaml"
+    invalid_class_path.write_text(
+        """\
+settings:
+  default_class: destructive
+rules:
+  - pattern: "^rm "
+    class: destrcutive
+""",
+        encoding="utf-8",
+    )
+    invalid_class_policy = policy.load_policy(invalid_class_path)
+    if invalid_class_policy.classify("rm -rf /tmp/example") != "destructive":
+        raise SystemExit("invalid policy rule class must fail closed")
 assert p.max_tool_calls_per_turn == 1000, p.max_tool_calls_per_turn
 assert p.max_elevated_calls_per_turn == 250, p.max_elevated_calls_per_turn
 assert p.max_turn_seconds == 86400, p.max_turn_seconds
@@ -294,6 +311,19 @@ try:
     raise SystemExit("shell.run timeout=False must be rejected as non-integer")
 except _t.SchemaError:
     pass
+# Explicit zero or negative output limits must not silently become defaults.
+for _tool, _args in (
+    ("fs.read", {"path": "/etc/os-release", "max_bytes": 0}),
+    ("fs.read", {"path": "/etc/os-release", "max_bytes": -1}),
+    ("fs.list", {"path": "/etc", "max_entries": 0}),
+    ("web.fetch", {"url": "https://example.com", "max_bytes": 0}),
+):
+    try:
+        _t.dispatch(_tool, _args)
+    except _t.SchemaError:
+        pass
+    else:
+        raise SystemExit(f"{_tool} must reject non-positive output limits")
 
 # ``_skills_dirs`` must not silently add the chat service's working
 # directory when ``AI_SYS_ADMIN_SKILLS_DIR`` is unset or empty.
@@ -2781,6 +2811,58 @@ run_diagnostics() {
   if find "${td}" -maxdepth 1 -type d -name 'ubuntu-ai-system-administrator-diagnostics-*' | grep -q .; then
     rm -rf "${td}"
     echo "FAIL: collect-diagnostics left its staging directory behind" >&2
+    exit 1
+  fi
+  rm -rf "${td}"
+
+  local redacted
+  redacted="$(
+    {
+      sed -n '/^redact() {/,/^}/p' payload/bin/collect-diagnostics
+      printf '%q ' printf '%s\n' \
+        '++ admin_password_hash test-chat-password' \
+        "++ printf '%s\\n' test-chat-password"
+      printf '%s\n' '| redact'
+    } | bash
+  )"
+  if [[ "${redacted}" == *test-chat-password* ]] \
+      || [[ "${redacted}" != *'***REDACTED***'* ]]; then
+    echo "FAIL: diagnostics redaction leaked a traced chat password" >&2
+    exit 1
+  fi
+
+  echo "[smoke] audit-recent type filtering"
+  td="$(mktemp -d)"
+  cat > "${td}/audit.log" <<'EOF'
+{"ts":"2026-01-01T00:00:00Z","type":"tool_call"}
+{"ts":"2026-01-01T00:00:01Z","type":"provider_error"}
+EOF
+  local out
+  out="$(AI_SYS_ADMIN_AUDIT_LOG="${td}/audit.log" \
+    bash payload/bin/audit-recent -t tool_call)"
+  if [[ "${out}" != *tool_call* || "${out}" == *provider_error* ]]; then
+    rm -rf "${td}"
+    echo "FAIL: audit-recent did not filter a valid event type" >&2
+    exit 1
+  fi
+  out="$(AI_SYS_ADMIN_AUDIT_LOG="${td}/audit.log" \
+    bash payload/bin/audit-recent -t 'tool_call" or true or "')"
+  if [[ -n "${out}" ]]; then
+    rm -rf "${td}"
+    echo "FAIL: audit-recent interpreted an event type as jq code" >&2
+    exit 1
+  fi
+  mkdir "${td}/bin"
+  ln -s "$(command -v cat)" "${td}/bin/cat"
+  ln -s "$(command -v tail)" "${td}/bin/tail"
+  ln -s "$(command -v grep)" "${td}/bin/grep"
+  local bash_path
+  bash_path="$(command -v bash)"
+  out="$(PATH="${td}/bin" AI_SYS_ADMIN_AUDIT_LOG="${td}/audit.log" \
+    "${bash_path}" payload/bin/audit-recent -t 'tool_call" or true or "')"
+  if [[ -n "${out}" ]]; then
+    rm -rf "${td}"
+    echo "FAIL: audit-recent fallback interpreted an event type as a regex" >&2
     exit 1
   fi
   rm -rf "${td}"

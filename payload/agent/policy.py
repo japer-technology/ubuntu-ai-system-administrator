@@ -164,7 +164,7 @@ class Policy:
 
         if not matches:
             return self.default_class
-        return _max_class(matches)
+        return _max_class(matches, self.default_class)
 
     def requires_approval(self, class_name: str) -> bool:
         return self.classes.get(class_name, ClassDef(class_name)).approval != "auto"
@@ -218,11 +218,13 @@ class Policy:
 # ----- argv-aware helpers (P0.1) ----------------------------------------
 
 
-def _max_class(names: Iterable[str]) -> str:
+def _max_class(names: Iterable[str], default_class: str) -> str:
     best = -1
-    best_name = "read_only"
+    best_name = default_class
     for name in names:
-        rank = _CLASS_RANK.get(name, -1)
+        rank = _CLASS_RANK.get(name)
+        if rank is None:
+            return default_class
         if rank > best:
             best = rank
             best_name = name

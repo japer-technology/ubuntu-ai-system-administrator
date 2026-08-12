@@ -2819,9 +2819,10 @@ run_diagnostics() {
   redacted="$(
     {
       sed -n '/^redact() {/,/^}/p' payload/bin/collect-diagnostics
-      printf '%s\n' \
+      printf '%q ' printf '%s\n' \
         '++ admin_password_hash test-chat-password' \
-        "++ printf '%s\\n' test-chat-password" | redact
+        "++ printf '%s\\n' test-chat-password"
+      printf '%s\n' '| redact'
     } | bash
   )"
   if [[ "${redacted}" == *test-chat-password* ]] \
